@@ -1,19 +1,18 @@
+"use client";
+
 import { Home, Compass, MessageCircle, User } from "lucide-react";
 import { motion } from "motion/react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
-type Tab = "home" | "guide" | "community" | "you";
+export function Navigation() {
+  const pathname = usePathname();
 
-interface NavigationProps {
-  activeTab: Tab;
-  onTabChange: (tab: Tab) => void;
-}
-
-export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   const tabs = [
-    { id: "home" as Tab, icon: Home, label: "Home" },
-    { id: "guide" as Tab, icon: Compass, label: "Guide" },
-    { id: "community" as Tab, icon: MessageCircle, label: "Community" },
-    { id: "you" as Tab, icon: User, label: "You" },
+    { id: "home", href: "/", icon: Home, label: "Home" },
+    { id: "guide", href: "/guide", icon: Compass, label: "Guide" },
+    { id: "community", href: "/community", icon: MessageCircle, label: "Community" },
+    { id: "you", href: "/you", icon: User, label: "You" },
   ];
 
   return (
@@ -21,13 +20,13 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
       <div className="max-w-md mx-auto px-4 pb-2 pt-3">
         <div className="flex items-center justify-around">
           {tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
+            const isActive = pathname === tab.href;
             const Icon = tab.icon;
 
             return (
-              <button
+              <Link
                 key={tab.id}
-                onClick={() => onTabChange(tab.id)}
+                href={tab.href}
                 className="relative flex flex-col items-center gap-1 py-2 px-4 transition-all duration-300 ease-out"
               >
                 {/* Active gradient glow background */}
@@ -78,7 +77,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
                 >
                   {tab.label}
                 </span>
-              </button>
+              </Link>
             );
           })}
         </div>

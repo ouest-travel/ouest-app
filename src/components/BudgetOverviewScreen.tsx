@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "motion/react";
 import { ArrowLeft, Plus, MoreVertical, DollarSign, TrendingUp, Edit, Trash2, Users } from "lucide-react";
 import { useState } from "react";
@@ -96,126 +98,6 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
     { id: "3", name: "Sandra", avatar: "👩🏽" },
     { id: "4", name: "Timmy", avatar: "👨🏾" },
   ];
-  
-  // Helper function kept for reference but not used anymore
-  const getDefaultExpenses = (tripId: number | null) => {
-    // Tokyo trip (id: 1)
-    if (tripId === 1) {
-      return [
-        {
-          id: "1",
-          title: "Sushi Zanmai Dinner",
-          amount: 120,
-          currency: "CAD",
-          category: "food" as const,
-          paidBy: "Timmy",
-          splitAmong: 4,
-          date: "2025-10-13",
-          hasChat: true,
-        },
-        {
-          id: "2",
-          title: "Subway Tickets",
-          amount: 45,
-          currency: "CAD",
-          category: "transport" as const,
-          paidBy: "Jason",
-          splitAmong: 4,
-          date: "2025-10-13",
-          hasChat: true,
-        },
-        {
-          id: "3",
-          title: "Hotel Check-in",
-          amount: 380,
-          currency: "CAD",
-          category: "stay" as const,
-          paidBy: "Sandra",
-          splitAmong: 4,
-          date: "2025-10-12",
-          hasChat: false,
-        },
-        {
-          id: "4",
-          title: "TeamLab Borderless Tickets",
-          amount: 95,
-          currency: "CAD",
-          category: "activities" as const,
-          paidBy: "Trey",
-          splitAmong: 4,
-          date: "2025-10-12",
-          hasChat: true,
-        },
-      ];
-    }
-    // Paris trip (id: 2)
-    else if (tripId === 2) {
-      return [
-        {
-          id: "p1",
-          title: "Eiffel Tower Tickets",
-          amount: 85,
-          currency: "EUR",
-          category: "activities" as const,
-          paidBy: "Trey",
-          splitAmong: 3,
-          date: "2026-01-11",
-          hasChat: false,
-        },
-        {
-          id: "p2",
-          title: "Metro Pass",
-          amount: 32,
-          currency: "EUR",
-          category: "transport" as const,
-          paidBy: "Sandra",
-          splitAmong: 3,
-          date: "2026-01-10",
-          hasChat: false,
-        },
-      ];
-    }
-    // Barcelona trip (id: 3)
-    else if (tripId === 3) {
-      return [
-        {
-          id: "b1",
-          title: "Sagrada Familia Tour",
-          amount: 140,
-          currency: "EUR",
-          category: "activities" as const,
-          paidBy: "Jason",
-          splitAmong: 4,
-          date: "2024-09-02",
-          hasChat: false,
-        },
-        {
-          id: "b2",
-          title: "Beachfront Dinner",
-          amount: 180,
-          currency: "EUR",
-          category: "food" as const,
-          paidBy: "Timmy",
-          splitAmong: 4,
-          date: "2024-09-03",
-          hasChat: false,
-        },
-        {
-          id: "b3",
-          title: "Airbnb Payment",
-          amount: 560,
-          currency: "EUR",
-          category: "stay" as const,
-          paidBy: "Sandra",
-          splitAmong: 4,
-          date: "2024-09-01",
-          hasChat: false,
-        },
-      ];
-    }
-    // Default for new trips
-    return [];
-  };
 
   const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const totalBudget = 3500;
@@ -243,7 +125,7 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
     setEditingExpense(null);
   };
 
-  const handleApplyConverterAmount = (amount: number, currency: string) => {
+  const handleApplyConverterAmount = (_amount: number, _currency: string) => {
     // Open add expense modal with pre-filled amount
     setShowConverter(false);
     setShowAddExpense(true);
@@ -281,7 +163,7 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
         // Group by person who paid
         const byPerson: Record<string, any[]> = {};
         expenses.forEach(expense => {
-          const paidBy = expense.paidBy || expense.paid_by;
+          const paidBy = (expense as any).paidBy || expense.paid_by;
           if (!byPerson[paidBy]) {
             byPerson[paidBy] = [];
           }
@@ -495,7 +377,7 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
                   expense={expense}
                   onViewChat={onViewChat}
                   onEdit={() => handleEditExpense(expense)}
-                  onDelete={() => setExpenses(expenses.filter(e => e.id !== expense.id))}
+                  onDelete={() => deleteExpense(expense.id)}
                 />
               </motion.div>
             ))

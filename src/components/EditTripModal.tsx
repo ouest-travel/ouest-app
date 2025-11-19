@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, MapPin, DollarSign, Calendar as CalendarIcon, Dice6 } from "lucide-react";

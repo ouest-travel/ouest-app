@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { motion } from "motion/react";
 import { 
@@ -5,7 +7,6 @@ import {
   MapPin, 
   Calendar as CalendarIcon, 
   DollarSign, 
-  Users, 
   Share2, 
   Image as ImageIcon,
   Globe,
@@ -20,7 +21,7 @@ import { Calendar } from "./ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 
 interface CreateTripFormProps {
   onClose: () => void;

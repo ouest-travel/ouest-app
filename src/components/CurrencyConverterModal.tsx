@@ -1,3 +1,5 @@
+"use client";
+
 import { X, RefreshCw, ExternalLink, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useState } from "react";
@@ -137,7 +139,6 @@ export function CurrencyConverterModal({ isOpen, onClose, onApplyToExpense }: Cu
                       value={fromCurrency.code}
                       onChange={(e) => setFromCurrency(currencies.find(c => c.code === e.target.value)!)}
                       className="flex-1 px-4 py-3 bg-muted rounded-xl border-0 focus:outline-none focus:ring-2 text-foreground"
-                      style={{ focusRingColor: "var(--ouest-blue)" }}
                     >
                       {currencies.map((currency) => (
                         <option key={currency.code} value={currency.code}>
@@ -152,7 +153,6 @@ export function CurrencyConverterModal({ isOpen, onClose, onApplyToExpense }: Cu
                       onFocus={handleConvert}
                       placeholder="0.00"
                       className="w-32 px-4 py-3 bg-muted rounded-xl border-0 focus:outline-none focus:ring-2 text-foreground"
-                      style={{ focusRingColor: "var(--ouest-blue)" }}
                     />
                   </div>
                 </div>
@@ -181,7 +181,6 @@ export function CurrencyConverterModal({ isOpen, onClose, onApplyToExpense }: Cu
                       value={toCurrency.code}
                       onChange={(e) => setToCurrency(currencies.find(c => c.code === e.target.value)!)}
                       className="flex-1 px-4 py-3 bg-muted rounded-xl border-0 focus:outline-none focus:ring-2 text-foreground"
-                      style={{ focusRingColor: "var(--ouest-blue)" }}
                     >
                       {currencies.map((currency) => (
                         <option key={currency.code} value={currency.code}>

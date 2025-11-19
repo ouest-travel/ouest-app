@@ -1,6 +1,22 @@
+"use client";
+
 import { useState, useRef } from "react";
 import { motion } from "motion/react";
-import { Settings, Bookmark, Heart, MapPin, Moon, Sun, Bell, CreditCard, HelpCircle, TestTube, LogOut, Camera, Edit2 } from "lucide-react";
+import {
+  Settings,
+  Bookmark,
+  Heart,
+  MapPin,
+  Moon,
+  Sun,
+  Bell,
+  CreditCard,
+  HelpCircle,
+  TestTube,
+  LogOut,
+  Camera,
+  Edit2,
+} from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import { useDemoMode } from "../contexts/DemoModeContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -55,14 +71,14 @@ export function YouScreen() {
     if (!file) return;
 
     // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image must be less than 5MB');
+      toast.error("Image must be less than 5MB");
       return;
     }
 
@@ -70,23 +86,35 @@ export function YouScreen() {
     try {
       const avatarUrl = await uploadImageToCloudinary(file);
       await updateProfile({ avatar_url: avatarUrl });
-      toast.success('Profile picture updated!');
+      toast.success("Profile picture updated!");
     } catch (error) {
-      console.error('Upload error:', error);
-      toast.error('Failed to upload image');
+      console.error("Upload error:", error);
+      toast.error("Failed to upload image");
     } finally {
       setUploading(false);
       // Reset file input
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     }
   };
 
   const statsData = [
-    { label: "Countries Visited", value: stats.countriesVisited.toString(), icon: MapPin },
-    { label: "Trips Planned", value: stats.tripsPlanned.toString(), icon: Bookmark },
-    { label: "Wishlist Items", value: stats.wishlistItems.toString(), icon: Heart },
+    {
+      label: "Countries Visited",
+      value: stats.countriesVisited.toString(),
+      icon: MapPin,
+    },
+    {
+      label: "Trips Planned",
+      value: stats.tripsPlanned.toString(),
+      icon: Bookmark,
+    },
+    {
+      label: "Wishlist Items",
+      value: stats.wishlistItems.toString(),
+      icon: Heart,
+    },
   ];
 
   const menuItems = [
@@ -113,14 +141,14 @@ export function YouScreen() {
             transition={{ type: "spring", stiffness: 200 }}
             className="relative inline-block mb-4"
           >
-            <div 
+            <div
               className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm overflow-hidden flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
               onClick={handleAvatarClick}
             >
               {profile?.avatar_url ? (
-                <img 
-                  src={profile.avatar_url} 
-                  alt="Profile" 
+                <img
+                  src={profile.avatar_url}
+                  alt="Profile"
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -132,13 +160,13 @@ export function YouScreen() {
                 </div>
               )}
             </div>
-            
+
             {/* Camera button overlay */}
             {!uploading && (
               <button
                 onClick={handleAvatarClick}
                 className="absolute bottom-0 right-0 p-2 rounded-full bg-white shadow-lg hover:scale-110 transition-transform"
-                style={{ color: 'var(--ouest-blue)' }}
+                style={{ color: "var(--ouest-blue)" }}
               >
                 <Camera className="w-4 h-4" />
               </button>
@@ -159,12 +187,12 @@ export function YouScreen() {
           ) : (
             <>
               <h2 className="text-white mb-1">
-                {profile?.display_name || 'User'}
+                {profile?.display_name || "User"}
               </h2>
-              <p className="text-white/80" style={{ fontSize: '14px' }}>
-                @{profile?.handle || 'user'}
+              <p className="text-white/80" style={{ fontSize: "14px" }}>
+                @{profile?.handle || "user"}
               </p>
-              
+
               {/* Edit Profile Button */}
               <button
                 onClick={() => setIsEditModalOpen(true)}
@@ -186,7 +214,9 @@ export function YouScreen() {
           className="bg-card rounded-3xl p-6 shadow-xl border border-border mb-6"
         >
           {statsLoading ? (
-            <div className="text-center text-muted-foreground py-4">Loading stats...</div>
+            <div className="text-center text-muted-foreground py-4">
+              Loading stats...
+            </div>
           ) : (
             <div className="grid grid-cols-3 gap-4">
               {statsData.map((stat) => {
@@ -199,10 +229,16 @@ export function YouScreen() {
                         background: "var(--ouest-gradient-soft)",
                       }}
                     >
-                      <Icon className="w-5 h-5" style={{ color: "var(--ouest-blue)" }} />
+                      <Icon
+                        className="w-5 h-5"
+                        style={{ color: "var(--ouest-blue)" }}
+                      />
                     </div>
                     <div className="mb-1 text-foreground">{stat.value}</div>
-                    <div className="text-muted-foreground" style={{ fontSize: '12px' }}>
+                    <div
+                      className="text-muted-foreground"
+                      style={{ fontSize: "12px" }}
+                    >
                       {stat.label}
                     </div>
                   </div>
@@ -231,9 +267,15 @@ export function YouScreen() {
                 }}
               >
                 {theme === "light" ? (
-                  <Sun className="w-5 h-5" style={{ color: "var(--ouest-blue)" }} />
+                  <Sun
+                    className="w-5 h-5"
+                    style={{ color: "var(--ouest-blue)" }}
+                  />
                 ) : (
-                  <Moon className="w-5 h-5" style={{ color: "var(--ouest-indigo)" }} />
+                  <Moon
+                    className="w-5 h-5"
+                    style={{ color: "var(--ouest-indigo)" }}
+                  />
                 )}
               </div>
               <span className="text-foreground">
@@ -251,11 +293,16 @@ export function YouScreen() {
                   background: "var(--ouest-gradient-soft)",
                 }}
               >
-                <TestTube className="w-5 h-5" style={{ color: "var(--ouest-purple)" }} />
+                <TestTube
+                  className="w-5 h-5"
+                  style={{ color: "var(--ouest-purple)" }}
+                />
               </div>
               <div>
                 <span className="text-foreground">Demo Mode</span>
-                <p className="text-xs text-muted-foreground">Use mock data instead of backend</p>
+                <p className="text-xs text-muted-foreground">
+                  Use mock data instead of backend
+                </p>
               </div>
             </div>
             <Switch
@@ -291,7 +338,7 @@ export function YouScreen() {
               </button>
             );
           })}
-          
+
           {/* Sign Out Button (only show if not in demo mode and user is logged in) */}
           {!isDemoMode && user && (
             <button
@@ -313,7 +360,7 @@ export function YouScreen() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
           className="mt-8 text-center text-muted-foreground"
-          style={{ fontSize: '13px' }}
+          style={{ fontSize: "13px" }}
         >
           Ouest v1.0.0
         </motion.div>

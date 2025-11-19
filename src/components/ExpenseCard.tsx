@@ -1,18 +1,9 @@
+"use client";
+
 import { motion } from "motion/react";
 import { MessageCircle, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
-
-interface Expense {
-  id: string;
-  title: string;
-  amount: number;
-  currency: string;
-  category: "food" | "transport" | "stay" | "activities" | "other";
-  paidBy: string;
-  splitAmong: number;
-  date: string;
-  hasChat?: boolean;
-}
+import { Expense } from "../hooks/useExpenses";
 
 interface ExpenseCardProps {
   expense: Expense;
@@ -61,12 +52,12 @@ export function ExpenseCard({ expense, onViewChat, onEdit, onDelete }: ExpenseCa
           </div>
 
           <p className="text-muted-foreground mb-2" style={{ fontSize: "13px" }}>
-            Paid by {expense.paidBy}
+            Paid by {expense.paid_by}
           </p>
 
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground" style={{ fontSize: "12px" }}>
-              Split among {expense.splitAmong} {expense.splitAmong === 1 ? "person" : "people"}
+              Split among {expense.splitAmong || expense.split_among?.length || 1} {(expense.splitAmong || expense.split_among?.length || 1) === 1 ? "person" : "people"}
             </span>
 
             <div className="flex items-center gap-2">

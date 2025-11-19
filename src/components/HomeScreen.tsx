@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "motion/react";
 import {
   Plus,
@@ -78,14 +80,12 @@ export function HomeScreen({ onNavigateToBudget }: HomeScreenProps = {}) {
   const [selectedTripForMembers, setSelectedTripForMembers] =
     useState<Trip | null>(null);
 
-  const { trips: rawTrips, loading, createTrip } = useTrips();
+  const { trips: rawTrips, createTrip } = useTrips();
 
   // Transform trips data to ensure consistent format
   const trips: Trip[] = rawTrips.map((trip) => {
-    const startDate = trip.start_date
-      ? new Date(trip.start_date)
-      : trip.startDate;
-    const endDate = trip.end_date ? new Date(trip.end_date) : trip.endDate;
+    const startDate = trip.start_date ? new Date(trip.start_date) : undefined;
+    const endDate = trip.end_date ? new Date(trip.end_date) : undefined;
 
     // Format dates string
     const formatDate = (date: Date | undefined) => {

@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -63,7 +65,6 @@ export function CountrySelector({ label, value, onChange }: CountrySelectorProps
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between gap-3 px-4 py-3.5 bg-card border border-border rounded-2xl transition-all hover:border-foreground/20 focus:outline-none focus:ring-2 focus:ring-offset-2"
         style={{
-          focusRingColor: "var(--ouest-blue)",
         }}
       >
         {value ? (
@@ -113,7 +114,6 @@ export function CountrySelector({ label, value, onChange }: CountrySelectorProps
                     placeholder="Search countries..."
                     className="w-full pl-10 pr-4 py-2 bg-muted rounded-xl border-0 focus:outline-none focus:ring-2"
                     style={{
-                      focusRingColor: "var(--ouest-blue)",
                     }}
                     autoFocus
                   />

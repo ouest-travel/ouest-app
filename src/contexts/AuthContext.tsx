@@ -1,14 +1,29 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Session, AuthError } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
-import { useDemoMode } from './DemoModeContext';
+"use client";
+
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { User, Session, AuthError } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabase";
+import { useDemoMode } from "./DemoModeContext";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, displayName?: string) => Promise<{ user: User | null; error: AuthError | null }>;
-  signIn: (email: string, password: string) => Promise<{ user: User | null; error: AuthError | null }>;
+  signUp: (
+    email: string,
+    password: string,
+    displayName?: string
+  ) => Promise<{ user: User | null; error: AuthError | null }>;
+  signIn: (
+    email: string,
+    password: string
+  ) => Promise<{ user: User | null; error: AuthError | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -48,7 +63,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, [isDemoMode]);
 
-  const signUp = async (email: string, password: string, displayName?: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    displayName?: string
+  ) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -61,17 +80,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (data.user && !error) {
       // Generate a basic handle from display name or email
-      const baseHandle = (displayName || email.split('@')[0])
+      const baseHandle = (displayName || email.split("@")[0])
         .toLowerCase()
-        .replace(/[^a-z0-9]/g, '');
-      
+        .replace(/[^a-z0-9]/g, "");
+
       // Create profile (handle will be made unique by database trigger if needed)
-      await supabase.from('profiles').insert({
+      await supabase.from("profiles").insert({
         id: data.user.id,
         email: data.user.email!,
         display_name: displayName || null,
-        handle: baseHandle || 'user',
-      });
+        handle: baseHandle || "user",
+      } as any);
     }
 
     return { user: data.user, error };
@@ -91,7 +110,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{ user, session, loading, signUp, signIn, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -100,8 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
-

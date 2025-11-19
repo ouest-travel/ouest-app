@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useDemoMode } from '../contexts/DemoModeContext';
@@ -183,7 +185,7 @@ export function useChatMessages(tripId: string | number | null) {
         content,
         message_type: messageType,
         metadata,
-      })
+      } as any)
       .select()
       .single();
 

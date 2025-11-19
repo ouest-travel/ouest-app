@@ -1,4 +1,6 @@
-import { X, CreditCard, Smartphone, Send, Check } from "lucide-react";
+"use client";
+
+import { X, Send, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useState } from "react";
 
@@ -23,20 +25,40 @@ interface SettleUpModalProps {
 }
 
 const paymentMethods = [
-  { id: "paypal", name: "PayPal", icon: "💳", description: "Send money instantly" },
-  { id: "applepay", name: "Apple Pay", icon: "📱", description: "Quick & secure" },
-  { id: "wise", name: "Wise", icon: "🌍", description: "International transfers" },
+  {
+    id: "paypal",
+    name: "PayPal",
+    icon: "💳",
+    description: "Send money instantly",
+  },
+  {
+    id: "applepay",
+    name: "Apple Pay",
+    icon: "📱",
+    description: "Quick & secure",
+  },
+  {
+    id: "wise",
+    name: "Wise",
+    icon: "🌍",
+    description: "International transfers",
+  },
   { id: "venmo", name: "Venmo", icon: "💸", description: "Split with friends" },
   { id: "cash", name: "Cash", icon: "💵", description: "Pay in person" },
 ];
 
-export function SettleUpModal({ isOpen, onClose, debt, onConfirmPayment }: SettleUpModalProps) {
+export function SettleUpModal({
+  isOpen,
+  onClose,
+  debt,
+  onConfirmPayment,
+}: SettleUpModalProps) {
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
   const handleConfirm = () => {
     if (!selectedMethod) return;
-    
+
     setShowSuccess(true);
     setTimeout(() => {
       onConfirmPayment(selectedMethod);
@@ -93,7 +115,7 @@ export function SettleUpModal({ isOpen, onClose, debt, onConfirmPayment }: Settl
                       <Check className="w-10 h-10 text-white" />
                     </div>
                   </motion.div>
-                  
+
                   <h3 className="text-foreground">Payment Sent!</h3>
                   <p className="text-muted-foreground mt-2">
                     {debt.to.name} will be notified
@@ -112,7 +134,10 @@ export function SettleUpModal({ isOpen, onClose, debt, onConfirmPayment }: Settl
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-foreground">Settle Up</h2>
-                  <p className="text-muted-foreground" style={{ fontSize: "14px" }}>
+                  <p
+                    className="text-muted-foreground"
+                    style={{ fontSize: "14px" }}
+                  >
                     Choose payment method
                   </p>
                 </div>
@@ -132,19 +157,25 @@ export function SettleUpModal({ isOpen, onClose, debt, onConfirmPayment }: Settl
                   <span className="text-3xl">{debt.from.avatar}</span>
                   <div>
                     <p className="text-foreground">{debt.from.name}</p>
-                    <p className="text-muted-foreground" style={{ fontSize: "13px" }}>
+                    <p
+                      className="text-muted-foreground"
+                      style={{ fontSize: "13px" }}
+                    >
                       You
                     </p>
                   </div>
                 </div>
-                
+
                 <Send className="w-5 h-5 text-muted-foreground" />
 
                 <div className="flex items-center gap-3">
                   <span className="text-3xl">{debt.to.avatar}</span>
                   <div>
                     <p className="text-foreground">{debt.to.name}</p>
-                    <p className="text-muted-foreground" style={{ fontSize: "13px" }}>
+                    <p
+                      className="text-muted-foreground"
+                      style={{ fontSize: "13px" }}
+                    >
                       Recipient
                     </p>
                   </div>
@@ -157,7 +188,10 @@ export function SettleUpModal({ isOpen, onClose, debt, onConfirmPayment }: Settl
                   background: "var(--ouest-gradient-soft)",
                 }}
               >
-                <p className="text-muted-foreground mb-1" style={{ fontSize: "13px" }}>
+                <p
+                  className="text-muted-foreground mb-1"
+                  style={{ fontSize: "13px" }}
+                >
                   Amount to send
                 </p>
                 <div className="text-foreground">
@@ -183,12 +217,18 @@ export function SettleUpModal({ isOpen, onClose, debt, onConfirmPayment }: Settl
                     <span className="text-3xl">{method.icon}</span>
                     <div className="flex-1 text-left">
                       <p className="text-foreground">{method.name}</p>
-                      <p className="text-muted-foreground" style={{ fontSize: "13px" }}>
+                      <p
+                        className="text-muted-foreground"
+                        style={{ fontSize: "13px" }}
+                      >
                         {method.description}
                       </p>
                     </div>
                     {selectedMethod === method.id && (
-                      <Check className="w-5 h-5" style={{ color: "var(--ouest-blue)" }} />
+                      <Check
+                        className="w-5 h-5"
+                        style={{ color: "var(--ouest-blue)" }}
+                      />
                     )}
                   </button>
                 ))}

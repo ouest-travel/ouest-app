@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "motion/react";
 import { CheckCircle2, Clock, XCircle, ChevronDown, ExternalLink, Syringe, AlertTriangle } from "lucide-react";
 import { useState } from "react";

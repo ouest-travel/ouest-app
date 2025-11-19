@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "motion/react";
 import { ArrowLeft, MoreVertical, Send } from "lucide-react";
 import { ChatExpenseMessage } from "./ChatExpenseMessage";

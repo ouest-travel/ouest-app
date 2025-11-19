@@ -1,44 +1,72 @@
 import { motion } from "motion/react";
 import { X, Crown, Mail } from "lucide-react";
 
-interface TripMember {
-  id: number;
-  name: string;
-  avatar: string;
-  email: string;
-  role?: "organizer" | "member";
-}
-
 interface TripMembersModalProps {
   trip: {
     destination: string;
     name?: string;
-    travelers: number;
+    travelers?: number;
   };
   onClose: () => void;
 }
 
 export function TripMembersModal({ trip, onClose }: TripMembersModalProps) {
   const tripName = trip.name || trip.destination;
-  
+
   // Generate members based on trip - You would fetch real data from your backend
   const getMembersForTrip = () => {
     // Default member pool
     const allMembers = [
-      { id: 1, name: "Trey Anderson", avatar: "👨🏻", email: "trey@ouest.com", role: "organizer" as const },
-      { id: 2, name: "Sandra Martinez", avatar: "👩🏽", email: "sandra@ouest.com", role: "member" as const },
-      { id: 3, name: "Timmy Chen", avatar: "👨🏾", email: "timmy@ouest.com", role: "member" as const },
-      { id: 4, name: "Jason Kim", avatar: "👨🏼", email: "jason@ouest.com", role: "member" as const },
-      { id: 5, name: "Emma Wilson", avatar: "👩🏻", email: "emma@ouest.com", role: "member" as const },
-      { id: 6, name: "Alex Johnson", avatar: "👨🏽", email: "alex@ouest.com", role: "member" as const },
+      {
+        id: 1,
+        name: "Trey Anderson",
+        avatar: "👨🏻",
+        email: "trey@ouest.com",
+        role: "organizer" as const,
+      },
+      {
+        id: 2,
+        name: "Sandra Martinez",
+        avatar: "👩🏽",
+        email: "sandra@ouest.com",
+        role: "member" as const,
+      },
+      {
+        id: 3,
+        name: "Timmy Chen",
+        avatar: "👨🏾",
+        email: "timmy@ouest.com",
+        role: "member" as const,
+      },
+      {
+        id: 4,
+        name: "Jason Kim",
+        avatar: "👨🏼",
+        email: "jason@ouest.com",
+        role: "member" as const,
+      },
+      {
+        id: 5,
+        name: "Emma Wilson",
+        avatar: "👩🏻",
+        email: "emma@ouest.com",
+        role: "member" as const,
+      },
+      {
+        id: 6,
+        name: "Alex Johnson",
+        avatar: "👨🏽",
+        email: "alex@ouest.com",
+        role: "member" as const,
+      },
     ];
-    
+
     // Return members based on trip's traveler count
     return allMembers.slice(0, trip.travelers);
   };
-  
+
   const members = getMembersForTrip();
-  
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4">
       <motion.div
@@ -131,10 +159,7 @@ export function TripMembersModal({ trip, onClose }: TripMembersModalProps) {
       </motion.div>
 
       {/* Backdrop */}
-      <div
-        className="fixed inset-0 -z-10"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 -z-10" onClick={onClose} />
     </div>
   );
 }

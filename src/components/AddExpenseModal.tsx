@@ -1,3 +1,5 @@
+"use client";
+
 import { X, DollarSign } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect } from "react";

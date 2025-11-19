@@ -1,19 +1,19 @@
+"use client";
+
 import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import { 
   X, 
   MapPin, 
   Clock, 
   DollarSign, 
   Plus, 
-  Minus, 
   Calendar,
-  Users,
   CheckCircle2
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 
 interface Activity {
   id: number;

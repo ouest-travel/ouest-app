@@ -1,10 +1,11 @@
+"use client";
+
 import { useState } from "react";
 import { ArrowLeft, Info } from "lucide-react";
 import { motion } from "motion/react";
 import { CountrySelector } from "./CountrySelector";
 import { ResultCard } from "./ResultCard";
 import { LoadingState } from "./LoadingState";
-import { EmptyState } from "./EmptyState";
 import { InfoModal } from "./InfoModal";
 
 interface Country {

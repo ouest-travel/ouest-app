@@ -1,12 +1,14 @@
+"use client";
+
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Plane, MapPin, Users, DollarSign, Calendar as CalendarIcon, Sparkles, Dice6, Plus, Share2 } from "lucide-react";
+import { X, Plane, MapPin, DollarSign, Calendar as CalendarIcon, Sparkles, Dice6, Plus, Share2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Calendar } from "./ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Switch } from "./ui/switch";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 
 interface BookTripFlowProps {
   onClose: () => void;

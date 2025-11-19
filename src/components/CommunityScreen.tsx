@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "motion/react";
 import { Users, Globe, Heart, MessageCircle, Eye } from "lucide-react";
 import { useState } from "react";

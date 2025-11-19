@@ -34,14 +34,13 @@
         "cloudinary": "^2.8.0",
         "clsx": "*",
         "cmdk": "^1.1.1",
-        "cors": "^2.8.5",
         "date-fns": "^4.1.0",
         "embla-carousel-react": "^8.6.0",
-        "express": "^5.1.0",
         "input-otp": "^1.4.2",
         "lucide-react": "^0.487.0",
         "motion": "*",
-        "multer": "^2.0.2",
+        "next": "^15.0.3",
+        "next-pwa": "^5.6.0",
         "next-themes": "^0.4.6",
         "react": "^18.3.1",
         "react-day-picker": "^8.10.1",
@@ -54,22 +53,25 @@
         "vaul": "^1.1.2"
     },
     "devDependencies": {
-        "@types/cors": "^2.8.19",
-        "@types/express": "^5.0.5",
-        "@types/multer": "^2.0.0",
+        "@types/minimatch": "^6.0.0",
+        "@types/next-pwa": "^5.6.9",
         "@types/node": "^24.10.1",
         "@types/react": "^19.2.6",
-        "@vitejs/plugin-react-swc": "^3.10.2",
-        "concurrently": "^9.2.1",
+        "@types/react-dom": "^19.0.2",
+        "autoprefixer": "^10.4.20",
         "dotenv": "^17.2.3",
         "pg": "^8.16.3",
-        "tsx": "^4.20.6",
-        "vite": "6.3.5"
+        "postcss": "^8.4.49",
+        "sharp": "^0.34.5",
+        "tailwindcss": "^3.4.17",
+        "tailwindcss-animate": "^1.0.7",
+        "typescript": "^5.7.2"
     },
     "scripts": {
-        "dev": "vite",
-        "build": "vite build",
-        "server": "tsx watch server/upload.ts",
-        "start": "concurrently \"yarn dev\" \"yarn server\""
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "lint": "next lint",
+        "typecheck": "tsc --noEmit"
     }
 }
