@@ -1,27 +1,30 @@
 import { motion } from "motion/react";
-import { ArrowLeft, Plus, MoreVertical, DollarSign, TrendingUp } from "lucide-react";
-import { useState, useEffect } from "react";
+import { ArrowLeft, Plus, MoreVertical, DollarSign, TrendingUp, Edit, Trash2, Users } from "lucide-react";
+import { useState } from "react";
 import { ExpenseCard } from "./ExpenseCard";
 import { AddExpenseModal } from "./AddExpenseModal";
 import { SplitSummaryModal } from "./SplitSummaryModal";
 import { CurrencyConverterModal } from "./CurrencyConverterModal";
+import { EditTripModal } from "./EditTripModal";
+import { useExpenses } from "../hooks/useExpenses";
+import { useTripMembers } from "../hooks/useTripMembers";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "./ui/dropdown-menu";
 
 interface BudgetOverviewScreenProps {
   onBack: () => void;
   onViewChat?: () => void;
   tripName?: string;
-  tripId?: number | null;
+  tripId?: string | number | null;
 }
 
-const mockMembers = [
-  { id: "1", name: "Trey", avatar: "👨🏻" },
-  { id: "2", name: "Jason", avatar: "👨🏼" },
-  { id: "3", name: "Sandra", avatar: "👩🏽" },
-  { id: "4", name: "Timmy", avatar: "👨🏾" },
-];
-
 // Function to calculate who owes who based on expenses
-function calculateDebts(expenses: any[], members: typeof mockMembers) {
+function calculateDebts(expenses: any[], members: any[]) {
   // Calculate balance for each member
   const balances: Record<string, number> = {};
   
@@ -53,8 +56,8 @@ function calculateDebts(expenses: any[], members: typeof mockMembers) {
       if (debtor.amount > 0.01 && creditor.amount > 0.01) {
         const amount = Math.min(debtor.amount, creditor.amount);
         debts.push({
-          from: mockMembers.find(m => m.name === debtor.name)!,
-          to: mockMembers.find(m => m.name === creditor.name)!,
+          from: members.find(m => m.name === debtor.name)!,
+          to: members.find(m => m.name === creditor.name)!,
           amount: Math.round(amount * 100) / 100,
           currency: "CAD",
         });
@@ -73,8 +76,28 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
   const [showSplitSummary, setShowSplitSummary] = useState(false);
   const [showConverter, setShowConverter] = useState(false);
   const [editingExpense, setEditingExpense] = useState<any>(null);
+  const [showEditTrip, setShowEditTrip] = useState(false);
   
-  // Default expenses for demo purposes
+  // Load expenses and members from hooks
+  const { expenses, addExpense, updateExpense, deleteExpense } = useExpenses(tripId);
+  const { members: tripMembers } = useTripMembers(tripId);
+  
+  // Transform members to expected format
+  const mockMembers = tripMembers.map(member => ({
+    id: member.user_id || member.id,
+    name: member.profile?.display_name || "User",
+    avatar: member.profile?.avatar_url || "👤",
+  }));
+  
+  // Fallback for demo mode or when no members
+  const members = mockMembers.length > 0 ? mockMembers : [
+    { id: "1", name: "Trey", avatar: "👨🏻" },
+    { id: "2", name: "Jason", avatar: "👨🏼" },
+    { id: "3", name: "Sandra", avatar: "👩🏽" },
+    { id: "4", name: "Timmy", avatar: "👨🏾" },
+  ];
+  
+  // Helper function kept for reference but not used anymore
   const getDefaultExpenses = (tripId: number | null) => {
     // Tokyo trip (id: 1)
     if (tripId === 1) {
@@ -193,52 +216,20 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
     // Default for new trips
     return [];
   };
-  
-  // Load expenses from localStorage or use defaults
-  const loadExpenses = () => {
-    if (tripId === null) return getDefaultExpenses(null);
-    
-    try {
-      const stored = localStorage.getItem(`ouest-trip-${tripId}-expenses`);
-      if (stored) {
-        return JSON.parse(stored);
-      }
-      // First time loading this trip, set defaults
-      const defaults = getDefaultExpenses(tripId);
-      localStorage.setItem(`ouest-trip-${tripId}-expenses`, JSON.stringify(defaults));
-      return defaults;
-    } catch (error) {
-      return getDefaultExpenses(tripId);
-    }
-  };
-  
-  const [expenses, setExpenses] = useState(loadExpenses);
-  
-  // Save expenses to localStorage whenever they change
-  useEffect(() => {
-    if (tripId !== null) {
-      localStorage.setItem(`ouest-trip-${tripId}-expenses`, JSON.stringify(expenses));
-    }
-  }, [expenses, tripId]);
-  
-  // Reload expenses when tripId changes
-  useEffect(() => {
-    setExpenses(loadExpenses());
-  }, [tripId]);
 
   const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const totalBudget = 3500;
   const remaining = totalBudget - totalSpent;
   const progressPercent = (totalSpent / totalBudget) * 100;
 
-  const handleAddExpense = (expense: any) => {
+  const handleAddExpense = async (expense: any) => {
     if (editingExpense) {
       // Update existing expense
-      setExpenses(expenses.map(e => e.id === expense.id ? expense : e));
+      await updateExpense(expense.id, expense);
       setEditingExpense(null);
     } else {
       // Add new expense
-      setExpenses([expense, ...expenses]);
+      await addExpense(expense);
     }
   };
 
@@ -258,8 +249,30 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
     setShowAddExpense(true);
   };
 
+  const handleSaveTrip = (updatedTrip: any) => {
+    // TODO: Implement trip update logic with backend
+    console.log("Updated trip:", updatedTrip);
+    // For now, just close the modal
+    // In a real implementation, you would call an API to update the trip
+  };
+
+  const handleDeleteTrip = () => {
+    // TODO: Implement trip deletion logic with backend
+    if (confirm("Are you sure you want to delete this trip? This action cannot be undone.")) {
+      console.log("Delete trip:", tripId);
+      // In a real implementation, you would call an API to delete the trip
+      // and navigate back to the home screen
+      onBack();
+    }
+  };
+
+  const handleManageMembers = () => {
+    // TODO: Implement manage members functionality
+    console.log("Manage members for trip:", tripId);
+  };
+
   // Calculate current debts based on expenses
-  const currentDebts = calculateDebts(expenses, mockMembers);
+  const currentDebts = calculateDebts(expenses, members);
 
   // Filter expenses based on active tab
   const getFilteredExpenses = () => {
@@ -268,10 +281,11 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
         // Group by person who paid
         const byPerson: Record<string, any[]> = {};
         expenses.forEach(expense => {
-          if (!byPerson[expense.paidBy]) {
-            byPerson[expense.paidBy] = [];
+          const paidBy = expense.paidBy || expense.paid_by;
+          if (!byPerson[paidBy]) {
+            byPerson[paidBy] = [];
           }
-          byPerson[expense.paidBy].push(expense);
+          byPerson[paidBy].push(expense);
         });
         return byPerson;
       
@@ -313,9 +327,31 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
               <ArrowLeft className="w-5 h-5 text-white" />
             </button>
 
-            <button className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors">
-              <MoreVertical className="w-5 h-5 text-white" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors">
+                  <MoreVertical className="w-5 h-5 text-white" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => setShowEditTrip(true)}>
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Trip
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleManageMembers}>
+                  <Users className="w-4 h-4 mr-2" />
+                  Manage Members
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={handleDeleteTrip}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Trip
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <h1 className="text-white mb-1">{tripName} Budget</h1>
@@ -471,7 +507,7 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
               // Get display info based on tab type
               const getGroupDisplay = () => {
                 if (activeTab === "person") {
-                  const member = mockMembers.find(m => m.name === group);
+                  const member = members.find(m => m.name === group);
                   return {
                     icon: member?.avatar || "👤",
                     name: group,
@@ -533,7 +569,7 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
                       expense={expense}
                       onViewChat={onViewChat}
                       onEdit={() => handleEditExpense(expense)}
-                      onDelete={() => setExpenses(expenses.filter(e => e.id !== expense.id))}
+                      onDelete={() => deleteExpense(expense.id)}
                     />
                   ))}
                 </motion.div>
@@ -598,7 +634,7 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
       <AddExpenseModal
         isOpen={showAddExpense}
         onClose={handleCloseAddExpense}
-        members={mockMembers}
+        members={members}
         onAddExpense={handleAddExpense}
         existingExpense={editingExpense}
       />
@@ -616,6 +652,20 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
         isOpen={showConverter}
         onClose={() => setShowConverter(false)}
         onApplyToExpense={handleApplyConverterAmount}
+      />
+
+      <EditTripModal
+        isOpen={showEditTrip}
+        onClose={() => setShowEditTrip(false)}
+        tripData={{
+          id: tripId,
+          name: tripName,
+          destination: tripName.replace(" Budget", "").replace("Adventure", "").trim(),
+          budget: totalBudget.toString(),
+          currency: "CAD",
+          // TODO: Add actual dates from trip data when available
+        }}
+        onSave={handleSaveTrip}
       />
     </div>
   );

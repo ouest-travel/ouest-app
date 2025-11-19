@@ -40,7 +40,9 @@ export function AddExpenseModal({
   const [currency, setCurrency] = useState(defaultCurrency);
   const [category, setCategory] = useState("food");
   const [paidBy, setPaidBy] = useState(members[0]?.id || "");
-  const [splitWith, setSplitWith] = useState<string[]>(members.map(m => m.id));
+  const [splitWith, setSplitWith] = useState<string[]>(
+    members.map((m) => m.id)
+  );
   const [splitEqually, setSplitEqually] = useState(true);
   const [notes, setNotes] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
@@ -52,9 +54,11 @@ export function AddExpenseModal({
       setAmount(existingExpense.amount?.toString() || "");
       setCurrency(existingExpense.currency || "CAD");
       setCategory(existingExpense.category || "food");
-      const paidByMember = members.find(m => m.name === existingExpense.paidBy);
+      const paidByMember = members.find(
+        (m) => m.name === existingExpense.paidBy
+      );
       setPaidBy(paidByMember?.id || members[0]?.id || "");
-      setSplitWith(members.map(m => m.id));
+      setSplitWith(members.map((m) => m.id));
       setNotes(existingExpense.notes || "");
     } else if (!existingExpense && isOpen) {
       // Reset form for new expense
@@ -63,7 +67,7 @@ export function AddExpenseModal({
       setCurrency(defaultCurrency);
       setCategory("food");
       setPaidBy(members[0]?.id || "");
-      setSplitWith(members.map(m => m.id));
+      setSplitWith(members.map((m) => m.id));
       setNotes("");
     }
   }, [existingExpense, isOpen, members, defaultAmount, defaultCurrency]);
@@ -77,11 +81,14 @@ export function AddExpenseModal({
       amount: parseFloat(amount),
       currency,
       category,
-      paidBy: members.find(m => m.id === paidBy)?.name || "",
+      paidBy: members.find((m) => m.id === paidBy)?.name || "",
+      paid_by: paidBy, // User ID for Supabase
       splitAmong: splitWith.length,
+      split_among: splitWith, // Array of user IDs for Supabase
       date: existingExpense?.date || new Date().toISOString(),
       notes,
       hasChat: existingExpense?.hasChat ?? true,
+      has_chat: existingExpense?.hasChat ?? true, // For Supabase
     };
 
     onAddExpense(expense);
@@ -100,9 +107,9 @@ export function AddExpenseModal({
   };
 
   const toggleMember = (memberId: string) => {
-    setSplitWith(prev =>
+    setSplitWith((prev) =>
       prev.includes(memberId)
-        ? prev.filter(id => id !== memberId)
+        ? prev.filter((id) => id !== memberId)
         : [...prev, memberId]
     );
   };
@@ -135,7 +142,9 @@ export function AddExpenseModal({
                 background: "var(--ouest-gradient-soft)",
               }}
             >
-              <h2 className="text-foreground">{existingExpense ? "Edit Expense" : "Add Expense"}</h2>
+              <h2 className="text-foreground">
+                {existingExpense ? "Edit Expense" : "Add Expense"}
+              </h2>
               <button
                 onClick={onClose}
                 className="p-2 rounded-full hover:bg-muted transition-colors"
@@ -168,7 +177,7 @@ export function AddExpenseModal({
                       <span className="text-4xl">💸</span>
                     </div>
                   </motion.div>
-                  
+
                   {/* Confetti effect */}
                   {[...Array(12)].map((_, i) => (
                     <motion.div
@@ -182,13 +191,20 @@ export function AddExpenseModal({
                       transition={{ duration: 1, ease: "easeOut" }}
                       className="absolute w-2 h-2 rounded-full"
                       style={{
-                        background: ["var(--ouest-blue)", "var(--ouest-pink)", "var(--ouest-coral)", "var(--ouest-indigo)"][i % 4],
+                        background: [
+                          "var(--ouest-blue)",
+                          "var(--ouest-pink)",
+                          "var(--ouest-coral)",
+                          "var(--ouest-indigo)",
+                        ][i % 4],
                       }}
                     />
                   ))}
 
                   <h3 className="text-foreground">
-                    {existingExpense ? "Expense Updated Successfully!" : "Expense Added Successfully!"}
+                    {existingExpense
+                      ? "Expense Updated Successfully!"
+                      : "Expense Added Successfully!"}
                   </h3>
                 </motion.div>
               )}
@@ -198,14 +214,15 @@ export function AddExpenseModal({
             <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
               {/* Expense Name */}
               <div>
-                <label className="block mb-2 text-foreground">Expense Name</label>
+                <label className="block mb-2 text-foreground">
+                  Expense Name
+                </label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g., Dinner at restaurant"
-                  className="w-full px-4 py-3 bg-muted rounded-xl border-0 focus:outline-none focus:ring-2 text-foreground"
-                  style={{ focusRingColor: "var(--ouest-blue)" }}
+                  className="w-full px-4 py-3 bg-muted rounded-xl border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 text-foreground"
                 />
               </div>
 
@@ -216,8 +233,7 @@ export function AddExpenseModal({
                   <select
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value)}
-                    className="w-24 px-3 py-3 bg-muted rounded-xl border-0 focus:outline-none focus:ring-2 text-foreground"
-                    style={{ focusRingColor: "var(--ouest-blue)" }}
+                    className="w-24 px-3 py-3 bg-muted rounded-xl border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 text-foreground"
                   >
                     <option value="CAD">CAD</option>
                     <option value="USD">USD</option>
@@ -232,8 +248,7 @@ export function AddExpenseModal({
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
                       placeholder="0.00"
-                      className="w-full pl-10 pr-4 py-3 bg-muted rounded-xl border-0 focus:outline-none focus:ring-2 text-foreground"
-                      style={{ focusRingColor: "var(--ouest-blue)" }}
+                      className="w-full pl-10 pr-4 py-3 bg-muted rounded-xl border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 text-foreground"
                     />
                   </div>
                 </div>
@@ -254,7 +269,10 @@ export function AddExpenseModal({
                       }`}
                     >
                       <div className="text-2xl mb-1">{cat.emoji}</div>
-                      <div className="text-foreground" style={{ fontSize: "11px" }}>
+                      <div
+                        className="text-foreground"
+                        style={{ fontSize: "11px" }}
+                      >
                         {cat.label.split(" ")[0]}
                       </div>
                     </button>
@@ -268,8 +286,7 @@ export function AddExpenseModal({
                 <select
                   value={paidBy}
                   onChange={(e) => setPaidBy(e.target.value)}
-                  className="w-full px-4 py-3 bg-muted rounded-xl border-0 focus:outline-none focus:ring-2 text-foreground"
-                  style={{ focusRingColor: "var(--ouest-blue)" }}
+                  className="w-full px-4 py-3 bg-muted rounded-xl border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 text-foreground"
                 >
                   {members.map((member) => (
                     <option key={member.id} value={member.id}>
@@ -290,7 +307,10 @@ export function AddExpenseModal({
                       onChange={(e) => setSplitEqually(e.target.checked)}
                       className="rounded"
                     />
-                    <span className="text-muted-foreground" style={{ fontSize: "13px" }}>
+                    <span
+                      className="text-muted-foreground"
+                      style={{ fontSize: "13px" }}
+                    >
                       Split equally
                     </span>
                   </label>
@@ -307,12 +327,20 @@ export function AddExpenseModal({
                       }`}
                     >
                       <span className="text-2xl">{member.avatar}</span>
-                      <span className="flex-1 text-left text-foreground">{member.name}</span>
-                      {splitWith.includes(member.id) && splitEqually && amount && (
-                        <span className="text-muted-foreground" style={{ fontSize: "13px" }}>
-                          {currency} ${(parseFloat(amount) / splitWith.length).toFixed(2)}
-                        </span>
-                      )}
+                      <span className="flex-1 text-left text-foreground">
+                        {member.name}
+                      </span>
+                      {splitWith.includes(member.id) &&
+                        splitEqually &&
+                        amount && (
+                          <span
+                            className="text-muted-foreground"
+                            style={{ fontSize: "13px" }}
+                          >
+                            {currency} $
+                            {(parseFloat(amount) / splitWith.length).toFixed(2)}
+                          </span>
+                        )}
                     </button>
                   ))}
                 </div>
@@ -320,14 +348,15 @@ export function AddExpenseModal({
 
               {/* Notes */}
               <div>
-                <label className="block mb-2 text-foreground">Notes (optional)</label>
+                <label className="block mb-2 text-foreground">
+                  Notes (optional)
+                </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Add any additional details..."
                   rows={3}
-                  className="w-full px-4 py-3 bg-muted rounded-xl border-0 focus:outline-none focus:ring-2 text-foreground resize-none"
-                  style={{ focusRingColor: "var(--ouest-blue)" }}
+                  className="w-full px-4 py-3 bg-muted rounded-xl border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 text-foreground resize-none"
                 />
               </div>
             </div>
@@ -336,12 +365,15 @@ export function AddExpenseModal({
             <div className="px-6 py-4 border-t border-border">
               <button
                 onClick={handleSubmit}
-                disabled={!title || !amount || !paidBy || splitWith.length === 0}
+                disabled={
+                  !title || !amount || !paidBy || splitWith.length === 0
+                }
                 className="w-full py-4 rounded-2xl text-white shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl"
                 style={{
-                  background: title && amount && paidBy && splitWith.length > 0
-                    ? "var(--ouest-gradient-main)"
-                    : "#e5e7eb",
+                  background:
+                    title && amount && paidBy && splitWith.length > 0
+                      ? "var(--ouest-gradient-main)"
+                      : "#e5e7eb",
                 }}
               >
                 {existingExpense ? "Update Expense" : "Save Expense"}
