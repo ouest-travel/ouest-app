@@ -19,7 +19,7 @@ export default function TripBudgetPage() {
       onBack={() => router.push("/")}
       onViewChat={() => router.push(`/trips/${tripId}/chat`)}
       tripName={tripName}
-      tripId={parseInt(tripId)}
+      tripId={tripId}
     />
   );
 }

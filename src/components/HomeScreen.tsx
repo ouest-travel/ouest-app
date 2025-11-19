@@ -15,6 +15,7 @@ import { ChatDemoScreen } from "./ChatDemoScreen";
 import { TripMembersModal } from "./TripMembersModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useTrips } from "../hooks/useTrips";
+import { useProfileStats } from "../hooks/useProfileStats";
 import { toast } from "sonner";
 
 interface HomeScreenProps {
@@ -81,6 +82,7 @@ export function HomeScreen({ onNavigateToBudget }: HomeScreenProps = {}) {
     useState<Trip | null>(null);
 
   const { trips: rawTrips, createTrip } = useTrips();
+  const { stats } = useProfileStats();
 
   // Transform trips data to ensure consistent format
   const trips: Trip[] = rawTrips.map((trip) => {
@@ -173,14 +175,11 @@ export function HomeScreen({ onNavigateToBudget }: HomeScreenProps = {}) {
       >
         <div className="max-w-md mx-auto">
           <div className="flex items-center gap-2 mb-6">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{
-                background: "var(--ouest-gradient-main)",
-              }}
-            >
-              <span className="text-white">O</span>
-            </div>
+            <img
+              src="/ouest-transparent.png"
+              alt="Ouest Logo"
+              className="w-8 h-8"
+            />
             <h1 className="text-foreground">Ouest</h1>
           </div>
 
@@ -432,7 +431,9 @@ export function HomeScreen({ onNavigateToBudget }: HomeScreenProps = {}) {
         >
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
-              <div className="mb-1 text-foreground">12</div>
+              <div className="mb-1 text-foreground">
+                {stats.countriesVisited}
+              </div>
               <div
                 className="text-muted-foreground"
                 style={{ fontSize: "13px" }}
@@ -441,7 +442,7 @@ export function HomeScreen({ onNavigateToBudget }: HomeScreenProps = {}) {
               </div>
             </div>
             <div className="text-center">
-              <div className="mb-1 text-foreground">24</div>
+              <div className="mb-1 text-foreground">{stats.totalTrips}</div>
               <div
                 className="text-muted-foreground"
                 style={{ fontSize: "13px" }}
@@ -450,7 +451,7 @@ export function HomeScreen({ onNavigateToBudget }: HomeScreenProps = {}) {
               </div>
             </div>
             <div className="text-center">
-              <div className="mb-1 text-foreground">156</div>
+              <div className="mb-1 text-foreground">{stats.memories}</div>
               <div
                 className="text-muted-foreground"
                 style={{ fontSize: "13px" }}

@@ -48,6 +48,7 @@ export function AddExpenseModal({
   const [splitEqually, setSplitEqually] = useState(true);
   const [notes, setNotes] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Populate form when editing
   useEffect(() => {
@@ -74,8 +75,10 @@ export function AddExpenseModal({
     }
   }, [existingExpense, isOpen, members, defaultAmount, defaultCurrency]);
 
-  const handleSubmit = () => {
-    if (!title || !amount || !paidBy) return;
+  const handleSubmit = async () => {
+    if (!title || !amount || !paidBy || isSubmitting) return;
+
+    setIsSubmitting(true);
 
     const expense = {
       id: existingExpense?.id || Date.now().toString(),
@@ -93,19 +96,26 @@ export function AddExpenseModal({
       has_chat: existingExpense?.hasChat ?? true, // For Supabase
     };
 
-    onAddExpense(expense);
+    try {
+      // Call parent handler and wait for it to complete
+      await onAddExpense(expense);
 
-    // Show success animation
-    setShowSuccess(true);
-    setTimeout(() => {
-      setShowSuccess(false);
-      onClose();
-      // Reset form
-      setTitle("");
-      setAmount("");
-      setCategory("food");
-      setNotes("");
-    }, 1500);
+      // Show success animation
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        setIsSubmitting(false);
+        onClose();
+        // Reset form
+        setTitle("");
+        setAmount("");
+        setCategory("food");
+        setNotes("");
+      }, 1500);
+    } catch (error) {
+      // Handle error - parent component will show toast
+      setIsSubmitting(false);
+    }
   };
 
   const toggleMember = (memberId: string) => {
@@ -368,17 +378,29 @@ export function AddExpenseModal({
               <button
                 onClick={handleSubmit}
                 disabled={
-                  !title || !amount || !paidBy || splitWith.length === 0
+                  !title ||
+                  !amount ||
+                  !paidBy ||
+                  splitWith.length === 0 ||
+                  isSubmitting
                 }
                 className="w-full py-4 rounded-2xl text-white shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl"
                 style={{
                   background:
-                    title && amount && paidBy && splitWith.length > 0
+                    title &&
+                    amount &&
+                    paidBy &&
+                    splitWith.length > 0 &&
+                    !isSubmitting
                       ? "var(--ouest-gradient-main)"
                       : "#e5e7eb",
                 }}
               >
-                {existingExpense ? "Update Expense" : "Save Expense"}
+                {isSubmitting
+                  ? "Saving..."
+                  : existingExpense
+                  ? "Update Expense"
+                  : "Save Expense"}
               </button>
             </div>
           </motion.div>

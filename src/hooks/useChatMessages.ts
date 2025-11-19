@@ -194,6 +194,10 @@ export function useChatMessages(tripId: string | number | null) {
       return { data: null, error };
     }
 
+    // Note: Real-time subscription will handle adding the message,
+    // but we refetch to ensure consistency with profile data
+    await loadMessages();
+
     return { data, error: null };
   };
 

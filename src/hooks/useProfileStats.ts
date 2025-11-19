@@ -7,20 +7,23 @@ import { useDemoMode } from '../contexts/DemoModeContext';
 
 interface ProfileStats {
   countriesVisited: number;
-  tripsPlanned: number;
+  totalTrips: number;
+  memories: number;
   wishlistItems: number;
 }
 
 const demoStats: ProfileStats = {
   countriesVisited: 12,
-  tripsPlanned: 24,
+  totalTrips: 24,
+  memories: 156,
   wishlistItems: 47,
 };
 
 export function useProfileStats() {
   const [stats, setStats] = useState<ProfileStats>({
     countriesVisited: 0,
-    tripsPlanned: 0,
+    totalTrips: 0,
+    memories: 0,
     wishlistItems: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -37,7 +40,8 @@ export function useProfileStats() {
     if (!user) {
       setStats({
         countriesVisited: 0,
-        tripsPlanned: 0,
+        totalTrips: 0,
+        memories: 0,
         wishlistItems: 0,
       });
       setLoading(false);
@@ -63,16 +67,39 @@ export function useProfileStats() {
         console.error('Error loading countries visited:', countriesError);
       }
 
-      // Fetch trips planned count (upcoming and active trips)
-      const now = new Date().toISOString();
+      // Fetch total trips count (all trips, not just upcoming)
       const { count: tripsCount, error: tripsError } = await supabase
         .from('trips')
         .select('*', { count: 'exact', head: true })
-        .eq('created_by', user.id)
-        .or(`end_date.gte.${now},end_date.is.null`);
+        .eq('created_by', user.id);
 
       if (tripsError) {
         console.error('Error loading trips:', tripsError);
+      }
+
+      // Fetch total expenses count (memories) across all user's trips
+      const { data: userTrips, error: userTripsError } = await supabase
+        .from('trips')
+        .select('id')
+        .eq('created_by', user.id);
+
+      if (userTripsError) {
+        console.error('Error loading user trips for memories:', userTripsError);
+      }
+
+      let memoriesCount = 0;
+      if (userTrips && userTrips.length > 0) {
+        const tripIds = userTrips.map(trip => trip.id);
+        const { count: expensesCount, error: expensesError } = await supabase
+          .from('expenses')
+          .select('*', { count: 'exact', head: true })
+          .in('trip_id', tripIds);
+
+        if (expensesError) {
+          console.error('Error loading expenses (memories):', expensesError);
+        } else {
+          memoriesCount = expensesCount || 0;
+        }
       }
 
       // Fetch wishlist items count
@@ -87,7 +114,8 @@ export function useProfileStats() {
 
       setStats({
         countriesVisited: countriesCount || 0,
-        tripsPlanned: tripsCount || 0,
+        totalTrips: tripsCount || 0,
+        memories: memoriesCount,
         wishlistItems: wishlistCount || 0,
       });
     } catch (error) {

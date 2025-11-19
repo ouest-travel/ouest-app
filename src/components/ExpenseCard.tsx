@@ -23,6 +23,10 @@ const categoryConfig = {
 export function ExpenseCard({ expense, onViewChat, onEdit, onDelete }: ExpenseCardProps) {
   const [showOptions, setShowOptions] = useState(false);
   const config = categoryConfig[expense.category];
+  
+  // Get user display name and avatar
+  const userName = expense.paidByProfile?.display_name || 'User';
+  const userAvatar = expense.paidByProfile?.avatar_url;
 
   return (
     <motion.div
@@ -51,9 +55,21 @@ export function ExpenseCard({ expense, onViewChat, onEdit, onDelete }: ExpenseCa
             </div>
           </div>
 
-          <p className="text-muted-foreground mb-2" style={{ fontSize: "13px" }}>
-            Paid by {expense.paid_by}
-          </p>
+          <div className="flex items-center gap-2 mb-2">
+            {/* User Avatar or Profile Picture */}
+            {userAvatar && userAvatar.startsWith('http') ? (
+              <img 
+                src={userAvatar} 
+                alt={userName}
+                className="w-5 h-5 rounded-full object-cover"
+              />
+            ) : (
+              <span className="text-base leading-none">{userAvatar || '👤'}</span>
+            )}
+            <p className="text-muted-foreground" style={{ fontSize: "13px" }}>
+              Paid by {userName}
+            </p>
+          </div>
 
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground" style={{ fontSize: "12px" }}>

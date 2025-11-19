@@ -26,8 +26,10 @@ import { Switch } from "./ui/switch";
 import { toast } from "sonner";
 import { uploadImageToCloudinary } from "../lib/cloudinary/uploadImage";
 import { EditProfileModal } from "./EditProfileModal";
+import { useRouter } from "next/navigation";
 
 export function YouScreen() {
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { isDemoMode, toggleDemoMode } = useDemoMode();
   const { user, signOut } = useAuth();
@@ -45,6 +47,7 @@ export function YouScreen() {
   const handleSignOut = async () => {
     await signOut();
     toast.success("Signed out successfully");
+    router.push("/login");
   };
 
   const handleSaveProfile = async (displayName: string, handle: string) => {
@@ -106,8 +109,8 @@ export function YouScreen() {
       icon: MapPin,
     },
     {
-      label: "Trips Planned",
-      value: stats.tripsPlanned.toString(),
+      label: "Total Trips",
+      value: stats.totalTrips.toString(),
       icon: Bookmark,
     },
     {

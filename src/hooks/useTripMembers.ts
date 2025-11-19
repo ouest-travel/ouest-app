@@ -150,6 +150,9 @@ export function useTripMembers(tripId: string | number | null) {
       return { data: null, error };
     }
 
+    // Refetch members after successful mutation
+    await loadMembers();
+
     return { data, error: null };
   };
 
@@ -166,7 +169,11 @@ export function useTripMembers(tripId: string | number | null) {
 
     if (error) {
       console.error('Error removing member:', error);
+      return { error };
     }
+
+    // Refetch members after successful mutation
+    await loadMembers();
 
     return { error };
   };
@@ -186,7 +193,11 @@ export function useTripMembers(tripId: string | number | null) {
 
     if (error) {
       console.error('Error updating member role:', error);
+      return { error };
     }
+
+    // Refetch members after successful mutation
+    await loadMembers();
 
     return { error };
   };

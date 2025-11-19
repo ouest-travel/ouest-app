@@ -177,6 +177,9 @@ export function useTrips() {
     }
 
     // Trigger automatically adds user as trip owner, so we don't need to do it manually
+    
+    // Refetch trips after successful mutation
+    await loadTrips();
 
     return { data, error: null };
   };
@@ -196,7 +199,11 @@ export function useTrips() {
 
     if (error) {
       console.error('Error updating trip:', error);
+      return { error };
     }
+
+    // Refetch trips after successful mutation
+    await loadTrips();
 
     return { error };
   };
@@ -211,7 +218,11 @@ export function useTrips() {
 
     if (error) {
       console.error('Error deleting trip:', error);
+      return { error };
     }
+
+    // Refetch trips after successful mutation
+    await loadTrips();
 
     return { error };
   };

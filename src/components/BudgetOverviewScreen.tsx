@@ -10,6 +10,7 @@ import { CurrencyConverterModal } from "./CurrencyConverterModal";
 import { EditTripModal } from "./EditTripModal";
 import { useExpenses } from "../hooks/useExpenses";
 import { useTripMembers } from "../hooks/useTripMembers";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -107,11 +108,21 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
   const handleAddExpense = async (expense: any) => {
     if (editingExpense) {
       // Update existing expense
-      await updateExpense(expense.id, expense);
+      const { error } = await updateExpense(editingExpense.id, expense);
+      if (error) {
+        toast.error('Failed to update expense');
+      } else {
+        toast.success('Expense updated successfully!');
+      }
       setEditingExpense(null);
     } else {
       // Add new expense
-      await addExpense(expense);
+      const { error } = await addExpense(expense);
+      if (error) {
+        toast.error('Failed to add expense');
+      } else {
+        toast.success('Expense added successfully!');
+      }
     }
   };
 
@@ -160,14 +171,14 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
   const getFilteredExpenses = () => {
     switch (activeTab) {
       case "person":
-        // Group by person who paid
+        // Group by person who paid (using display name)
         const byPerson: Record<string, any[]> = {};
         expenses.forEach(expense => {
-          const paidBy = (expense as any).paidBy || expense.paid_by;
-          if (!byPerson[paidBy]) {
-            byPerson[paidBy] = [];
+          const paidByName = expense.paidByProfile?.display_name || 'Unknown User';
+          if (!byPerson[paidByName]) {
+            byPerson[paidByName] = [];
           }
-          byPerson[paidBy].push(expense);
+          byPerson[paidByName].push(expense);
         });
         return byPerson;
       
@@ -377,7 +388,14 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
                   expense={expense}
                   onViewChat={onViewChat}
                   onEdit={() => handleEditExpense(expense)}
-                  onDelete={() => deleteExpense(expense.id)}
+                  onDelete={async () => {
+                    const { error } = await deleteExpense(expense.id);
+                    if (error) {
+                      toast.error('Failed to delete expense');
+                    } else {
+                      toast.success('Expense deleted');
+                    }
+                  }}
                 />
               </motion.div>
             ))
@@ -389,9 +407,14 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
               // Get display info based on tab type
               const getGroupDisplay = () => {
                 if (activeTab === "person") {
-                  const member = members.find(m => m.name === group);
+                  // Find the expense with this person's profile data
+                  const expense = groupExpenses[0];
+                  const avatar = expense?.paidByProfile?.avatar_url;
+                  const isImageUrl = avatar && avatar.startsWith('http');
+                  
                   return {
-                    icon: member?.avatar || "👤",
+                    icon: isImageUrl ? null : (avatar || "👤"),
+                    imageUrl: isImageUrl ? avatar : null,
                     name: group,
                   };
                 } else {
@@ -428,7 +451,15 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
                     }}
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">{display.icon}</span>
+                      {display.imageUrl ? (
+                        <img 
+                          src={display.imageUrl} 
+                          alt={display.name}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-2xl">{display.icon}</span>
+                      )}
                       <div>
                         <h4 className="text-foreground">{display.name}</h4>
                         <span className="text-muted-foreground" style={{ fontSize: "13px" }}>
@@ -451,7 +482,14 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
                       expense={expense}
                       onViewChat={onViewChat}
                       onEdit={() => handleEditExpense(expense)}
-                      onDelete={() => deleteExpense(expense.id)}
+                      onDelete={async () => {
+                        const { error } = await deleteExpense(expense.id);
+                        if (error) {
+                          toast.error('Failed to delete expense');
+                        } else {
+                          toast.success('Expense deleted');
+                        }
+                      }}
                     />
                   ))}
                 </motion.div>

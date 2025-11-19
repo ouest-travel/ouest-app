@@ -1,46 +1,46 @@
 "use client";
 
-import { useState } from 'react';
-import { motion } from 'motion/react';
-import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { useAuth } from '../../contexts/AuthContext';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { motion } from "motion/react";
+import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { useAuth } from "../../contexts/AuthContext";
+import { toast } from "sonner";
 
 interface SignUpScreenProps {
   onSwitchToLogin: () => void;
 }
 
 export function SignUpScreen({ onSwitchToLogin }: SignUpScreenProps) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password || !displayName) {
-      toast.error('Please fill in all fields');
+      toast.error("Please fill in all fields");
       return;
     }
 
     if (password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+      toast.error("Password must be at least 6 characters");
       return;
     }
 
     setLoading(true);
     const { error } = await signUp(email, password, displayName);
-    
+
     if (error) {
       toast.error(error.message);
       setLoading(false);
     } else {
-      toast.success('Account created! Please check your email to verify.');
+      toast.success("Account created! Please check your email to verify.");
     }
   };
 
@@ -52,16 +52,15 @@ export function SignUpScreen({ onSwitchToLogin }: SignUpScreenProps) {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-8"
         >
-          <div
-            className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center"
-            style={{
-              background: 'var(--ouest-gradient-main)',
-            }}
-          >
-            <span className="text-white text-2xl font-bold">O</span>
-          </div>
+          <img
+            src="/ouest-transparent.png"
+            alt="Ouest Logo"
+            className="w-16 h-16 mx-auto mb-4"
+          />
           <h1 className="text-foreground mb-2">Create Account</h1>
-          <p className="text-muted-foreground">Start planning your adventures</p>
+          <p className="text-muted-foreground">
+            Start planning your adventures
+          </p>
         </motion.div>
 
         <motion.form
@@ -100,7 +99,7 @@ export function SignUpScreen({ onSwitchToLogin }: SignUpScreenProps) {
               <div className="flex items-center gap-3">
                 <Lock className="w-5 h-5 text-muted-foreground" />
                 <Input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   placeholder="Password (min 6 characters)"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -112,7 +111,11 @@ export function SignUpScreen({ onSwitchToLogin }: SignUpScreenProps) {
                   onClick={() => setShowPassword(!showPassword)}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -122,11 +125,11 @@ export function SignUpScreen({ onSwitchToLogin }: SignUpScreenProps) {
             type="submit"
             className="w-full py-6 text-white shadow-lg hover:shadow-xl transition-all"
             style={{
-              background: 'var(--ouest-gradient-main)',
+              background: "var(--ouest-gradient-main)",
             }}
             disabled={loading}
           >
-            {loading ? 'Creating account...' : 'Sign Up'}
+            {loading ? "Creating account..." : "Sign Up"}
           </Button>
 
           <div className="text-center">
@@ -135,7 +138,8 @@ export function SignUpScreen({ onSwitchToLogin }: SignUpScreenProps) {
               onClick={onSwitchToLogin}
               className="text-muted-foreground hover:text-foreground transition-colors text-sm"
             >
-              Already have an account? <span className="underline">Sign in</span>
+              Already have an account?{" "}
+              <span className="underline">Sign in</span>
             </button>
           </div>
         </motion.form>
@@ -143,4 +147,3 @@ export function SignUpScreen({ onSwitchToLogin }: SignUpScreenProps) {
     </div>
   );
 }
-

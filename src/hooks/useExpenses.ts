@@ -19,6 +19,10 @@ export interface Expense {
   has_chat?: boolean;
   hasChat?: boolean;
   created_at?: string;
+  paidByProfile?: {
+    display_name?: string;
+    avatar_url?: string;
+  };
 }
 
 // Demo expenses for different trips
@@ -32,10 +36,14 @@ const getDemoExpenses = (tripId: number | null): Expense[] => {
         currency: "CAD",
         category: "food",
         // paidBy: "Timmy",
-        paid_by: "Timmy",
+        paid_by: "4",
         splitAmong: 4,
         date: "2025-10-13",
         hasChat: true,
+        paidByProfile: {
+          display_name: "Timmy",
+          avatar_url: "👨🏾",
+        },
       },
       {
         id: "2",
@@ -44,10 +52,14 @@ const getDemoExpenses = (tripId: number | null): Expense[] => {
         currency: "CAD",
         category: "transport",
         // paidBy: "Jason",
-        paid_by: "Jason",
+        paid_by: "2",
         splitAmong: 4,
         date: "2025-10-13",
         hasChat: true,
+        paidByProfile: {
+          display_name: "Jason",
+          avatar_url: "👨🏼",
+        },
       },
       {
         id: "3",
@@ -56,10 +68,14 @@ const getDemoExpenses = (tripId: number | null): Expense[] => {
         currency: "CAD",
         category: "stay",
         // paidBy: "Sandra",
-        paid_by: "Sandra",
+        paid_by: "3",
         splitAmong: 4,
         date: "2025-10-12",
         hasChat: false,
+        paidByProfile: {
+          display_name: "Sandra",
+          avatar_url: "👩🏽",
+        },
       },
       {
         id: "4",
@@ -68,10 +84,14 @@ const getDemoExpenses = (tripId: number | null): Expense[] => {
         currency: "CAD",
         category: "activities",
         // paidBy: "Trey",
-        paid_by: "Trey",
+        paid_by: "1",
         splitAmong: 4,
         date: "2025-10-12",
         hasChat: true,
+        paidByProfile: {
+          display_name: "Trey",
+          avatar_url: "👨🏻",
+        },
       },
     ];
   } else if (tripId === 2) {
@@ -83,10 +103,14 @@ const getDemoExpenses = (tripId: number | null): Expense[] => {
         currency: "EUR",
         category: "activities",
         // paidBy: "Trey",
-        paid_by: "Trey",
+        paid_by: "1",
         splitAmong: 3,
         date: "2026-01-11",
         hasChat: false,
+        paidByProfile: {
+          display_name: "Trey",
+          avatar_url: "👨🏻",
+        },
       },
       {
         id: "p2",
@@ -95,10 +119,14 @@ const getDemoExpenses = (tripId: number | null): Expense[] => {
         currency: "EUR",
         category: "transport",
         // paidBy: "Sandra",
-        paid_by: "Sandra",
+        paid_by: "3",
         splitAmong: 3,
         date: "2026-01-10",
         hasChat: false,
+        paidByProfile: {
+          display_name: "Sandra",
+          avatar_url: "👩🏽",
+        },
       },
     ];
   } else if (tripId === 3) {
@@ -110,10 +138,14 @@ const getDemoExpenses = (tripId: number | null): Expense[] => {
         currency: "EUR",
         category: "activities",
         // paidBy: "Jason",
-        paid_by: "Jason",
+        paid_by: "2",
         splitAmong: 4,
         date: "2024-09-02",
         hasChat: false,
+        paidByProfile: {
+          display_name: "Jason",
+          avatar_url: "👨🏼",
+        },
       },
       {
         id: "b2",
@@ -122,10 +154,14 @@ const getDemoExpenses = (tripId: number | null): Expense[] => {
         currency: "EUR",
         category: "food",
         // paidBy: "Timmy",
-        paid_by: "Timmy",
+        paid_by: "4",
         splitAmong: 4,
         date: "2024-09-03",
         hasChat: false,
+        paidByProfile: {
+          display_name: "Timmy",
+          avatar_url: "👨🏾",
+        },
       },
       {
         id: "b3",
@@ -134,10 +170,14 @@ const getDemoExpenses = (tripId: number | null): Expense[] => {
         currency: "EUR",
         category: "stay",
         // paidBy: "Sandra",
-        paid_by: "Sandra",
+        paid_by: "3",
         splitAmong: 4,
         date: "2024-09-01",
         hasChat: false,
+        paidByProfile: {
+          display_name: "Sandra",
+          avatar_url: "👩🏽",
+        },
       },
     ];
   }
@@ -195,14 +235,22 @@ export function useExpenses(tripId: string | number | null) {
 
     const { data, error } = await supabase
       .from('expenses')
-      .select('*')
+      .select(`
+        *,
+        paidByProfile:profiles!paid_by(display_name, avatar_url)
+      `)
       .eq('trip_id', tripId)
       .order('date', { ascending: false });
 
     if (error) {
       console.error('Error loading expenses:', error);
     } else {
-      setExpenses(data || []);
+      // Transform the data to flatten the profile
+      const transformedData = data?.map((expense: any) => ({
+        ...expense,
+        paidByProfile: expense.paidByProfile,
+      })) || [];
+      setExpenses(transformedData);
     }
 
     setLoading(false);
@@ -243,6 +291,9 @@ export function useExpenses(tripId: string | number | null) {
       return { data: null, error };
     }
 
+    // Refetch expenses after successful mutation
+    await loadExpenses();
+
     return { data, error: null };
   };
 
@@ -261,7 +312,11 @@ export function useExpenses(tripId: string | number | null) {
 
     if (error) {
       console.error('Error updating expense:', error);
+      return { error };
     }
+
+    // Refetch expenses after successful mutation
+    await loadExpenses();
 
     return { error };
   };
@@ -276,7 +331,11 @@ export function useExpenses(tripId: string | number | null) {
 
     if (error) {
       console.error('Error deleting expense:', error);
+      return { error };
     }
+
+    // Refetch expenses after successful mutation
+    await loadExpenses();
 
     return { error };
   };
