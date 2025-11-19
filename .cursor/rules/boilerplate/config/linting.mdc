@@ -1,0 +1,31 @@
+---
+description: Should be used when applying linting rules or setting up a fresh repository for the first time
+globs: 
+alwaysApply: false
+---
+
+### 10.1. ESLint Configuration
+```javascript
+// .eslintrc.cjs pattern
+module.exports = {
+  extends: [
+    'plugin:react-hooks/recommended',
+    '@remix-run/eslint-config',
+    'prettier',
+  ],
+  rules: {
+    '@typescript-eslint/no-unused-vars': 'warn',
+    'react-hooks/exhaustive-deps': 'warn',
+  },
+}
+```
+
+### 10.2. Prettier Configuration
+```json
+{
+  "useTabs": true,
+  "singleQuote": true,
+  "semi": false,
+  "bracketSpacing": true
+}
+```

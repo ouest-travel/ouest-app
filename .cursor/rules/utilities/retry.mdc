@@ -1,0 +1,20 @@
+---
+description: Use when we want to implement retry logic
+globs:
+alwaysApply: false
+---
+
+
+Use `retry()` from @/utils/retry to implement retry logic.
+
+```ts
+const result = await retry(() => {
+    doSomthing()
+},
+NUMBER_OF_ATTEMPTS, 
+{ retryDelay: 1000 }
+)
+```
+
+
+

@@ -1,0 +1,20 @@
+---
+description: This should be used for tasks that involve redux state, actions, and logic
+globs: 
+alwaysApply: false
+---
+## Purpose
+This should be used for tasks that involve redux state, actions, and logic
+
+**State Slices Pattern**:
+- `auth`: User authentication and session management
+- `network`: Blockchain network selection and configuration
+- `trade`: Trading interface state and selected tokens
+- `tokens`: Token data and market information
+- `settings`: User preferences and application settings
+
+
+### Persistence Strategy
+- **SSR Critical Data**: Stored in cookies for server-side access
+- **Client-side Data**: Stored in IndexedDB for performance
+- **Mobile**: AsyncStorage with Redux Persist integration

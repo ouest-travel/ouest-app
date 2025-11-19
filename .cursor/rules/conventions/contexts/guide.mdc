@@ -1,0 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+**Common Context Providers**:
+- `ThemeProvider`: Design system theming
+- `ErrorBoundary`: Blockchain network management

@@ -1,0 +1,28 @@
+---
+description: This should be used when a task involves making a request to an api in the arena ecosystem
+globs: 
+alwaysApply: false
+---
+## 8. Authentication & Security
+
+### 8.1. Authentication Methods
+- **SIWE (Sign-In with Ethereum)**: Primary web3 authentication
+- **OAuth Integration**: Google, Twitter, Apple social login
+- **Email Authentication**: Traditional email/password flow
+- **Turnkey Integration**: Secure wallet-based authentication
+
+### 8.2. Session Management
+```typescript
+// Session provider pattern
+export const SessionProvider = ({ children }: { children: ReactNode }) => {
+  const updateSession = useCallback(async () => {
+    const { user, lastRefreshedAt } = store.getState().auth
+    if (shouldRefresh(user, lastRefreshedAt)) {
+      await dispatch(refreshUserAction())
+    }
+  }, [])
+
+  usePoller({ callback: updateSession, interval: 10000 })
+  // ... session management logic
+}
+```

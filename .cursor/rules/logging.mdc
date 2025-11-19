@@ -1,0 +1,19 @@
+---
+description: This task is useful when adding or modifying logs
+globs:
+alwaysApply: false
+---
+
+## Objective
+Use custom loggers with the following objectives:
+- Allow us to send logs to Datadog as well as in console
+- Allow us to enable different levels of logging, (e.g. info, error, warn, debug, highlight)
+- Allow us to scale what get's logged up and down based on the different log levels without having to remove logs invocations from the codebase
+- Allow us to log at different levels in production vs local without having to remove logs invocations from the codebase
+ 
+
+## Implementation
+
+The root logger class is located in @/lib/logger/WebLogger.ts while namespaced loggers are located at @/lib/logger/loggers.ts
+
+To create a namespaced logger, we call `WebLogger.spawn({ namespace: 'Auth', level: 'warn' })` with the name space and level that we want logged

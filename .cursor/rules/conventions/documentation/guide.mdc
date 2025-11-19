@@ -1,0 +1,343 @@
+---
+description: Guidelines for documenting code - when and how to write comments, READMEs, and documentation
+globs:
+alwaysApply: true
+---
+
+# Documentation Philosophy
+
+**Core Principle**: Code should be self-documenting. Names, structure, and organization are the primary means of documentation.
+
+## 1. Code as Documentation (Primary)
+
+The best documentation is code that clearly expresses its intent through:
+
+### 1.1. Descriptive Naming
+```typescript
+// ❌ BAD - Requires comments to understand
+function calc(u: User) {
+  // Calculate user's total portfolio value
+  return u.positions.reduce((a, p) => a + p.val, 0)
+}
+
+// ✅ GOOD - Self-documenting
+function calculateTotalPortfolioValue(user: User): number {
+  return user.positions.reduce(
+    (total, position) => total + position.valueUSD,
+    0
+  )
+}
+```
+
+### 1.2. Clear Directory Structure
+```
+src/
+├── services/        # Business logic classes
+├── lib/            # Third-party integrations (non-domain specific)
+├── utils/          # Pure utility functions
+├── data/           # Data access layer (models, schemas, cache)
+└── types/          # TypeScript type definitions
+```
+
+The directory structure itself documents the architecture and separation of concerns.
+
+### 1.3. Type Definitions as Documentation
+```typescript
+// ✅ GOOD - Types document the contract
+interface ChartReadyEvent {
+  timestamp: number        // When chart became ready
+  timeSinceMount: number   // Time from mount to ready (ms)
+}
+
+// Types make behavior explicit without comments
+type OrderSide = 'BUY' | 'SELL'
+type OrderType = 'MARKET' | 'LIMIT'
+```
+
+## 2. When to Write Comments (Sparingly)
+
+Comments should be **rare** and only used in specific scenarios:
+
+### 2.1. Temporary Workarounds
+
+Document workarounds with context and a path forward:
+
+```typescript
+// ✅ ACCEPTABLE - Temporary workaround documented
+// TODO: Remove this once TradingView fixes their TypeScript definitions
+// @ts-ignore - TradingView headerReady() method missing in type definitions
+await tradingView.current?.headerReady()
+
+// TEMPORARY: Using any until GraphQL codegen is updated (v5.0 migration)
+// See issue #1234 for tracking
+const response: any = await fetchData()
+```
+
+### 2.2. Non-Obvious Implementation Details
+
+Only when the "why" cannot be expressed through code:
+
+```typescript
+// ✅ ACCEPTABLE - Explains non-obvious timing requirement
+// Wait 500ms for TradingView to fully render chart container
+// before applying custom styles. Earlier timing causes visual glitches.
+setTimeout(() => {
+  chartContainer.classList.add('enhanced-marks')
+}, 500)
+
+// ✅ ACCEPTABLE - Explains critical business constraint
+// Base network requires gas buffer of 20% due to fluctuating
+// priority fees. Lower buffer results in frequent tx failures.
+const gasLimit = estimatedGas * 1.2
+```
+
+### 2.3. Going Against Core Conventions
+
+```typescript
+// ✅ ACCEPTABLE - Explains deviation from convention
+// Using NodeCache instead of Redis here because this data
+// is ephemeral per-instance and doesn't need cross-server sync.
+// See architecture decision record ADR-023.
+const localCache = new NodeCache({ stdTTL: 300 })
+```
+
+### 2.4. Unacceptable Comments
+
+```typescript
+// ❌ BAD - Commenting the obvious
+// Set user to null
+user = null
+
+// ❌ BAD - Explaining what code does (should be in name)
+// Loop through orders and filter by status
+const filtered = orders.filter(o => o.status === 'active')
+// Better: const activeOrders = orders.filter(...)
+
+// ❌ BAD - Commented-out code (delete it, use git)
+// const oldImplementation = () => { ... }
+
+// ❌ BAD - Section dividers (use file organization instead)
+// ==========================================
+// Order Processing Functions
+// ==========================================
+```
+
+## 3. README Files (Very Sparingly)
+
+READMEs should be **rare** and purposeful.
+
+### 3.1. Required READMEs
+
+**Repository Root (`README.md`)** - ALWAYS required:
+```markdown
+# Project Name
+
+## Setup
+- Prerequisites
+- Installation steps
+- Environment variables
+- Running the app
+
+## Architecture Overview
+- High-level structure
+- Key technologies
+- Links to relevant documentation
+
+## Common Commands
+- Development
+- Testing
+- Deployment
+```
+
+### 3.2. When to Add Additional READMEs
+
+Only add feature/directory READMEs when **ALL** of these apply:
+1. ✅ Logic-intensive feature with many moving parts
+2. ✅ Requires specific setup or maintenance procedures
+3. ✅ Cannot be easily understood through code alone
+4. ✅ Multiple developers need to work on it
+
+**Examples of Acceptable READMEs:**
+```
+test/integration/README.md       # Playwright setup, test patterns
+workers/README.md                # Worker architecture, deployment
+prisma/migrations/README.md      # Migration procedures, conventions
+```
+
+### 3.3. Unacceptable READMEs
+
+```
+// ❌ DON'T create READMEs for:
+src/utils/README.md                    # Utils should be self-explanatory
+src/components/Button/README.md        # Component usage in code/Storybook
+src/services/auth/README.md            # Service should have clear class structure
+scripts/some-task-README.md            # Individual scripts should be self-documenting
+scripts/upload-images-README.md        # One-off tasks don't need READMEs
+scripts/tasks/backfill-README.md       # Backfill scripts should have descriptive names
+prisma/scripts/seed-README.md          # Simple scripts don't need separate docs
+```
+
+**Why?** These add maintenance burden and often become stale. The code itself should be the documentation.
+
+**Especially for scripts:**
+- Script filename and inline comments should explain what it does
+- Script can have a header comment with usage examples
+- If script is complex enough to need a README, it should probably be refactored
+- One-off tasks and backfills never need READMEs
+
+### 3.4. README Anti-Patterns
+
+```markdown
+<!-- ❌ BAD - Duplicating what code already says -->
+# UserService
+
+This service handles user operations.
+
+## Methods
+- `getUser(id)` - Gets a user by ID
+- `createUser(data)` - Creates a user
+- `deleteUser(id)` - Deletes a user
+
+<!-- ✅ GOOD - Adding value beyond the code -->
+# Worker Architecture
+
+## Overview
+Workers handle background processing for order execution, price updates,
+and notification delivery. Each worker runs as a separate process and
+communicates via Redis pub/sub.
+
+## Deployment
+Workers auto-scale based on Redis queue depth (see k8s/workers/).
+Deploy with zero-downtime using blue-green strategy.
+
+## Monitoring
+- Queue depth alerts at 1000+ items
+- Processing time P95 alerts at 5s+
+- Error rate alerts at 5%+
+```
+
+## 4. Practical Guidelines
+
+### 4.1. Before Writing a Comment, Ask:
+1. Can I express this through better naming?
+2. Can I extract this into a well-named function?
+3. Can I use types to make this clearer?
+4. Is this temporary? (Add TODO/TEMPORARY prefix)
+5. Is this absolutely non-obvious?
+
+### 4.2. Before Writing a README, Ask:
+1. Is this the repository root? (Required - only exception)
+2. **Is this a script or one-off task?** (If yes, DON'T create README)
+3. Can this be documented through code structure and comments?
+4. Does this have complex setup steps spanning multiple files/systems?
+5. Will this documentation stay relevant for months/years?
+6. Is this logic-intensive with many moving parts across multiple files?
+7. Do multiple developers need to maintain this regularly?
+
+**If you answered "no" to questions 4-7, DON'T create a README.**
+
+### 4.3. Maintenance Principle
+**Documentation is a liability**. Every comment and README:
+- Can become outdated
+- Requires maintenance
+- May contradict the code
+
+**Therefore:** Document only what absolutely cannot be expressed through code.
+
+## 5. Documentation Hierarchy
+
+1. **Best**: Self-documenting code (names, types, structure)
+2. **Good**: Inline comments for workarounds and non-obvious details
+3. **Acceptable**: Targeted READMEs for complex features
+4. **Worst**: Extensive documentation that duplicates what code says
+
+## 6. Examples from Codebase
+
+### ✅ Good: Code as Documentation
+```typescript
+// File: src/utils/withTimeout.ts
+export const withTimeout = async <T>(
+  callback: (args: { signal?: AbortController['signal'] }) => Promise<T>,
+  timeout: number
+): Promise<T> => {
+  // Function name, parameters, and types document behavior
+  // No comments needed for basic flow
+}
+```
+
+### ✅ Good: Script with Header Documentation
+```typescript
+// scripts/upload-emojis-to-cloudinary.ts
+/**
+ * Upload all SVG emoji files from /emojis to Cloudinary
+ * 
+ * Usage: yarn upload:emojis
+ * 
+ * Requirements:
+ * - CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET in .env
+ * - Uses emoji-upload preset (PID: b883bae3-87fd-4968-9fea-36ddb474524f)
+ * 
+ * Configuration:
+ * - CONCURRENCY: Number of concurrent uploads (default: 10)
+ */
+```
+**No README needed** - header comment is sufficient!
+
+### ✅ Good: Legitimate Comment
+```typescript
+// Dispatch custom event for testing/monitoring
+// Playwright tests listen for this to measure chart load performance
+if (typeof window !== 'undefined') {
+  window.dispatchEvent(new CustomEvent('chart-ready', {
+    detail: { timestamp: Date.now() }
+  }))
+}
+```
+
+### ✅ Good: Targeted README (Rare Exception)
+```
+test/integration/README.md - Explains Playwright setup, running tests
+Not obvious from code alone, prevents repeated setup issues
+Complex enough to warrant dedicated documentation
+```
+
+## 7. Enforcement
+
+During code review, challenge:
+- Comments that explain what code does (improve naming instead)
+- READMEs that duplicate code documentation
+- **READMEs for individual scripts or simple tasks**
+- READMEs for utils, services, or components (code should be clear enough)
+- Outdated comments that don't match code
+- Comments without TODO/TEMPORARY for workarounds
+
+**Remember**: The best line of documentation is the one you don't have to write.
+
+## 8. Scripts Deserve Special Mention
+
+**Scripts should NEVER have separate README files.** Instead:
+
+### ✅ Good Script Documentation:
+```typescript
+/**
+ * Clear header comment with:
+ * - What the script does
+ * - How to run it
+ * - Required environment variables
+ * - Configuration options
+ */
+```
+
+### ❌ Bad Script Documentation:
+- Creating `scripts/my-task-README.md`
+- Creating `scripts/tasks/task-name-README.md`
+- Writing extensive external documentation for simple tasks
+
+### Why Scripts Don't Need READMEs:
+1. Scripts are typically run once or infrequently
+2. The script name should be descriptive (`upload-emojis-to-cloudinary.ts`)
+3. Header comments can explain usage and requirements
+4. NPM script in `package.json` shows how to run it
+5. If script is too complex for header comments, refactor it
+
+**Exception:** A directory-level README for `/scripts` explaining the overall organization is acceptable, but individual script READMEs are not.

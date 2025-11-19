@@ -1,0 +1,356 @@
+---
+description: This rule should be used for tasks involding accessing or storing state in a front end application
+globs: 
+alwaysApply: false
+---
+
+# Zustand
+
+
+## 1. Usage
+
+Refer to the `.cursor/rules/conventions/state-management/guide.mdc` rule to know when to use zustand
+
+
+## 2. Architecture & Directory
+
+### 2.1 Single Zustand Store
+We should use one global zustand storted that is broken into slices. 
+
+
+A slice of a store:
+
+```ts
+import { StateCreator } from 'zustand'
+import { getConfig } from '@/config/getConfig'
+import { authLogger, codexLogger } from '@/lib/logger/loggers'
+import dayjs from 'dayjs'
+import type { AuthStore, User } from './auth.types'
+import type { RootStore } from '../root/root.types'
+import { createSliceGetSet } from '../root/root.utils'
+
+export const createAuthSlice: StateCreator<RootStore, [], [], AuthStore> = (
+	setRoot,
+	getRoot
+) => {
+	const { get, set } = createSliceGetSet(setRoot, getRoot, 'auth')
+
+	return {
+		// Initial state
+		isAuthenticated: false,
+		user: null,
+		accessToken: null,
+		accessTokenExpiresAt: null,
+		isConnecting: false,
+		// Logout user
+		logoutUser: () => {
+			try {
+				const config = getConfig()
+				void config.api.post('/auth/logout')
+			} catch (e) {}
+			set({
+				isAuthenticated: false,
+				user: null,
+				accessToken: null,
+				isConnecting: false,
+			})
+			// Clear tracked wallets on logout
+			getRoot().trackedWallets.clearTrackedWallets()
+			// Clear bots on logout
+			getRoot().creatorCoins.clearBots()
+		},
+		// Connect user using a Privy token (calls /auth/connect)
+		connectUser: async (privyToken: string) => {
+			if (get().isConnecting) return false
+			try {
+				set({ isConnecting: true })
+				const config = getConfig()
+				const { res } = await config.api.post<{
+					accessToken: string
+					expiresAt: string
+					user: User
+				}>('/auth/connect', {
+					body: {
+						privyToken,
+					},
+				})
+
+				// Validate response fields
+				if (!res?.accessToken || !res?.expiresAt || !res?.user) {
+					authLogger.error('Invalid auth connect response', { res })
+					set({ isConnecting: false })
+					throw new Error('Invalid auth connect response')
+				}
+
+				set({
+					isAuthenticated: true,
+					user: res.user,
+					accessToken: res.accessToken,
+					accessTokenExpiresAt: res.expiresAt,
+					isConnecting: false,
+				})
+
+				authLogger.info(
+					`👤 User Authenticated\n⏰ Expires ${dayjs(res.expiresAt).fromNow()}`
+				)
+				return true
+			} catch (error: any) {
+				authLogger.error('connectUser failed', {
+					status: error?.response?.status,
+					error,
+				})
+				if (error?.response?.status === 401) {
+					set({
+						isAuthenticated: false,
+						user: null,
+						accessToken: null,
+						accessTokenExpiresAt: null,
+						isConnecting: false,
+					})
+				} else {
+					set({ isConnecting: false })
+				}
+				return false
+			} finally {
+				set({ isConnecting: false })
+			}
+		},
+
+		// Refresh access token using refresh cookie (calls /auth/refresh)
+		refreshToken: async () => {
+			if (get().isConnecting) return false
+
+			set({ isConnecting: true })
+			try {
+				const config = getConfig()
+				const { res } = await config.api.post<{
+					accessToken: string
+					expiresAt: string
+					user: User
+				}>('/auth/refresh')
+
+				// Validate response fields
+				if (!res?.accessToken || !res?.expiresAt || !res?.user) {
+					authLogger.error('Invalid auth refresh response', { res })
+					throw new Error('Invalid auth refresh response')
+				}
+
+				const refreshedAt = dayjs().toISOString()
+				authLogger.info(
+					`✨ Refreshed access token at ${refreshedAt}\n⏰ Expires ${dayjs(
+						res.expiresAt
+					).fromNow()}`
+				)
+
+				set({
+					accessToken: res.accessToken,
+					accessTokenExpiresAt: res.expiresAt,
+					user: res.user,
+					isAuthenticated: true,
+				})
+
+				return true
+			} catch (error: any) {
+				authLogger.error('refreshToken failed', {
+					status: error?.response?.status,
+					error,
+				})
+				if (error?.response?.status === 401) {
+					// If refresh fails with 401, log out the user
+					authLogger.warn('Refresh token unauthorized, logging out user')
+					get().logoutUser()
+				}
+				return false
+			} finally {
+				set({ isConnecting: false })
+			}
+		},
+	}
+}
+```
+
+
+And slices are rolled up into the root:
+
+```ts
+// root.store.ts
+
+
+import { createAuthSlice } from '../auth/auth.store'
+import { createWithEqualityFn } from 'zustand/traditional'
+import type { RootStore } from './root.types'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import { immer } from 'zustand/middleware/immer'
+import { isFunction, isObject, omit, pick } from 'lodash-es'
+import isEqual from 'react-fast-compare'
+import { mountStoreDevtool } from 'simple-zustand-devtools'
+import { indexDBStorage } from './root.utils'
+import { zustandLogger } from '@/lib/logger'
+
+export const useRootStore = createWithEqualityFn<RootStore>()(
+	persist(
+		immer((set, get, ...rest) => ({			
+			auth: createAuthSlice(set, get, ...rest),			
+			_hasHydrated: false,
+			setHasHydrated: (state: boolean) => {
+				set({ _hasHydrated: state })
+			},
+		})),
+		{
+			name: 'root-storage',
+			storage: createJSONStorage(() => indexDBStorage),
+			partialize: (state: RootStore) => {
+				return {				
+					auth: {
+						isAuthenticated: state.auth.isAuthenticated ?? false,
+						user: state.auth.user ?? null,
+						accessToken: state.auth.accessToken ?? null,
+						accessTokenExpiresAt: state.auth.accessTokenExpiresAt ?? null,
+						codexToken: state.auth.codexToken ?? null,
+					},					
+				} satisfies DeepPartial<RootStore>
+			},
+			merge: (_persistedState, currentState) => {
+				// Counter to what typescript tells you this can be undefined
+				const persistedState = _persistedState as Partial<RootStore> | undefined				
+				return {
+					...currentState,
+					...persistedState,					
+					auth: {
+						...currentState?.auth,
+						...persistedState?.auth,
+					},					
+				}
+			},
+			version: 1,
+			migrate: (persistedState, version) => {
+				if (version === 1) {
+					// When there are breaking changes to store, we can do migrations here
+				}
+
+				return persistedState as DeepPartial<RootStore>
+			},
+			onRehydrateStorage: () => {
+				return (state, error) => {
+					if (error) {
+						zustandLogger.logCritical(error, 'Root store hydration error')
+						// We still want to set hydration true here
+						// So the app can continue to render
+						state?.setHasHydrated(true)
+					} else {
+						state?.setHasHydrated(true)
+					}
+				}
+			},
+		}
+	),
+	isEqual
+)
+
+mountStoreDevtool('RootStore', useRootStore)
+
+export const useStoreIsHydrated = () =>
+	useRootStore((state) => state._hasHydrated)
+
+type PickFunctions<T> = {
+	[K in keyof T as T[K] extends Function ? K : never]: T[K]
+}
+
+type DeepPartial<T> = {
+	[P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P]
+}
+
+type PickDeepFunctions<T> = {
+	// Pick functions at the top level
+	[K in keyof T as T[K] extends Function ? K : never]: T[K]
+} & {
+	// Pick functions one level down and flatten them to the top level
+	[K in keyof T as T[K] extends object ? never : never]: never
+} & UnionToIntersection<
+		{
+			[P in keyof T]: T[P] extends object
+				? {
+						[K in keyof T[P] as T[P][K] extends Function ? K : never]: T[P][K]
+				  }
+				: never
+		}[keyof T]
+	>
+
+// Helper type to convert union to intersection
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
+	k: infer I
+) => void
+	? I
+	: never
+
+export const getStoreActions = (
+	store: typeof useRootStore
+): PickDeepFunctions<RootStore> => {
+	const state = store.getInitialState()
+	const actions: Record<string, Function> = {}
+	Object.keys(state).forEach((key) => {
+		const value = state[key as keyof RootStore]
+		if (isFunction(value)) {
+			actions[key] = value
+		} else if (isObject(value)) {
+			Object.keys(value).forEach((actionKey) => {
+				const nestedValue = value[actionKey as keyof typeof value]
+				if (isFunction(nestedValue)) {
+					actions[actionKey] = nestedValue
+				}
+			})
+		}
+	})
+
+	return actions as PickDeepFunctions<RootStore>
+}
+export const Actions = getStoreActions(useRootStore)
+
+```
+
+#### 2.1.2 Important Conventions
+
+Note the following 🚨IMPORTANT CONVENTIONS:
+
+**Default Extensions**
+We use `immer` and `persist` extensions for zustand
+
+**Custom Equality Function**
+We use `isEqual` from `react-fast-compare` a custom equality function 
+
+**Mount Developer Tools**
+We use `isEqual` from `react-fast-compare` a custom equality function 
+
+**Hydration State at the root level**
+We add and manage hydration state at the root level of our store
+
+**Actions object**
+- We roll up all store actions to a global `Actions` export for simplified usage
+- We should ALWAYS use the `Actions.methodName()` to access store methods. As oppposed to using `useRootStore.getState().slice.actionName()` or using `const {slice: {actionName}} = useRootStore()`
+
+
+### 2.2 The folder structure should look like this
+
+```
+src/
+└── zustand/
+    ├── root/
+    │   ├── root.store.ts
+    │   ├── root.types.ts
+    │   ├── root.selectors.ts
+    │   ├── root.utils.ts
+    │   └── index.ts
+    ├── orders/
+    │   ├── orders.store.ts
+    │   ├── orders.types.ts
+    │   ├── orders.selectors.ts
+    │   └── index.ts
+    └── auth/
+        ├── auth.store.ts
+        ├── users.types.ts
+        ├── users.selectors.ts
+        └── index.ts      
+```
+
+
+### 

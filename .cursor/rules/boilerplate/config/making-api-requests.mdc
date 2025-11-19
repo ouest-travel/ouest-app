@@ -1,0 +1,36 @@
+---
+description: This rule is useful when making request to the main apps backend API
+globs:
+alwaysApply: false
+---
+
+
+We use a the `getConfig` from `@/config/getConfig()` to make requests to our application backend. This abstraction serves the following purposes:
+
+1. Allows us set API request configurations (e.g. auth headers, origin, logging, fetch config, and error handling) in one
+2. Provide a simple API for making requests
+
+Usage
+```ts
+const response = await getConfig().get('/orders')
+const response = await getConfig().post('/orders', {body: {side: "BUY"}})
+```
+
+You can also optionally provide a response type and request body.
+```ts
+const response = await getConfig().post<ResponseType, RequestBody>('/orders', {body: {side: "BUY"}})
+```
+
+Notes:
+We prefer to invoke this with short handed:
+
+```ts
+getConfig().api.post()
+```
+
+instead of 
+```ts
+const config = getConfig()
+config.api.post()
+```
+

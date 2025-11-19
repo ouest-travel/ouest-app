@@ -1,0 +1,49 @@
+---
+description: Use when you want to do run a function on a time based loop
+globs:
+alwaysApply: false
+---
+
+
+In react context use the `useQueuedInterval` in `@/hooks/useQueuedPoller.ts` for functions that you want to run on a timed interval.
+
+The signature is:
+```ts
+interface UsePollerProps {
+	callback: () => void | Promise<void>
+	active: boolean
+	interval?: number
+	timeout?: number
+	runImmediately?: boolean
+}
+
+useQueuedPoller(props: UsePollerProps)
+```
+- Note that we should aim to pass memoized functions into this hook, otherwise the hook will restart timing on every render
+
+
+Outside of react contexts we can use `withQueuedInterval` located in `@/utils/withQueuedInterval.ts`.
+
+```ts
+type Props = {
+    callback: () => Promise<any>) | (() => any),
+	interval: number,
+	options: {
+		onError?: (e: any) => void
+		controller?: AbortController
+		skipInitialRun?: boolean
+		isInitialRun?: boolean
+	}
+}
+
+const unsubscribe = withQueuedInterval(
+callback,
+intervalMillis,
+{
+		onError,
+		controller,
+		skipInitialRun,
+		isInitialRun,
+})
+
+```

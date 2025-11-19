@@ -1,0 +1,131 @@
+---
+alwaysApply: true
+---
+
+# TypeScript Rules
+
+## ⚠️ CRITICAL RULES - STRONG PREFERENCE AGAINST `any`
+
+### Rule 1: Avoid `any` Types - Use Only When Absolutely Necessary
+**STRONG PROHIBITION**: The use of `any` type should be avoided in 99% of cases and requires explicit justification.
+
+**Common violations to avoid:**
+- ❌ `(param: any)` - lazy parameter typing
+- ❌ `} as any` - suppressing type errors without investigation
+- ❌ `let variable: any` - avoiding proper type definition
+- ❌ `function foo(): any` - avoiding return type specification
+
+**When encountering TypeScript errors, try these solutions FIRST:**
+
+1. **Types are correct, code is wrong** → Fix the code to match types
+2. **Code is correct, types are wrong** → Update/generate proper types  
+3. **Types are missing** → Add proper types (prefer inferred when possible)
+4. **Complex third-party integration** → Create proper type definitions or use `unknown`
+
+### Legitimate Use Cases for `any` (Rare Exceptions)
+
+**Only use `any` in these specific scenarios:**
+
+1. **Dynamic content with truly unknown structure** - JSON from external APIs with no schema
+2. **Third-party library with no types** - When `@types` package doesn't exist and creating types is impractical
+3. **Complex type gymnastics** - When TypeScript's type system limitations require workarounds
+
+**Requirements when using `any`:**
+- Add a comment explaining WHY `any` is necessary
+- Include a TODO to replace with proper types when possible
+- Limit scope as much as possible (prefer `unknown` if you can)
+
+### Rule 2: Use TypeScript over JavaScript
+Use TypeScript (.ts/.tsx) files unless explicitly specified otherwise.
+
+## Enforcement Guidelines
+
+### Code Review Checklist
+- [ ] No unexplained `any` types
+- [ ] All `any` usage has justification comments
+- [ ] TypeScript compilation passes without errors
+- [ ] Consider if `unknown` could be used instead of `any`
+
+### Acceptable `any` Patterns
+
+```typescript
+// ✅ ACCEPTABLE - with justification
+// TODO: Replace with proper types when API schema is available
+const apiResponse: any = await fetch('/dynamic-endpoint');
+
+// ✅ ACCEPTABLE - third-party library without types
+// @ts-ignore - lodash method not in type definitions
+const result: any = _.someObscureMethod(data);
+
+// ✅ ACCEPTABLE - migration scenario
+// Legacy JS code being gradually typed
+function legacyFunction(data: any): any {
+  // TODO: Add proper types in next refactor
+  return processLegacyData(data);
+}
+```
+
+### Unacceptable `any` Patterns
+
+```typescript
+// ❌ WRONG - lazy typing
+function processUser(user: any) {
+  return user.name; // Should type the user parameter
+}
+
+// ❌ WRONG - suppressing errors
+const result = someFunction() as any;
+
+// ❌ WRONG - avoiding GraphQL codegen types
+const resolver = async (parent: any, args: any) => {
+  // Should use generated types
+}
+```
+
+## Alternative Solutions to `any`
+
+### Use `unknown` for truly unknown data
+```typescript
+// ✅ BETTER than any
+function processApiData(data: unknown) {
+  if (typeof data === 'object' && data !== null) {
+    // Type narrowing
+  }
+}
+```
+
+### Use union types for known possibilities
+```typescript
+// ✅ BETTER than any
+type ApiResponse = User | Product | Error;
+```
+
+### Use generic types for reusable functions
+```typescript
+// ✅ BETTER than any
+function processData<T>(data: T): T {
+  return data;
+}
+```
+
+## Common Scenarios and Solutions
+
+### Scenario: "GraphQL resolver has type errors"
+❌ **Wrong**: Add `as any` to suppress the error
+✅ **Right**: Run `yarn codegen` to generate proper types
+
+### Scenario: "Third-party library has no types"
+❌ **Wrong**: Type everything as `any`
+✅ **Right**: Use `unknown` and type guards, or create minimal type definitions
+
+### Scenario: "Complex nested object from API"
+❌ **Wrong**: Use `any` for the whole object
+✅ **Right**: Type the parts you use, use `unknown` for the rest
+
+## When Stuck
+
+If you're considering using `any`:
+1. Ask yourself: "Can I use `unknown` instead?"
+2. Ask yourself: "Can I create a minimal type for just what I need?"
+3. If still stuck, ask for guidance rather than defaulting to `any`
+4. If you must use `any`, add a comment explaining why and a TODO to fix it

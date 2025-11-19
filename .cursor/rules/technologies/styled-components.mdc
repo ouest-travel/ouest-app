@@ -1,0 +1,48 @@
+---
+description: This rule should be used for tasks involding styling or theming react components
+globs: 
+alwaysApply: false
+---
+# Compound Design System
+Shared component library with consistent patterns:
+
+
+## Purpose
+This rule should be used for tasks involding styling or theming react components
+
+```typescript
+// Theme structure with color palette and spacing
+export interface DefaultTheme {
+  name: 'light' | 'dark'
+  colorPalette: Record<ColorPaletteKey, string>
+  spacing: SpacingScale
+}
+
+// Styled component patterns
+const StyledComponent = styled.div<{ variant?: string }>`
+  color: ${({ theme }) => theme.colorPalette['text-main']};
+  padding: ${({ theme }) => theme.spacing.md};
+`
+```
+
+**Component Organization**:
+- `compound/themes/`: Theme system and styled-components setup
+- `compound/primitives/`: Basic UI primitives (buttons, inputs)
+- `compound/structures/`: Layout components (grids, containers)
+- `compound/feedback/`: Loading states and feedback components
+
+### 4.2. Context Providers Pattern
+Hierarchical context structure for app-level state:
+
+```typescript
+// Standard context provider pattern
+export const ThemeProvider = ({ children }: { children: ReactNode }) => {
+  const [theme, setTheme] = useState<ThemeName>('dark')
+  
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  )
+}
+```

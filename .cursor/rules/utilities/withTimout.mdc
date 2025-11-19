@@ -1,0 +1,100 @@
+---
+description: Use when implementing timeout logic for async operations
+globs:
+alwaysApply: false
+---
+
+Use `withTimeout()` from `@/utils/withTimeout` to add timeout behavior to async operations.
+
+## When to Use
+
+Favor `withTimeout()` when you need to:
+- Add timeout constraints to API calls, database queries, or other async operations
+- Prevent operations from hanging indefinitely
+- Implement request timeouts for external services
+- Add time limits to user-initiated operations
+
+## Signature
+
+```ts
+withTimeout<T>(
+  callback: (args: { signal?: AbortController['signal'] }) => Promise<T>,
+  timeout: number
+): Promise<T>
+```
+
+## Usage Examples
+
+### Basic API Call with Timeout
+
+```ts
+import { withTimeout } from '@/utils/withTimeout'
+
+const data = await withTimeout(
+  async () => {
+    return fetch('https://api.example.com/data')
+  },
+  5000 // 5 second timeout
+)
+```
+
+### With AbortController Support
+
+```ts
+import { withTimeout } from '@/utils/withTimeout'
+
+const result = await withTimeout(
+  async ({ signal }) => {
+    return fetch('https://api.example.com/data', { signal })
+  },
+  10000 // 10 second timeout
+)
+```
+
+### Combined with Retry Logic
+
+```ts
+import { withTimeout } from '@/utils/withTimeout'
+import { retry } from '@/utils/retry'
+
+const receipt = await withTimeout(async () => {
+  return retry(
+    async () => {
+      const receipt = await getTransactionReceipt(txHash)
+      if (!receipt) throw new Error('Receipt not found')
+      return receipt
+    },
+    5, // 5 retry attempts
+    { retryDelay: 1000 }
+  )
+}, 30000) // 30 second overall timeout
+```
+
+## Error Handling
+
+`withTimeout()` throws a `RequestTimeout` error when the timeout is exceeded:
+
+```ts
+import { withTimeout } from '@/utils/withTimeout'
+import { RequestTimeout } from '@/lib/errors'
+
+try {
+  const result = await withTimeout(async () => {
+    return slowOperation()
+  }, 5000)
+} catch (error) {
+  if (error instanceof RequestTimeout) {
+    console.error('Operation timed out')
+  } else {
+    console.error('Operation failed:', error)
+  }
+}
+```
+
+## Notes
+
+- The callback receives an optional `signal` parameter for operations that support AbortController
+- The timeout is automatically cleaned up after the operation completes or times out
+- Works well in combination with `retry()` for robust async operations
+- Always handle `RequestTimeout` errors appropriately in your code
+

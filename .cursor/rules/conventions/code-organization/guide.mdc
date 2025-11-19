@@ -1,0 +1,103 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Code Organization Patterns
+
+## Directory Structure Conventions
+
+**Web Applications**:
+```
+app/
+├── components/           # React components organized by feature
+├── compound/            # Shared design system components
+├── contexts/            # React context providers
+├── hooks/               # Custom React hooks
+├── lib/                 # Third-party integrations and utilities
+├── redux/               # State management (actions, reducers, selectors)
+├── routes/              # Remix route components
+├── types/               # TypeScript type definitions
+└── utils/               # Pure utility functions
+```
+
+**Mobile Application**:
+```
+src/
+├── components/          # React Native components
+├── contexts/            # React context providers
+├── hooks/               # Custom hooks
+├── lib/                 # Utilities and integrations
+├── redux/               # State management
+├── styles/              # Style definitions and themes
+└── utils/               # Pure utility functions
+app/                     # Expo Router file-based routing
+```
+
+**Backend Service (exchange-service)**:
+```
+src/
+├── config/              # App configurations
+├── services/            # Classes that house compartmentalized large business logic ideas objects
+├── data/                # Datastore (e.g. typed redis caches,)
+ └── models/               # Javascript model wrapper classes
+ └── schemas/               # Validation Schemas (zod)
+ └── cache/               # Various types of caches (Redis, NodeCache, etc)
+├── lib/                 # Utilities and integrations (not domain specific)
+├── types/               # TypeScript definitions
+└── utils/               # Pure utility functions
+workers/                 # Background job processors
+prisma/                  # Database schema and migrations
+```
+
+## Import Conventions
+- **Path Aliases**: All repositories use `@/` for src/app (front end) or src/ (back end) root imports or 
+- **Barrel Exports**: Extensive use of `index.ts` files for clean imports
+- **Specific Aliases**: Domain-specific aliases like `@/types/*`, `@/lib/*`
+- **Prefer co-location**: Prefer to colate types to their related entitites
+
+
+## Organization Terminology
+
+
+### Library (/lib)
+Functions or groups of functions that don't contain domain specific business logic. Often used for classes that wrap third party libraries. Also often used for for organization wide tools/services
+
+Examples:
+* SlackClient - wrapper for doing things in slack
+* ViemClient - wrapper for doing onchain things
+* HeliusService - wrapper for interacting with Helius
+* JupiterClient - wrapper for 
+* JitoUtils - Util library for Jito
+
+Note that within a library we can have util and service objects. For example we could have something like:
+
+lib/
+├── jupiter/                  # Top level jupiter folder 
+ └── jupiter.service.ts       # Service class for jupiter
+ └── jupiter.utils.ts         # Utils related to jupiter
+ └── jupiter.contants.ts      # contants related to jupiter
+ └── jupiter.types.ts         # Various types for jupiter
+ └── index.ts                 # barrel export
+
+### Utilities (/util)
+Pure functions. Can have domain logic, but should not interact with any model, or data classes, or make any network requests. It's only dependencies, should be other utility-like functions. 
+
+Examples:
+* `extractAddress` - extracts an address for a message
+* `awaitSuccess` - takes a list of promises and returns the first one that resolves without error
+* `formatNumber` - formats a number
+
+### Services (/services)
+Services are classes that house compartmentalized larger business logic ideas and concepts. When we have a group of methods and state with clear boundaries, this is a good cadidate for a service class. Service classes can be thought of the object that represents encapsulated logic that could enventually end up in it's own microservice. Simply business logic functions however may not warrant a service class, specifically if it fits in with the specifications for a library or utility, data class, it should go there instead. Signs that a object should be a service objects over another type
+
+
+## Examples
+* If the business logic interacts with multiple models, and it's not particualry related to one model over another, it's a good candidate for a service. If the business logic was highly tied to one model, it belongs in a model class instead of a service
+* If a group of functions is related to a business concept (not tied to a model), and the functions interact with databases, or make a network request, this is a great candidate for a service. However, if the functions were all pure and didn't make any network requests, this logic would be better suited for a utility class. Once a function involves interacting with databases or making network requests, it's better suited for a library or service. If the logic doesn't include any domain specfic business logic, then it should be a lib/, if it does, then it should be a service
+
+* Single functions. We'd prefer not creating services for single function, or small concepts that we don't think will be extended. If there are single function the organation logic should be like this:
+    1. If it's highly related to a single model it should be added to the model's class
+    2. If it's a pure function, it be added to /util
+    3. If it doesn't have any business domain logic, it should be adde to lib
+    4. If none of the previous are 

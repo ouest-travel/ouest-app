@@ -1,0 +1,25 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+## 9. Testing Conventions
+
+### 9.1. Testing Framework
+- **Primary**: Vitest with happy-dom environment
+- **Configuration**: Global test utilities and setup files
+- **Mocking**: Comprehensive mocking for external dependencies
+
+### 9.2. Test Organization
+```typescript
+// Test setup pattern (test/setup.ts)
+import { config } from 'dotenv'
+config({ path: '.env.test' })
+
+// Mock patterns for blockchain interactions
+vi.mock('@/lib/solana/client', () => ({
+  SolanaClient: {
+    getSolBalance: vi.fn().mockResolvedValue(BigInt('1000000000')),
+  },
+}))
+```

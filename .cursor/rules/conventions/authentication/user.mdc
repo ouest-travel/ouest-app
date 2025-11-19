@@ -1,0 +1,14 @@
+---
+description: This should be used when working with user data or wallets
+globs:
+alwaysApply: false
+---
+
+The user object is stored in the authStore. We should primariliry access user details like so
+
+```
+import { useUser } from `@/stores/zustand/authStore`
+const user = useUser()
+```
+
+Note that there is also a `useUser` hook from `@privy-io/react-auth`. We should avoid using the user from this hook since it can't distinctivily provide the embeded wallet address for the user.

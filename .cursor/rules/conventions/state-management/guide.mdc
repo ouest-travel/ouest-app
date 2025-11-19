@@ -1,0 +1,308 @@
+---
+description: This rule is helpful for determining how to store state in front end applications (both web and mobile). This should be used for any task involving state in a front end application.
+globs: 
+alwaysApply: true
+---
+# Frontend State Management Guide
+
+## Purpose
+This rule is helpful for determining how to store state in front end applications (both web and mobile). This should be used for any task involving state in a front end application.
+
+## When to Use Each Solution
+
+### React useState - Local Component State
+**Use for**: 1-5 components, form inputs, UI toggles, temporary state
+**⚠️ Limitation**: Does NOT persist across page refreshes
+
+```typescript
+// Form/input state, edit modes, loading indicators
+const [isEditing, setIsEditing] = useState(false)
+const [formData, setFormData] = useState({ name: '', email: '' })
+```
+
+**Common patterns observed in codebase**:
+- Form validation states
+- Modal/dropdown visibility
+- Component-specific loading states
+- Preset value management
+
+---
+
+### @tanstack/react-query - REST API State
+**Use for**: Non-GraphQL APIs, caching, background refetching
+**✅ Persistence**: Can persist to localStorage/IndexedDB with persistQueryClient
+
+```typescript
+// Fee configuration, mobile-specific APIs
+const { data, isLoading, error } = useQuery({
+  queryKey: ['fees', orderId],
+  queryFn: () => fetchOrderFees(orderId)
+})
+
+// With persistence setup
+import { persistQueryClient } from '@tanstack/react-query-persist-client-core'
+persistQueryClient({
+  queryClient,
+  persister: localStoragePersister
+})
+```
+
+**Common patterns observed**:
+- Order fee calculations
+- Token statistics
+- Configuration checks
+
+---
+
+### @apollo/client - GraphQL State
+**Use for**: GraphQL APIs, real-time subscriptions, complex queries
+**⚠️ Limitation**: Does NOT persist across page refreshes (cache resets)
+
+```typescript
+// Order management with subscriptions
+const { data, loading } = useQuery(GET_ORDERS)
+const [placeOrder] = useMutation(PLACE_ORDER)
+const { data: orderUpdates } = useSubscription(ORDER_UPDATES)
+```
+
+**Common patterns observed**:
+- Order lifecycle management
+- Real-time trading data
+- Multi-table joins and filtering
+- WebSocket subscriptions
+
+---
+
+### React Context - Feature-Scoped State
+**Use for**: 5+ nested components within a feature boundary
+**⚠️ Limitation**: Does NOT persist across page refreshes
+
+```typescript
+// Trade box context spanning multiple nested components
+const OrderContext = createContext<OrderContextProps | undefined>(undefined)
+
+export const OrderProvider = ({ children }) => {
+  const [orderType, setOrderType] = useState<OrderType>('Market')
+  const [side, setSide] = useState<Side>('BUY')
+  // ... feature-specific state and actions
+  
+  return (
+    <OrderContext.Provider value={{ orderType, side, /* actions */ }}>
+      {children}
+    </OrderContext.Provider>
+  )
+}
+```
+
+**Common patterns observed**:
+- OrderProvider for trade box components
+- SessionProvider for auth initialization
+- ChartProvider for trading view state
+- ThemeProvider for user preferences
+
+---
+
+### Zustand - Global State (Preferred)
+**Use for**: True app-wide state, better performance than Context
+**✅ Persistence**: Built-in persist middleware for localStorage/sessionStorage
+
+```typescript
+// Slice-based global store
+interface AuthSlice {
+  user: User | null
+  isAuthenticated: boolean
+  login: (user: User) => void
+}
+
+const createAuthSlice: StateCreator<RootStore, [], [], AuthSlice> = (set) => ({
+  user: null,
+  isAuthenticated: false,
+  login: (user) => set({ user, isAuthenticated: true })
+})
+
+export const useBoundStore = create<RootStore>((...a) => ({
+  auth: createAuthSlice(...a),
+  orders: createOrdersSlice(...a),
+  chat: createChatSlice(...a),
+}))
+
+// With persistence
+import { persist } from 'zustand/middleware'
+const persistedStore = create(
+  persist(
+    (set) => ({ /* state */ }),
+    { name: 'app-storage' }
+  )
+)
+```
+
+**Common patterns observed**:
+- Authentication state
+- Global order tracking
+- Chat/messaging state
+- Normalized token data
+
+---
+
+### Redux - Legacy Only
+**Use for**: Extending existing Redux implementations only
+**✅ Persistence**: Uses redux-persist for complex persistence needs
+
+```typescript
+// Only when working with existing Redux store
+const user = useSelector((state: RootState) => state.auth.user)
+const dispatch = useDispatch()
+
+// Existing persistence setup with redux-persist
+const persistConfig = {
+  key: 'root',
+  storage,
+  whitelist: ['auth', 'settings']
+}
+```
+
+**Migration strategy**: New features should use Zustand instead
+
+---
+
+## Decision Framework
+
+### Quick Decision Tree:
+
+1. **Does state need to persist across refreshes/restarts?**
+   - **YES** → Only use: `@tanstack/react-query` (with persistence), `Zustand` (with persist middleware), or `Redux` (with redux-persist)
+   - **NO** → Continue to scope analysis
+
+2. **Is it local to 1-5 proximal components?** → `useState`
+3. **Is it API data?**
+   - GraphQL with subscriptions → `@apollo/client`
+   - REST or complex caching → `@tanstack/react-query`
+4. **Is it feature-scoped (5-10 components)?** → `React Context`
+5. **Is it truly global?**
+   - Extending existing Redux → `Redux` (legacy only)
+   - New global state → `Zustand`
+
+### Platform-Specific Considerations:
+
+**React Native:**
+- Avoid Context for performance-critical state
+- Prefer Zustand for global state
+- Use selective subscriptions: `useBoundStore(state => state.specific.value)`
+
+**Web:**
+- Context is acceptable for feature-scoped state
+- Zustand still preferred for global state
+- Consider code splitting for complex state logic
+
+---
+
+## Performance Best Practices
+
+### React Native Specific:
+```typescript
+// ✅ Good - Selective subscription
+const userName = useBoundStore(state => state.auth.user?.name)
+
+// ❌ Avoid - Full context subscription
+const { user, orders, chat } = useContext(AppContext)
+```
+
+### General Optimization:
+```typescript
+// ✅ Memoize expensive selectors
+const expensiveData = useMemo(() => 
+  computeExpensiveValue(rawData), [rawData]
+)
+
+// ✅ Split contexts by update frequency
+const SlowContext = createContext() // Rarely changing data
+const FastContext = createContext() // Frequently changing data
+```
+
+---
+
+## Migration Patterns
+
+### From Redux to Zustand:
+1. Identify slice boundaries
+2. Create equivalent Zustand slices
+3. Migrate components incrementally
+4. Keep Redux for complex persistence
+
+### From Context to Zustand:
+1. Extract truly global state to Zustand
+2. Keep feature-scoped contexts
+3. Optimize performance-critical paths
+
+---
+
+## Persistence Patterns
+
+### When State Must Survive Refreshes
+
+If your state needs to persist across browser refreshes or app restarts, you can **ONLY** use these solutions:
+
+**✅ Zustand with Persist Middleware** (Recommended)
+```typescript
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+
+const usePersistedStore = create(
+  persist(
+    (set) => ({
+      user: null,
+      theme: 'dark',
+      updateUser: (user) => set({ user }),
+    }),
+    {
+      name: 'app-storage', // localStorage key
+      partialize: (state) => ({ user: state.user, theme: state.theme }), // only persist specific fields
+    }
+  )
+)
+```
+
+**✅ @tanstack/react-query with Persistence**
+```typescript
+import { persistQueryClient } from '@tanstack/react-query-persist-client-core'
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
+
+const persister = createSyncStoragePersister({
+  storage: window.localStorage,
+})
+
+persistQueryClient({
+  queryClient,
+  persister,
+})
+```
+
+**✅ Redux with redux-persist** (Legacy only)
+```typescript
+// Only use when extending existing Redux setup
+const persistConfig = {
+  key: 'root',
+  storage,
+  whitelist: ['auth', 'settings'] // only persist these reducers
+}
+```
+
+### ❌ Solutions That DON'T Persist:
+- `useState` - Resets on every render/refresh
+- `useContext` - Context resets on app reload  
+- `@apollo/client` - Cache clears on refresh (unless configured with persistence)
+
+---
+
+## Verification Checklist
+
+Before implementing, verify these patterns exist in the codebase:
+
+```bash
+# Check existing patterns
+grep -r "useState\|useContext\|useSelector\|useBoundStore" app/ --include="*.tsx"
+grep -r "createContext\|Provider" app/ --include="*.tsx" 
+grep -r "useQuery\|useMutation" app/ --include="*.tsx"
+```
+
+**Never introduce new state management patterns without checking existing usage first.**

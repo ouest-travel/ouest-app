@@ -1,0 +1,10 @@
+---
+alwaysApply: true
+---
+Look for existing patterns and follow them. When adding new UI, study nearby implementations before introducing new structures.
+
+### Modal Pattern
+
+- Render lightweight modal triggers in feature components.
+- Render the modal components themselves in the existing modal host for that feature (e.g. `Navbar/index.tsx` for top-level modals).
+- Only add new modal mounts elsewhere if a clear, documented exception exists.

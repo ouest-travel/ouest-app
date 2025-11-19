@@ -1,0 +1,14 @@
+---
+description: Use when we want to wait for a certain time period
+globs:
+alwaysApply: false
+---
+
+
+Use `sleep()` from `@/utils/sleep`
+
+
+```ts
+await sleep(1000) // wait for 1 second
+doSomething()
+```
