@@ -9,14 +9,14 @@ interface ProfileStats {
   countriesVisited: number;
   totalTrips: number;
   memories: number;
-  wishlistItems: number;
+  savedItineraries: number;
 }
 
 const demoStats: ProfileStats = {
   countriesVisited: 12,
   totalTrips: 24,
   memories: 156,
-  wishlistItems: 47,
+  savedItineraries: 8,
 };
 
 export function useProfileStats() {
@@ -24,7 +24,7 @@ export function useProfileStats() {
     countriesVisited: 0,
     totalTrips: 0,
     memories: 0,
-    wishlistItems: 0,
+    savedItineraries: 0,
   });
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -42,7 +42,7 @@ export function useProfileStats() {
         countriesVisited: 0,
         totalTrips: 0,
         memories: 0,
-        wishlistItems: 0,
+        savedItineraries: 0,
       });
       setLoading(false);
       return;
@@ -102,21 +102,21 @@ export function useProfileStats() {
         }
       }
 
-      // Fetch wishlist items count
-      const { count: wishlistCount, error: wishlistError } = await supabase
-        .from('wishlist')
+      // Fetch saved itinerary items count
+      const { count: savedItinerariesCount, error: savedItinerariesError } = await supabase
+        .from('saved_itinerary_items')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
 
-      if (wishlistError) {
-        console.error('Error loading wishlist:', wishlistError);
+      if (savedItinerariesError) {
+        console.error('Error loading saved itineraries:', savedItinerariesError);
       }
 
       setStats({
         countriesVisited: countriesCount || 0,
         totalTrips: tripsCount || 0,
         memories: memoriesCount,
-        wishlistItems: wishlistCount || 0,
+        savedItineraries: savedItinerariesCount || 0,
       });
     } catch (error) {
       console.error('Error loading profile stats:', error);

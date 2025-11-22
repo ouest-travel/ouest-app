@@ -114,8 +114,8 @@ export function YouScreen() {
       icon: Bookmark,
     },
     {
-      label: "Wishlist Items",
-      value: stats.wishlistItems.toString(),
+      label: "Saved Itineraries",
+      value: stats.savedItineraries.toString(),
       icon: Heart,
     },
   ];
@@ -224,8 +224,17 @@ export function YouScreen() {
             <div className="grid grid-cols-3 gap-4">
               {statsData.map((stat) => {
                 const Icon = stat.icon;
+                const isSavedItineraries = stat.label === "Saved Itineraries";
                 return (
-                  <div key={stat.label} className="text-center">
+                  <button
+                    key={stat.label}
+                    onClick={() => {
+                      if (isSavedItineraries) {
+                        router.push("/you/saved-itineraries");
+                      }
+                    }}
+                    className={`text-center ${isSavedItineraries ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
+                  >
                     <div
                       className="inline-flex p-3 rounded-2xl mb-2"
                       style={{
@@ -244,7 +253,7 @@ export function YouScreen() {
                     >
                       {stat.label}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>

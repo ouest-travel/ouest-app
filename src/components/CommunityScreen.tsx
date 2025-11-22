@@ -6,11 +6,12 @@ import { useState } from "react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { ItineraryView } from "./ItineraryView";
 import { Button } from "./ui/button";
+import { useSavedItineraryItems } from "../hooks/useSavedItineraryItems";
 
 export function CommunityScreen() {
   const [showItinerary, setShowItinerary] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<any>(null);
-  const [addedActivityIds, setAddedActivityIds] = useState<number[]>([]);
+  const { items: savedItems, addItem, removeItem } = useSavedItineraryItems();
 
   const posts = [
     {
@@ -78,12 +79,37 @@ export function CommunityScreen() {
     setShowItinerary(true);
   };
 
-  const handleAddActivity = (activity: any) => {
-    setAddedActivityIds((prev) => [...prev, activity.id]);
+  const handleAddActivity = async (activity: any) => {
+    await addItem(activity, selectedTrip?.location, selectedTrip?.user);
   };
 
-  const handleRemoveActivity = (activityId: number) => {
-    setAddedActivityIds((prev) => prev.filter((id) => id !== activityId));
+  const handleRemoveActivity = async (activityId: number) => {
+    const activity = selectedTrip?.activities?.find((a: any) => a.id === activityId);
+    if (!activity) return;
+
+    const savedItem = savedItems.find(
+      (item) =>
+        item.activity_name === activity.name &&
+        item.source_trip_location === selectedTrip.location
+    );
+    if (savedItem) {
+      await removeItem(savedItem.id);
+    }
+  };
+
+  const getAddedActivityIds = (): number[] => {
+    if (!selectedTrip) return [];
+    return (
+      selectedTrip.activities
+        ?.filter((activity: any) =>
+          savedItems.some(
+            (item) =>
+              item.activity_name === activity.name &&
+              item.source_trip_location === selectedTrip.location
+          )
+        )
+        .map((activity: any) => activity.id) || []
+    );
   };
 
   return (
@@ -212,7 +238,7 @@ export function CommunityScreen() {
           isOwnTrip={false}
           onAddActivity={handleAddActivity}
           onRemoveActivity={handleRemoveActivity}
-          addedActivityIds={addedActivityIds}
+          addedActivityIds={getAddedActivityIds()}
         />
       )}
     </div>
