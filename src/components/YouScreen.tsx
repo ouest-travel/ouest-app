@@ -294,7 +294,18 @@ export function YouScreen() {
                 {theme === "light" ? "Light Mode" : "Dark Mode"}
               </span>
             </div>
-            <div className="text-muted-foreground">Toggle</div>
+            <div
+              className="flex items-center justify-center w-10 h-10 rounded-lg border-2 border-border bg-background hover:bg-muted transition-colors"
+              style={{
+                borderColor: "var(--ouest-blue)",
+              }}
+            >
+              {theme === "light" ? (
+                <Moon className="w-4 h-4 text-foreground" />
+              ) : (
+                <Sun className="w-4 h-4 text-foreground" />
+              )}
+            </div>
           </button>
 
           <div className="border-t border-border p-4 flex items-center justify-between">

@@ -2,71 +2,174 @@
 
 import { motion } from "motion/react";
 import { Users, Globe, Heart, MessageCircle, Eye } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { ItineraryView } from "./ItineraryView";
 import { Button } from "./ui/button";
 import { useSavedItineraryItems } from "../hooks/useSavedItineraryItems";
+import { toast } from "sonner";
+import { supabase } from "../lib/supabase";
+
+// Currency symbols mapping
+const currencySymbols: Record<string, string> = {
+  USD: "$",
+  CAD: "$",
+  EUR: "€",
+  GBP: "£",
+  JPY: "¥",
+  AUD: "$",
+  CHF: "Fr",
+  CNY: "¥",
+  INR: "₹",
+  MXN: "$",
+};
+
+// Format currency amount with symbol
+function formatCurrency(amount: number, currency: string = "CAD"): string {
+  const symbol = currencySymbols[currency] || currency;
+  if (currency === "JPY") {
+    return `${symbol}${Math.round(amount).toLocaleString()}`;
+  }
+  return `${symbol}${amount.toFixed(2)}`;
+}
 
 export function CommunityScreen() {
   const [showItinerary, setShowItinerary] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<any>(null);
+  const [publicTrips, setPublicTrips] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const { items: savedItems, addItem, removeItem } = useSavedItineraryItems();
 
-  const posts = [
-    {
-      id: 1,
-      user: "Sarah Chen",
-      avatar: "👩🏻",
-      location: "Santorini, Greece",
-      dates: "Oct 10 - Oct 17, 2024",
-      budget: "€2,100",
-      image: "https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=800&q=80",
-      caption: "Sunset views that take your breath away 🌅",
-      likes: 234,
-      comments: 45,
-      activities: [
-        { id: 1, name: "Sunset at Oia", time: "7:00 PM", location: "Oia", cost: "Free", description: "Watch the famous Santorini sunset", category: "activity" as const, day: 1 },
-        { id: 2, name: "Wine Tasting Tour", time: "2:00 PM", location: "Santo Wines", cost: "€45", description: "Sample local wines with caldera views", category: "activity" as const, day: 2 },
-        { id: 3, name: "Traditional Greek Dinner", time: "8:00 PM", location: "Ammoudi Bay", cost: "€60", description: "Fresh seafood by the water", category: "food" as const, day: 2 },
-      ],
-    },
-    {
-      id: 2,
-      user: "Mike Rodriguez",
-      avatar: "👨🏽",
-      location: "Kyoto, Japan",
-      dates: "Nov 5 - Nov 12, 2024",
-      budget: "¥180,000",
-      image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&q=80",
-      caption: "Temple hopping in the most serene city",
-      likes: 189,
-      comments: 32,
-      activities: [
-        { id: 4, name: "Fushimi Inari Shrine", time: "9:00 AM", location: "Fushimi-ku", cost: "Free", description: "Walk through 10,000 torii gates", category: "activity" as const, day: 1 },
-        { id: 5, name: "Arashiyama Bamboo Grove", time: "11:00 AM", location: "Arashiyama", cost: "Free", description: "Peaceful bamboo forest walk", category: "activity" as const, day: 1 },
-        { id: 6, name: "Kaiseki Dinner", time: "7:00 PM", location: "Gion", cost: "¥12,000", description: "Traditional multi-course Japanese meal", category: "food" as const, day: 1 },
-        { id: 7, name: "Kinkaku-ji Temple", time: "10:00 AM", location: "Kita-ku", cost: "¥500", description: "The famous Golden Pavilion", category: "activity" as const, day: 2 },
-      ],
-    },
-    {
-      id: 3,
-      user: "Emma Wilson",
-      avatar: "👩🏼",
-      location: "Bali, Indonesia",
-      dates: "Dec 1 - Dec 8, 2024",
-      budget: "IDR 15,000,000",
-      image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800&q=80",
-      caption: "Rice terrace mornings hit different ✨",
-      likes: 412,
-      comments: 67,
-      activities: [
-        { id: 8, name: "Tegallalang Rice Terraces", time: "8:00 AM", location: "Ubud", cost: "IDR 15,000", description: "Stunning rice paddies", category: "activity" as const, day: 1 },
-        { id: 9, name: "Ubud Monkey Forest", time: "11:00 AM", location: "Ubud", cost: "IDR 80,000", description: "Sacred forest with monkeys", category: "activity" as const, day: 1 },
-        { id: 10, name: "Balinese Cooking Class", time: "3:00 PM", location: "Ubud", cost: "IDR 350,000", description: "Learn to cook traditional dishes", category: "food" as const, day: 2 },
-      ],
-    },
-  ];
+  useEffect(() => {
+    loadPublicTripsData();
+
+    // Subscribe to real-time changes for public trips
+    const subscription = supabase
+      .channel('public_trips_channel')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'trips',
+          filter: 'is_public=eq.true',
+        },
+        () => {
+          loadPublicTripsData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const loadPublicTripsData = async () => {
+    setLoading(true);
+    try {
+      // Fetch public trips with creator profile
+      const { data: tripsData, error: tripsError } = await supabase
+        .from('trips')
+        .select(`
+          *,
+          creator:profiles!trips_created_by_fkey(
+            id,
+            display_name,
+            avatar_url
+          )
+        `)
+        .eq('is_public', true)
+        .order('created_at', { ascending: false });
+
+      if (tripsError) {
+        console.error('Error loading public trips:', tripsError);
+        setPublicTrips([]);
+        setLoading(false);
+        return;
+      }
+
+      // Transform trips to post format
+      const transformedTrips = await Promise.all(
+        (tripsData || []).map(async (trip) => {
+          // Get expenses for this trip to calculate total spent and show activities
+          const { data: expensesData } = await supabase
+            .from('expenses')
+            .select('title, amount, category, date, description')
+            .eq('trip_id', trip.id)
+            .order('date', { ascending: true });
+
+          const totalSpent = expensesData?.reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0;
+          const budget = trip.budget ? formatCurrency(trip.budget, trip.currency || 'USD') : null;
+          const spent = totalSpent > 0 ? formatCurrency(totalSpent, trip.currency || 'USD') : null;
+
+          // Format dates
+          const formatDate = (date: Date | string | null) => {
+            if (!date) return "";
+            const d = typeof date === 'string' ? new Date(date) : date;
+            return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+          };
+
+          const startDate = trip.start_date ? (typeof trip.start_date === 'string' ? new Date(trip.start_date) : trip.start_date) : null;
+          const endDate = trip.end_date ? (typeof trip.end_date === 'string' ? new Date(trip.end_date) : trip.end_date) : null;
+          
+          const dates = startDate && endDate
+            ? `${formatDate(startDate)} - ${formatDate(endDate)}, ${endDate.getFullYear()}`
+            : "Dates TBD";
+
+          // Get activities from expenses (convert expenses to activities format)
+          const activities = (expensesData || []).map((expense: any, index: number) => {
+            // Calculate day based on expense date relative to trip start
+            let day = 1;
+            if (expense.date && startDate) {
+              const expenseDate = typeof expense.date === 'string' ? new Date(expense.date) : expense.date;
+              const daysDiff = Math.ceil((expenseDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+              day = Math.max(1, daysDiff + 1);
+            }
+
+            return {
+              id: index + 1,
+              name: expense.title || 'Activity',
+              time: 'TBD',
+              location: trip.destination,
+              cost: expense.amount ? formatCurrency(expense.amount, trip.currency || 'USD') : 'Free',
+              description: expense.description || expense.title || '',
+              category: (expense.category || 'activity') as const,
+              day,
+            };
+          });
+
+          return {
+            id: trip.id,
+            user: trip.creator?.display_name || 'Traveler',
+            avatar: trip.creator?.avatar_url || '👤',
+            location: trip.destination,
+            dates,
+            budget,
+            spent,
+            totalBudget: trip.budget,
+            currency: trip.currency || 'USD',
+            image: trip.cover_image || "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800",
+            caption: trip.description || `Exploring ${trip.destination} ✈️`,
+            likes: 0, // Could be added later
+            comments: 0, // Could be added later
+            activities: activities.length > 0 ? activities : [
+              // Fallback activities if no expenses
+              { id: 1, name: "Trip Activities", time: "TBD", location: trip.destination, cost: "See budget", description: trip.description || '', category: "activity" as const, day: 1 }
+            ],
+            tripId: trip.id,
+          };
+        })
+      );
+
+      setPublicTrips(transformedTrips);
+    } catch (error) {
+      console.error('Error loading public trips:', error);
+      setPublicTrips([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const groups = [
     { name: "🇯🇵 Japan Travel", members: 1234 },
@@ -94,6 +197,22 @@ export function CommunityScreen() {
     );
     if (savedItem) {
       await removeItem(savedItem.id);
+    }
+  };
+
+  const handleAddItinerary = async () => {
+    if (!selectedTrip?.activities) return;
+    
+    let addedCount = 0;
+    for (const activity of selectedTrip.activities) {
+      const result = await addItem(activity, selectedTrip.location, selectedTrip.user);
+      if (result.data && !result.error) {
+        addedCount++;
+      }
+    }
+    
+    if (addedCount > 0) {
+      toast.success(`Added ${addedCount} ${addedCount === 1 ? 'activity' : 'activities'} to your itinerary`);
     }
   };
 
@@ -160,7 +279,16 @@ export function CommunityScreen() {
         <div className="space-y-6">
           <h3 className="text-foreground px-2">Recent Posts</h3>
 
-          {posts.map((post, index) => (
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Loading public trips...</p>
+            </div>
+          ) : publicTrips.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No public trips yet. Create a public trip to share with the community!</p>
+            </div>
+          ) : (
+            publicTrips.map((post, index) => (
             <motion.div
               key={post.id}
               initial={{ opacity: 0, y: 20 }}
@@ -191,6 +319,26 @@ export function CommunityScreen() {
               <div className="p-4">
                 <p className="text-foreground mb-3">{post.caption}</p>
 
+                {/* Budget Info */}
+                {(post.budget || post.spent) && (
+                  <div className="mb-3 p-3 rounded-xl bg-muted/50 border border-border">
+                    <div className="flex items-center justify-between text-sm">
+                      {post.budget && (
+                        <div>
+                          <span className="text-muted-foreground">Budget: </span>
+                          <span className="text-foreground font-medium">{post.budget}</span>
+                        </div>
+                      )}
+                      {post.spent && (
+                        <div>
+                          <span className="text-muted-foreground">Spent: </span>
+                          <span className="text-foreground font-medium">{post.spent}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-4">
                     <button className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
@@ -219,7 +367,8 @@ export function CommunityScreen() {
                 </Button>
               </div>
             </motion.div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
@@ -230,6 +379,7 @@ export function CommunityScreen() {
           tripLocation={selectedTrip.location}
           tripDates={selectedTrip.dates}
           budget={selectedTrip.budget}
+          spent={selectedTrip.spent}
           activities={selectedTrip.activities}
           onClose={() => {
             setShowItinerary(false);
@@ -238,6 +388,7 @@ export function CommunityScreen() {
           isOwnTrip={false}
           onAddActivity={handleAddActivity}
           onRemoveActivity={handleRemoveActivity}
+          onAddItinerary={handleAddItinerary}
           addedActivityIds={getAddedActivityIds()}
         />
       )}

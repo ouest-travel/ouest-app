@@ -57,14 +57,43 @@ export function useProfileStats() {
     setLoading(true);
 
     try {
-      // Fetch countries visited count
-      const { count: countriesCount, error: countriesError } = await supabase
-        .from('countries_visited')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
+      // Fetch all trips to determine which are past trips
+      const { data: allTrips, error: allTripsError } = await supabase
+        .from('trips')
+        .select('destination, end_date, status')
+        .eq('created_by', user.id);
 
-      if (countriesError) {
-        console.error('Error loading countries visited:', countriesError);
+      if (allTripsError) {
+        console.error('Error loading trips for countries visited:', allTripsError);
+      }
+
+      // Count unique destinations (countries) from past trips
+      // A trip is considered "past" if:
+      // 1. status is 'completed', OR
+      // 2. end_date is in the past
+      let countriesCount = 0;
+      if (allTrips && allTrips.length > 0) {
+        const now = new Date();
+        const pastTrips = allTrips.filter(trip => {
+          // Check if status is completed
+          if (trip.status === 'completed') {
+            return true;
+          }
+          // Check if end_date is in the past
+          if (trip.end_date) {
+            const endDate = new Date(trip.end_date);
+            return endDate < now;
+          }
+          return false;
+        });
+
+        // Extract unique destinations from past trips
+        const uniqueDestinations = new Set(
+          pastTrips
+            .map(trip => trip.destination?.trim())
+            .filter(Boolean) // Remove null/undefined/empty strings
+        );
+        countriesCount = uniqueDestinations.size;
       }
 
       // Fetch total trips count (all trips, not just upcoming)

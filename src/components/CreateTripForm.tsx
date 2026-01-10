@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "motion/react";
 import {
   X, 
@@ -24,6 +24,7 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { toast } from "sonner";
 import { CountrySelector } from "./CountrySelector";
 import { Country, countries } from "@/data/countries";
+import { uploadImageToCloudinary } from "../lib/cloudinary/uploadImage";
 
 interface CreateTripFormProps {
   onClose: () => void;
@@ -61,7 +62,9 @@ export function CreateTripForm({ onClose, onSave, onCreateTrip }: CreateTripForm
   });
 
   const [showImageUpload, setShowImageUpload] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [selectedLocationCountry, setSelectedLocationCountry] = useState<Country | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const updateFormData = (updates: Partial<TripFormData>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
@@ -105,6 +108,41 @@ export function CreateTripForm({ onClose, onSave, onCreateTrip }: CreateTripForm
 
   const handleShare = () => {
     toast.success("Invite link copied to clipboard!");
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const imageUrl = await uploadImageToCloudinary(file);
+      updateFormData({ coverImage: imageUrl });
+      setShowImageUpload(false);
+      toast.success("Cover image uploaded successfully!");
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload image. Please try again.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleChooseFromGallery = () => {
+    fileInputRef.current?.click();
   };
 
   return (
@@ -192,7 +230,8 @@ export function CreateTripForm({ onClose, onSave, onCreateTrip }: CreateTripForm
             ) : (
               <button
                 onClick={() => setShowImageUpload(true)}
-                className="w-full aspect-[16/9] flex flex-col items-center justify-center gap-3 hover:bg-muted transition-colors"
+                disabled={uploading}
+                className="w-full aspect-[16/9] flex flex-col items-center justify-center gap-3 hover:bg-muted transition-colors disabled:opacity-50"
               >
                 <div
                   className="w-14 h-14 rounded-full flex items-center justify-center"
@@ -203,11 +242,20 @@ export function CreateTripForm({ onClose, onSave, onCreateTrip }: CreateTripForm
                   <ImageIcon className="w-6 h-6" style={{ color: "var(--ouest-purple)" }} />
                 </div>
                 <div>
-                  <p className="text-sm text-foreground">Add cover image</p>
-                  <p className="text-xs text-muted-foreground">Choose from library or upload</p>
+                  <p className="text-sm text-foreground">
+                    {uploading ? "Uploading..." : "Add cover image"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Choose from gallery or upload</p>
                 </div>
               </button>
             )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
           </div>
 
           {/* Sections Container */}
@@ -359,30 +407,23 @@ export function CreateTripForm({ onClose, onSave, onCreateTrip }: CreateTripForm
               </button>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Select a stock image or upload your own
+              Choose an image from your gallery to use as the trip cover
             </p>
             <div className="space-y-3">
               <Button
                 className="w-full"
-                onClick={() => {
-                  // In a real app, this would open an image picker
-                  updateFormData({ 
-                    coverImage: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800" 
-                  });
-                  setShowImageUpload(false);
-                }}
+                onClick={handleChooseFromGallery}
+                disabled={uploading}
               >
-                Choose from Library
+                {uploading ? "Uploading..." : "Choose from Gallery"}
               </Button>
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => {
-                  toast.info("Upload functionality would be here");
-                  setShowImageUpload(false);
-                }}
+                onClick={() => setShowImageUpload(false)}
+                disabled={uploading}
               >
-                Upload Image
+                Cancel
               </Button>
             </div>
           </motion.div>

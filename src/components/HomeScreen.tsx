@@ -18,6 +18,30 @@ import { useTrips } from "../hooks/useTrips";
 import { useProfileStats } from "../hooks/useProfileStats";
 import { toast } from "sonner";
 
+// Currency symbols mapping
+const currencySymbols: Record<string, string> = {
+  USD: "$",
+  CAD: "$",
+  EUR: "€",
+  GBP: "£",
+  JPY: "¥",
+  AUD: "$",
+  CHF: "Fr",
+  CNY: "¥",
+  INR: "₹",
+  MXN: "$",
+};
+
+// Format currency amount with symbol
+function formatCurrency(amount: number, currency: string = "CAD"): string {
+  const symbol = currencySymbols[currency] || currency;
+  // JPY doesn't use decimals
+  if (currency === "JPY") {
+    return `${symbol}${Math.round(amount).toLocaleString()}`;
+  }
+  return `${symbol}${amount.toFixed(2)}`;
+}
+
 interface HomeScreenProps {
   onNavigateToBudget?: (tripName: string, tripId: string | number) => void;
 }
@@ -105,16 +129,18 @@ export function HomeScreen({ onNavigateToBudget }: HomeScreenProps = {}) {
           )}, ${endDate.getFullYear()}`
         : trip.dates || "Dates TBD";
 
+    const budgetValue = typeof trip.budget === "number" ? trip.budget : null;
+    const tripCurrency = trip.currency || "USD";
+    
     return {
       ...trip,
       startDate,
       endDate,
       dates,
       image: trip.image || getLocationEmoji(trip.destination),
-      budget:
-        typeof trip.budget === "number"
-          ? `${trip.currency || "USD"} ${trip.budget}`
-          : trip.budget || "No budget set",
+      budget: budgetValue !== null 
+        ? formatCurrency(budgetValue, tripCurrency)
+        : "No budget set",
       travelers: trip.travelers || 1,
     };
   });
@@ -345,8 +371,13 @@ export function HomeScreen({ onNavigateToBudget }: HomeScreenProps = {}) {
                   onClick={() =>
                     onNavigateToBudget?.(trip.destination, trip.id)
                   }
-                  className="bg-card rounded-3xl p-6 shadow-lg border border-border hover:shadow-xl transition-all cursor-pointer relative opacity-80"
+                  className="bg-card rounded-3xl p-6 shadow-lg border border-border hover:shadow-xl transition-all cursor-pointer relative opacity-80 flex flex-wrap"
                 >
+                  {/* Past trip indicator */}
+                  <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-muted text-muted-foreground text-xs z-10">
+                    Completed
+                  </div>
+
                   {/* Chat Icon Button */}
                   <button
                     onClick={(e) => {
@@ -354,18 +385,13 @@ export function HomeScreen({ onNavigateToBudget }: HomeScreenProps = {}) {
                       setSelectedTripForChat(trip);
                       setShowChat(true);
                     }}
-                    className="absolute top-4 right-14 p-2.5 rounded-full transition-all hover:scale-105 z-10"
+                    className="absolute top-16 right-4 p-2.5 rounded-full transition-all hover:scale-105 z-20"
                     style={{
                       background: "var(--ouest-gradient-main)",
                     }}
                   >
                     <MessageCircle className="w-5 h-5 text-white" />
                   </button>
-
-                  {/* Past trip indicator */}
-                  <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-muted text-muted-foreground text-xs">
-                    Completed
-                  </div>
 
                   <div className="flex items-start gap-4 mb-4">
                     <span className="text-5xl grayscale">{trip.image}</span>

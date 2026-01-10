@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useDemoMode } from '../contexts/DemoModeContext';
@@ -55,13 +55,22 @@ export function useSavedItineraryItems() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
+  const demoInitialized = useRef(false);
 
   useEffect(() => {
     if (isDemoMode) {
-      setItems(demoSavedItems);
+      // Only initialize with demo items if we haven't already initialized
+      // This preserves any items added during the session
+      if (!demoInitialized.current) {
+        setItems(demoSavedItems);
+        demoInitialized.current = true;
+      }
       setLoading(false);
       return;
     }
+
+    // Reset demo flag when exiting demo mode
+    demoInitialized.current = false;
 
     if (!user) {
       setItems([]);
@@ -133,20 +142,24 @@ export function useSavedItineraryItems() {
     }
 
     try {
+      const insertData: Database['public']['Tables']['saved_itinerary_items']['Insert'] = {
+        user_id: user.id,
+        activity_name: activity.name,
+        activity_location: activity.location,
+        activity_time: activity.time,
+        activity_cost: activity.cost,
+        activity_description: activity.description,
+        activity_category: activity.category,
+        source_trip_location: sourceTripLocation || null,
+        source_trip_user: sourceTripUser || null,
+        day: activity.day,
+      };
+
+      // TODO: Remove 'as any' once Supabase types are regenerated from database schema
+      // The table exists in database.ts but TypeScript needs types to be regenerated
       const { data, error } = await supabase
         .from('saved_itinerary_items')
-        .insert({
-          user_id: user.id,
-          activity_name: activity.name,
-          activity_location: activity.location,
-          activity_time: activity.time,
-          activity_cost: activity.cost,
-          activity_description: activity.description,
-          activity_category: activity.category,
-          source_trip_location: sourceTripLocation || null,
-          source_trip_user: sourceTripUser || null,
-          day: activity.day,
-        })
+        .insert(insertData as any)
         .select()
         .single();
 
