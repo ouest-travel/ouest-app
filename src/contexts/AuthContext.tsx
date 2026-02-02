@@ -11,6 +11,12 @@ import { User, Session, AuthError } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { useDemoMode } from "./DemoModeContext";
 
+const DEFAULT_EMAIL_REDIRECT_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_EMAIL_REDIRECT_URL ??
+  (process.env.NODE_ENV === "production"
+    ? "https://beta.ouest.app"
+    : "http://localhost:3000");
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -72,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
       options: {
+        emailRedirectTo: DEFAULT_EMAIL_REDIRECT_URL,
         data: {
           display_name: displayName,
         },
