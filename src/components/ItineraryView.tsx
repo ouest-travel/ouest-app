@@ -77,8 +77,8 @@ export function ItineraryView({
   const handleAddActivity = async (activity: Activity) => {
     try {
       const result = onAddActivity?.(activity);
-      // Await if it's a promise
-      if (result instanceof Promise) {
+      // Await if it's a promise-like
+      if (result && typeof (result as any).then === 'function') {
         await result;
       }
       toast.success(`Added "${activity.name}" to your itinerary`);
@@ -91,8 +91,8 @@ export function ItineraryView({
   const handleRemoveActivity = async (activityId: number) => {
     try {
       const result = onRemoveActivity?.(activityId);
-      // Await if it's a promise
-      if (result instanceof Promise) {
+      // Await if it's a promise-like
+      if (result && typeof (result as any).then === 'function') {
         await result;
       }
       toast.success("Removed from your itinerary");

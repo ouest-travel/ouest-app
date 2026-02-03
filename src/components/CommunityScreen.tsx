@@ -134,7 +134,7 @@ export function CommunityScreen() {
               location: trip.destination,
               cost: expense.amount ? formatCurrency(expense.amount, trip.currency || 'USD') : 'Free',
               description: expense.description || expense.title || '',
-              category: (expense.category || 'activity') as const,
+              category: (expense.category || 'activity'),
               day,
             };
           });
@@ -155,7 +155,7 @@ export function CommunityScreen() {
             comments: 0, // Could be added later
             activities: activities.length > 0 ? activities : [
               // Fallback activities if no expenses
-              { id: 1, name: "Trip Activities", time: "TBD", location: trip.destination, cost: "See budget", description: trip.description || '', category: "activity" as const, day: 1 }
+              { id: 1, name: "Trip Activities", time: "TBD", location: trip.destination, cost: "See budget", description: trip.description || '', category: "activity", day: 1 }
             ],
             tripId: trip.id,
           };

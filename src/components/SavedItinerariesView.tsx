@@ -14,13 +14,6 @@ const categoryIcons = {
   accommodation: "🏨",
 };
 
-const categoryColors = {
-  food: "from-orange-400 to-red-400",
-  activity: "from-blue-400 to-purple-400",
-  transport: "from-green-400 to-teal-400",
-  accommodation: "from-pink-400 to-purple-400",
-};
-
 export function SavedItinerariesView() {
   const { items, loading, removeItem } = useSavedItineraryItems();
 
