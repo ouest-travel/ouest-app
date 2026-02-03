@@ -4,6 +4,7 @@ import { Navigation } from "@/components/Navigation";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDemoMode } from "@/contexts/DemoModeContext";
+import { isSupabaseConfigured } from "@/lib/supabase";
 import { useEffect, useRef } from "react";
 
 export default function MainLayout({
@@ -18,9 +19,15 @@ export default function MainLayout({
   const hasCheckedAuth = useRef(false);
 
   // Only redirect to login on initial load, not when demo mode changes
+  // Allow access if: demo mode is enabled, user is logged in, or Supabase isn't configured
   useEffect(() => {
     if (!loading && !hasCheckedAuth.current) {
       hasCheckedAuth.current = true;
+      // Allow access if Supabase isn't configured (for development/demo)
+      if (!isSupabaseConfigured) {
+        return;
+      }
+      // Otherwise, require auth unless in demo mode
       if (!isDemoMode && !user) {
         router.push("/login");
       }

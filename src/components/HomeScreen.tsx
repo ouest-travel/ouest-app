@@ -8,6 +8,9 @@ import {
   Users,
   MessageCircle,
   Clock,
+  Share2,
+  MoreVertical,
+  CheckCircle2,
 } from "lucide-react";
 import { useState } from "react";
 import { CreateTripForm } from "./CreateTripForm";
@@ -16,6 +19,8 @@ import { TripMembersModal } from "./TripMembersModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useTrips } from "../hooks/useTrips";
 import { useProfileStats } from "../hooks/useProfileStats";
+import { useTripMembers } from "../hooks/useTripMembers";
+import { getLocationImage } from "../utils/getLocationImage";
 import { toast } from "sonner";
 
 interface HomeScreenProps {
@@ -71,6 +76,188 @@ const getLocationEmoji = (location: string) => {
   return "🌍"; // Default globe emoji
 };
 
+interface ActiveTripCardProps {
+  trip: Trip & { city: string; country: string; locationImage: string };
+  index: number;
+  onNavigateToBudget?: (tripName: string, tripId: string | number) => void;
+  onOpenChat: (trip: Trip) => void;
+}
+
+function ActiveTripCard({
+  trip,
+  index,
+  onNavigateToBudget,
+  onOpenChat,
+}: ActiveTripCardProps) {
+  const { members } = useTripMembers(trip.id);
+  const displayMembers = members.slice(0, 3);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      whileTap={{ scale: 0.98 }}
+      className="relative rounded-3xl overflow-hidden shadow-lg cursor-pointer group"
+      style={{ minHeight: "300px" }}
+    >
+      {/* Blurred Background Image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{
+          backgroundImage: `url(${trip.locationImage})`,
+        }}
+      >
+        {/* Progressive Blur - More visible at top, heavy blur at bottom */}
+        {/* Light blur starting from middle */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            maskImage: 'linear-gradient(to bottom, transparent 0%, transparent 50%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,1) 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, transparent 50%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,1) 100%)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+          }}
+        />
+        {/* Heavy blur at bottom */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            maskImage: 'linear-gradient(to bottom, transparent 0%, transparent 60%, rgba(0,0,0,0.4) 75%, rgba(0,0,0,1) 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, transparent 60%, rgba(0,0,0,0.4) 75%, rgba(0,0,0,1) 100%)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+          }}
+        />
+        {/* Black gradient overlay - stronger at bottom for text readability */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            background: `
+              linear-gradient(to bottom, 
+                rgba(0, 0, 0, 0.1) 0%,
+                rgba(0, 0, 0, 0.2) 40%,
+                rgba(0, 0, 0, 0.4) 60%,
+                rgba(0, 0, 0, 0.65) 80%,
+                rgba(0, 0, 0, 0.85) 100%
+              )
+            `,
+          }}
+        />
+      </div>
+
+      {/* Content Overlay */}
+      <div className="relative z-10 p-5 h-full flex flex-col justify-between text-white">
+        {/* Top Section - Location, Trip Name, Dates */}
+        <div className="flex-1">
+          {/* Action Icons - Top Right */}
+          <div className="flex items-center gap-2 absolute top-4 right-4">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toast.info("Share trip");
+              }}
+              className="p-2 rounded-full bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-all"
+            >
+              <Share2 className="w-4 h-4 text-white" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenChat(trip);
+              }}
+              className="p-2 rounded-full bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-all"
+            >
+              <MessageCircle className="w-4 h-4 text-white" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toast.info("More options");
+              }}
+              className="p-2 rounded-full bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-all"
+            >
+              <MoreVertical className="w-4 h-4 text-white" />
+            </button>
+          </div>
+
+          {/* Location with Country Highlight */}
+          <div className="pr-24 pt-1">
+            <h2 className="text-2xl font-bold mb-1.5 leading-tight text-white">
+              {trip.city}
+              {trip.country && (
+                <span className="text-white/90 font-normal ml-1">
+                  {trip.country}
+                </span>
+              )}
+            </h2>
+            {trip.name && (
+              <p className="text-white/90 text-sm mb-1.5">
+                {trip.name}
+              </p>
+            )}
+            <p className="text-white/90 text-sm">
+              {trip.dates}
+            </p>
+          </div>
+        </div>
+
+        {/* Bottom Section - Avatars, Entry Requirements, and Itinerary Button */}
+        <div className="flex flex-col gap-3 pt-4 pb-2">
+          {/* User Avatars Row */}
+          {displayMembers.length > 0 && (
+            <div className="flex -space-x-2">
+              {displayMembers.map((member, idx) => (
+                <div
+                  key={member.id}
+                  className="w-10 h-10 rounded-full border-2 border-white/20 bg-white/10 backdrop-blur-sm flex items-center justify-center text-lg overflow-hidden"
+                  style={{ zIndex: displayMembers.length - idx }}
+                >
+                  {member.profile?.avatar_url &&
+                  !member.profile.avatar_url.startsWith("👤") &&
+                  !member.profile.avatar_url.match(/^[\p{Emoji}]$/u) ? (
+                    <img
+                      src={member.profile.avatar_url}
+                      alt={member.profile.display_name || "Member"}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>
+                      {member.profile?.avatar_url || "👤"}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Entry Requirements and Itinerary Button Row */}
+          <div className="flex items-center justify-between gap-3">
+            {/* Entry Requirements Status */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
+              <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
+              <span className="text-white text-xs font-semibold whitespace-nowrap">
+                Entry requirements met
+              </span>
+            </div>
+
+            {/* View Itinerary Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onNavigateToBudget?.(trip.destination, trip.id);
+              }}
+              className="px-4 py-2.5 rounded-xl bg-black/70 backdrop-blur-md hover:bg-black/80 transition-all border border-white/10 text-white text-sm font-semibold whitespace-nowrap"
+            >
+              View Itinerary
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export function HomeScreen({ onNavigateToBudget }: HomeScreenProps = {}) {
   const [showBookTrip, setShowBookTrip] = useState(false);
   const [showChat, setShowChat] = useState(false);
@@ -89,28 +276,34 @@ export function HomeScreen({ onNavigateToBudget }: HomeScreenProps = {}) {
     const startDate = trip.start_date ? new Date(trip.start_date) : undefined;
     const endDate = trip.end_date ? new Date(trip.end_date) : undefined;
 
-    // Format dates string
+    // Format dates string for Figma design (e.g., "24 Jun 2025 - 24 July 2025")
     const formatDate = (date: Date | undefined) => {
       if (!date) return "";
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
+      const day = date.getDate();
+      const month = date.toLocaleDateString("en-US", { month: "short" });
+      const year = date.getFullYear();
+      return `${day} ${month} ${year}`;
     };
 
     const dates =
       startDate && endDate
-        ? `${formatDate(startDate)} - ${formatDate(
-            endDate
-          )}, ${endDate.getFullYear()}`
+        ? `${formatDate(startDate)} - ${formatDate(endDate)}`
         : trip.dates || "Dates TBD";
+    
+    // Extract city and country from destination
+    const destinationParts = trip.destination.split(',').map(p => p.trim());
+    const city = destinationParts[0] || trip.destination;
+    const country = destinationParts[1] || '';
 
     return {
       ...trip,
       startDate,
       endDate,
       dates,
+      city,
+      country,
       image: trip.image || getLocationEmoji(trip.destination),
+      locationImage: trip.cover_image || trip.coverImage || getLocationImage(trip.destination),
       budget:
         typeof trip.budget === "number"
           ? `${trip.currency || "USD"} ${trip.budget}`
@@ -242,86 +435,16 @@ export function HomeScreen({ onNavigateToBudget }: HomeScreenProps = {}) {
               </div>
             ) : (
               activeTrips.map((trip, index) => (
-                <motion.div
+                <ActiveTripCard
                   key={trip.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() =>
-                    onNavigateToBudget?.(trip.destination, trip.id)
-                  }
-                  className="bg-card rounded-3xl p-6 shadow-lg border border-border hover:shadow-xl transition-all cursor-pointer relative"
-                >
-                  {/* Chat Icon Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedTripForChat(trip);
-                      setShowChat(true);
-                    }}
-                    className="absolute top-4 right-4 p-2.5 rounded-full transition-all hover:scale-105 z-10"
-                    style={{
-                      background: "var(--ouest-gradient-main)",
-                    }}
-                  >
-                    <MessageCircle className="w-5 h-5 text-white" />
-                  </button>
-
-                  <div className="flex items-start gap-4 mb-4">
-                    <span className="text-5xl">{trip.image}</span>
-                    <div className="flex-1 pr-10">
-                      <h3 className="text-foreground mb-1">
-                        {trip.destination}
-                      </h3>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Calendar className="w-4 h-4" />
-                        <span style={{ fontSize: "14px" }}>{trip.dates}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4 pt-4 border-t border-border">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="p-2 rounded-lg"
-                        style={{
-                          background: "var(--ouest-gradient-soft)",
-                        }}
-                      >
-                        <MapPin
-                          className="w-4 h-4"
-                          style={{ color: "var(--ouest-blue)" }}
-                        />
-                      </div>
-                      <span className="text-foreground">{trip.budget}</span>
-                    </div>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedTripForMembers(trip);
-                        setShowMembers(true);
-                      }}
-                      className="flex items-center gap-2 hover:scale-105 transition-all"
-                    >
-                      <div
-                        className="p-2 rounded-lg"
-                        style={{
-                          background: "var(--ouest-gradient-soft)",
-                        }}
-                      >
-                        <Users
-                          className="w-4 h-4"
-                          style={{ color: "var(--ouest-pink)" }}
-                        />
-                      </div>
-                      <span className="text-foreground">
-                        {trip.travelers} travelers
-                      </span>
-                    </button>
-                  </div>
-                </motion.div>
+                  trip={trip}
+                  index={index}
+                  onNavigateToBudget={onNavigateToBudget}
+                  onOpenChat={(trip) => {
+                    setSelectedTripForChat(trip);
+                    setShowChat(true);
+                  }}
+                />
               ))
             )}
           </TabsContent>

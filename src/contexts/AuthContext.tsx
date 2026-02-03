@@ -8,7 +8,7 @@ import {
   ReactNode,
 } from "react";
 import { User, Session, AuthError } from "@supabase/supabase-js";
-import { supabase } from "../lib/supabase";
+import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { useDemoMode } from "./DemoModeContext";
 
 const DEFAULT_EMAIL_REDIRECT_URL =
@@ -42,8 +42,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { isDemoMode } = useDemoMode();
 
   useEffect(() => {
-    // Skip auth in demo mode
-    if (isDemoMode) {
+    // Skip auth in demo mode or if Supabase isn't configured
+    if (isDemoMode || !isSupabaseConfigured) {
       setUser(null);
       setSession(null);
       setLoading(false);
@@ -74,6 +74,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
     displayName?: string
   ) => {
+    if (!isSupabaseConfigured) {
+      return {
+        user: null,
+        error: {
+          message: "Supabase is not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.",
+          status: 500,
+          name: "ConfigurationError",
+        } as AuthError,
+      };
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -104,6 +115,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
+    if (!isSupabaseConfigured) {
+      return {
+        user: null,
+        error: {
+          message: "Supabase is not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.",
+          status: 500,
+          name: "ConfigurationError",
+        } as AuthError,
+      };
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,

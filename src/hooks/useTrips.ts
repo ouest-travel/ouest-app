@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useDemoMode } from '../contexts/DemoModeContext';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -140,10 +140,15 @@ export function useTrips() {
   };
 
   const createTrip = async (tripData: Partial<Trip>) => {
-    if (isDemoMode) {
+    if (isDemoMode || !isSupabaseConfigured) {
       const newTrip: Trip = {
         ...tripData,
         id: Date.now(),
+        destination: tripData.destination || '',
+        name: tripData.name || tripData.destination || '',
+        dates: tripData.start_date && tripData.end_date
+          ? `${new Date(tripData.start_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${new Date(tripData.end_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+          : undefined,
       } as Trip;
       setTrips((prev) => [newTrip, ...prev]);
       return { data: newTrip, error: null };
