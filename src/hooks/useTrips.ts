@@ -21,7 +21,6 @@ interface Trip {
   is_public?: boolean;
   voting_enabled?: boolean;
   description?: string | null;
-  status?: 'planning' | 'upcoming' | 'active' | 'completed';
 }
 
 // Demo data
@@ -210,49 +209,15 @@ export function useTrips() {
   };
 
   const deleteTrip = async (tripId: string | number) => {
-    // First, check if trip is past using the trips we already have loaded
-    const trip = trips.find(t => t.id === tripId);
-    
-    if (trip) {
-      // Check if trip is past (completed or end_date in the past)
-      const isPastTrip = trip.status === 'completed' || 
-        (trip.end_date && new Date(trip.end_date) < new Date());
-
-      if (isPastTrip) {
-        return { error: { message: 'Cannot delete past trips. Past trips are preserved for your travel history.' } };
-      }
-    }
-
     if (isDemoMode) {
       setTrips((prev) => prev.filter((trip) => trip.id !== tripId));
       return { error: null };
     }
 
-    // Try to delete the trip - RLS policy will handle permissions
-    // If the user doesn't have permission, Supabase will return an error
-    const { error } = await supabase
-      .from('trips')
-      .delete()
-      .eq('id', tripId);
+    const { error } = await supabase.from('trips').delete().eq('id', tripId);
 
     if (error) {
-      console.error('Error deleting trip:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code,
-        fullError: error,
-      });
-      
-      // Provide more helpful error messages
-      if (error.code === '42501' || error.message?.includes('permission') || error.message?.includes('policy')) {
-        return { 
-          error: { 
-            message: 'Permission denied. You may not have permission to delete this trip. Make sure you are the trip creator or a member of the trip, and that the RLS policy allows trip members to delete trips.' 
-          } 
-        };
-      }
-      
+      console.error('Error deleting trip:', error);
       return { error };
     }
 
@@ -262,38 +227,6 @@ export function useTrips() {
     return { error };
   };
 
-  const loadPublicTrips = async () => {
-    setLoading(true);
-    
-    try {
-      // Fetch public trips with creator profile information
-      const { data, error } = await supabase
-        .from('trips')
-        .select(`
-          *,
-          creator:profiles!trips_created_by_fkey(
-            id,
-            display_name,
-            avatar_url
-          )
-        `)
-        .eq('is_public', true)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error loading public trips:', error);
-        return { data: [], error };
-      }
-
-      return { data: data || [], error: null };
-    } catch (error) {
-      console.error('Error loading public trips:', error);
-      return { data: [], error: error as Error };
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return {
     trips,
     loading,
@@ -301,7 +234,6 @@ export function useTrips() {
     updateTrip,
     deleteTrip,
     refreshTrips: loadTrips,
-    loadPublicTrips,
   };
 }
 

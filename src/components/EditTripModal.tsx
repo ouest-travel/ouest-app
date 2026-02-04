@@ -1,15 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, MapPin, DollarSign, Calendar as CalendarIcon, Dice6, Image as ImageIcon } from "lucide-react";
+import { X, MapPin, DollarSign, Calendar as CalendarIcon, Dice6 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Calendar } from "./ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { uploadImageToCloudinary } from "../lib/cloudinary/uploadImage";
-import { toast } from "sonner";
 
 interface EditTripModalProps {
   isOpen: boolean;
@@ -22,9 +19,8 @@ interface EditTripModalProps {
     endDate?: Date;
     budget?: string;
     currency?: string;
-    coverImage?: string | null;
   };
-  onSave: (updatedTrip: any) => Promise<void> | void;
+  onSave: (updatedTrip: any) => void;
 }
 
 const tripNameSuggestions = [
@@ -36,6 +32,15 @@ const tripNameSuggestions = [
   "The Great Escape",
 ];
 
+const popularDestinations = [
+  { city: "Paris", country: "France", flag: "🇫🇷" },
+  { city: "Tokyo", country: "Japan", flag: "🇯🇵" },
+  { city: "Lisbon", country: "Portugal", flag: "🇵🇹" },
+  { city: "New York", country: "USA", flag: "🇺🇸" },
+  { city: "Bali", country: "Indonesia", flag: "🇮🇩" },
+  { city: "Barcelona", country: "Spain", flag: "🇪🇸" },
+];
+
 export function EditTripModal({ isOpen, onClose, tripData, onSave }: EditTripModalProps) {
   const [formData, setFormData] = useState({
     name: tripData.name,
@@ -44,10 +49,7 @@ export function EditTripModal({ isOpen, onClose, tripData, onSave }: EditTripMod
     endDate: tripData.endDate,
     budget: tripData.budget || "",
     currency: tripData.currency || "CAD",
-    coverImage: tripData.coverImage || null,
   });
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -58,7 +60,6 @@ export function EditTripModal({ isOpen, onClose, tripData, onSave }: EditTripMod
         endDate: tripData.endDate,
         budget: tripData.budget || "",
         currency: tripData.currency || "CAD",
-        coverImage: tripData.coverImage || null,
       });
     }
   }, [isOpen, tripData]);
@@ -68,34 +69,8 @@ export function EditTripModal({ isOpen, onClose, tripData, onSave }: EditTripMod
     setFormData({ ...formData, name: randomName });
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be less than 5MB");
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const imageUrl = await uploadImageToCloudinary(file);
-      setFormData({ ...formData, coverImage: imageUrl });
-      toast.success("Cover image updated!");
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("Failed to upload image");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
+  const selectDestination = (city: string) => {
+    setFormData({ ...formData, destination: city });
   };
 
   const getDayCount = () => {
@@ -111,53 +86,35 @@ export function EditTripModal({ isOpen, onClose, tripData, onSave }: EditTripMod
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
-  const handleSave = async () => {
-    if (!formData.name || !formData.destination) {
-      return;
-    }
-    
-    try {
-      const result = onSave({
-        ...tripData,
-        ...formData,
-        coverImage: formData.coverImage,
-      });
-      
-      // Handle both async and sync onSave functions
-      if (result instanceof Promise) {
-        await result;
-      }
-      
-      // Close modal after successful save
-      // Note: Parent component may also close it, but we ensure it closes here
-      onClose();
-    } catch (error) {
-      // If save fails, don't close modal so user can retry
-      console.error('Error saving trip:', error);
-    }
+  const handleSave = () => {
+    onSave({
+      ...tripData,
+      ...formData,
+    });
+    onClose();
   };
 
   if (!isOpen) return null;
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4 lg:p-6">
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.2 }}
-          className="bg-background rounded-2xl sm:rounded-3xl max-w-2xl lg:max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl"
+          className="bg-background rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
         >
           {/* Header */}
           <div
-            className="sticky top-0 px-4 sm:px-6 py-3 sm:py-4 border-b border-border z-10"
+            className="sticky top-0 px-6 py-4 border-b border-border z-10"
             style={{
               background: "var(--ouest-gradient-soft)",
             }}
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-foreground text-lg sm:text-xl">Edit Trip</h2>
+              <h2 className="text-foreground">Edit Trip</h2>
               <Button variant="ghost" size="sm" onClick={onClose}>
                 <X className="w-5 h-5" />
               </Button>
@@ -165,59 +122,9 @@ export function EditTripModal({ isOpen, onClose, tripData, onSave }: EditTripMod
           </div>
 
           {/* Content */}
-          <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6">
-            {/* Cover Image */}
-            <div className="space-y-2 sm:space-y-3">
-              <label className="text-sm text-muted-foreground">Cover Image</label>
-              <div className="bg-card rounded-2xl border-2 border-border overflow-hidden">
-                {formData.coverImage ? (
-                  <div className="relative aspect-[16/9] w-full">
-                    <ImageWithFallback
-                      src={formData.coverImage}
-                      alt="Trip cover"
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      onClick={() => setFormData({ ...formData, coverImage: null })}
-                      className="absolute top-3 right-3 bg-background/90 rounded-full p-2 hover:bg-background transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="w-full aspect-[16/9] flex flex-col items-center justify-center gap-3 hover:bg-muted transition-colors disabled:opacity-50"
-                  >
-                    <div
-                      className="w-14 h-14 rounded-full flex items-center justify-center"
-                      style={{
-                        background: "var(--ouest-gradient-soft)",
-                      }}
-                    >
-                      <ImageIcon className="w-6 h-6" style={{ color: "var(--ouest-purple)" }} />
-                    </div>
-                    <div>
-                      <p className="text-sm text-foreground">
-                        {uploading ? "Uploading..." : "Add cover image"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Choose from library or upload</p>
-                    </div>
-                  </button>
-                )}
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-              />
-            </div>
-
+          <div className="px-6 py-6 space-y-6">
             {/* Trip Name */}
-            <div className="space-y-2 sm:space-y-3">
+            <div className="space-y-3">
               <label className="text-sm text-muted-foreground">Trip Name</label>
               <div className="relative">
                 <Input
@@ -225,7 +132,7 @@ export function EditTripModal({ isOpen, onClose, tripData, onSave }: EditTripMod
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="My Amazing Trip"
                   maxLength={40}
-                  className="text-base sm:text-lg py-4 sm:py-6 px-4 rounded-xl border-2 border-border focus:border-[var(--ouest-purple)] transition-all"
+                  className="text-lg py-6 px-4 rounded-xl border-2 border-border focus:border-[var(--ouest-purple)] transition-all"
                 />
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-sm text-muted-foreground">{formData.name.length}/40</span>
@@ -238,7 +145,7 @@ export function EditTripModal({ isOpen, onClose, tripData, onSave }: EditTripMod
             </div>
 
             {/* Destination */}
-            <div className="space-y-2 sm:space-y-3">
+            <div className="space-y-3">
               <label className="text-sm text-muted-foreground">Destination</label>
               <div className="relative">
                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
@@ -246,32 +153,51 @@ export function EditTripModal({ isOpen, onClose, tripData, onSave }: EditTripMod
                   value={formData.destination}
                   onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
                   placeholder="Search destination..."
-                  className="text-base sm:text-lg py-4 sm:py-6 pl-12 pr-4 rounded-xl border-2 border-border focus:border-[var(--ouest-purple)]"
+                  className="text-lg py-6 pl-12 pr-4 rounded-xl border-2 border-border focus:border-[var(--ouest-purple)]"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Popular Destinations</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {popularDestinations.map((dest) => (
+                    <button
+                      key={dest.city}
+                      onClick={() => selectDestination(dest.city)}
+                      className={`p-3 rounded-xl border-2 transition-all text-left ${
+                        formData.destination === dest.city
+                          ? "border-[var(--ouest-purple)] bg-muted"
+                          : "border-border hover:border-muted-foreground"
+                      }`}
+                    >
+                      <div className="text-xl mb-1">{dest.flag}</div>
+                      <div className="text-sm text-foreground">{dest.city}</div>
+                      <div className="text-xs text-muted-foreground">{dest.country}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Dates */}
-            <div className="space-y-2 sm:space-y-3">
+            <div className="space-y-3">
               <label className="text-sm text-muted-foreground">Trip Dates</label>
-              <div className="bg-muted rounded-xl border-2 border-border p-2 sm:p-4 lg:p-6">
-                <div className="flex justify-center">
-                  <Calendar
-                    mode="range"
-                    selected={{
-                      from: formData.startDate,
-                      to: formData.endDate,
-                    }}
-                    onSelect={(range) => {
-                      setFormData({
-                        ...formData,
-                        startDate: range?.from,
-                        endDate: range?.to,
-                      });
-                    }}
-                    className="rounded-lg"
-                  />
-                </div>
+              <div className="bg-muted rounded-xl border-2 border-border p-4">
+                <Calendar
+                  mode="range"
+                  selected={{
+                    from: formData.startDate,
+                    to: formData.endDate,
+                  }}
+                  onSelect={(range) => {
+                    setFormData({
+                      ...formData,
+                      startDate: range?.from,
+                      endDate: range?.to,
+                    });
+                  }}
+                  className="rounded-lg"
+                />
               </div>
 
               {formData.startDate && formData.endDate && (
@@ -295,12 +221,12 @@ export function EditTripModal({ isOpen, onClose, tripData, onSave }: EditTripMod
             </div>
 
             {/* Budget */}
-            <div className="space-y-2 sm:space-y-3">
+            <div className="space-y-3">
               <label className="text-sm text-muted-foreground">Budget (optional)</label>
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-1">
                   <Select value={formData.currency} onValueChange={(val) => setFormData({ ...formData, currency: val })}>
-                    <SelectTrigger className="rounded-xl py-4 sm:py-6 text-sm sm:text-base">
+                    <SelectTrigger className="rounded-xl py-6">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -320,7 +246,7 @@ export function EditTripModal({ isOpen, onClose, tripData, onSave }: EditTripMod
                       value={formData.budget}
                       onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
                       placeholder="3500"
-                      className="text-base sm:text-lg py-4 sm:py-6 pl-12 pr-4 rounded-xl border-2 border-border focus:border-[var(--ouest-purple)]"
+                      className="text-lg py-6 pl-12 pr-4 rounded-xl border-2 border-border focus:border-[var(--ouest-purple)]"
                     />
                   </div>
                 </div>
@@ -330,19 +256,19 @@ export function EditTripModal({ isOpen, onClose, tripData, onSave }: EditTripMod
           </div>
 
           {/* Footer */}
-          <div className="sticky bottom-0 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 border-t border-border bg-background">
-            <div className="flex gap-2 sm:gap-3 lg:gap-4">
+          <div className="sticky bottom-0 px-6 py-4 border-t border-border bg-background">
+            <div className="flex gap-3">
               <Button
                 variant="outline"
                 onClick={onClose}
-                className="flex-1 py-4 sm:py-6 rounded-xl border-2 text-sm sm:text-base"
+                className="flex-1 py-6 rounded-xl border-2"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSave}
                 disabled={!formData.name || !formData.destination}
-                className="flex-1 py-4 sm:py-6 rounded-xl text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50 text-sm sm:text-base"
+                className="flex-1 py-6 rounded-xl text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
                 style={{
                   background: "var(--ouest-gradient-main)",
                 }}

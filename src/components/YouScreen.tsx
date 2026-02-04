@@ -114,8 +114,8 @@ export function YouScreen() {
       icon: Bookmark,
     },
     {
-      label: "Saved Itineraries",
-      value: stats.savedItineraries.toString(),
+      label: "Wishlist Items",
+      value: stats.wishlistItems.toString(),
       icon: Heart,
     },
   ];
@@ -224,17 +224,8 @@ export function YouScreen() {
             <div className="grid grid-cols-3 gap-4">
               {statsData.map((stat) => {
                 const Icon = stat.icon;
-                const isSavedItineraries = stat.label === "Saved Itineraries";
                 return (
-                  <button
-                    key={stat.label}
-                    onClick={() => {
-                      if (isSavedItineraries) {
-                        router.push("/you/saved-itineraries");
-                      }
-                    }}
-                    className={`text-center ${isSavedItineraries ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
-                  >
+                  <div key={stat.label} className="text-center">
                     <div
                       className="inline-flex p-3 rounded-2xl mb-2"
                       style={{
@@ -253,7 +244,7 @@ export function YouScreen() {
                     >
                       {stat.label}
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -294,18 +285,7 @@ export function YouScreen() {
                 {theme === "light" ? "Light Mode" : "Dark Mode"}
               </span>
             </div>
-            <div
-              className="flex items-center justify-center w-10 h-10 rounded-lg border-2 border-border bg-background hover:bg-muted transition-colors"
-              style={{
-                borderColor: "var(--ouest-blue)",
-              }}
-            >
-              {theme === "light" ? (
-                <Moon className="w-4 h-4 text-foreground" />
-              ) : (
-                <Sun className="w-4 h-4 text-foreground" />
-              )}
-            </div>
+            <div className="text-muted-foreground">Toggle</div>
           </button>
 
           <div className="border-t border-border p-4 flex items-center justify-between">

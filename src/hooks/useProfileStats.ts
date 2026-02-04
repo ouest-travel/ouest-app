@@ -9,14 +9,14 @@ interface ProfileStats {
   countriesVisited: number;
   totalTrips: number;
   memories: number;
-  savedItineraries: number;
+  wishlistItems: number;
 }
 
 const demoStats: ProfileStats = {
   countriesVisited: 12,
   totalTrips: 24,
   memories: 156,
-  savedItineraries: 8,
+  wishlistItems: 47,
 };
 
 export function useProfileStats() {
@@ -24,7 +24,7 @@ export function useProfileStats() {
     countriesVisited: 0,
     totalTrips: 0,
     memories: 0,
-    savedItineraries: 0,
+    wishlistItems: 0,
   });
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -42,7 +42,7 @@ export function useProfileStats() {
         countriesVisited: 0,
         totalTrips: 0,
         memories: 0,
-        savedItineraries: 0,
+        wishlistItems: 0,
       });
       setLoading(false);
       return;
@@ -57,43 +57,14 @@ export function useProfileStats() {
     setLoading(true);
 
     try {
-      // Fetch all trips to determine which are past trips
-      const { data: allTrips, error: allTripsError } = await supabase
-        .from('trips')
-        .select('destination, end_date, status')
-        .eq('created_by', user.id);
+      // Fetch countries visited count
+      const { count: countriesCount, error: countriesError } = await supabase
+        .from('countries_visited')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
 
-      if (allTripsError) {
-        console.error('Error loading trips for countries visited:', allTripsError);
-      }
-
-      // Count unique destinations (countries) from past trips
-      // A trip is considered "past" if:
-      // 1. status is 'completed', OR
-      // 2. end_date is in the past
-      let countriesCount = 0;
-      if (allTrips && allTrips.length > 0) {
-        const now = new Date();
-        const pastTrips = allTrips.filter(trip => {
-          // Check if status is completed
-          if (trip.status === 'completed') {
-            return true;
-          }
-          // Check if end_date is in the past
-          if (trip.end_date) {
-            const endDate = new Date(trip.end_date);
-            return endDate < now;
-          }
-          return false;
-        });
-
-        // Extract unique destinations from past trips
-        const uniqueDestinations = new Set(
-          pastTrips
-            .map(trip => trip.destination?.trim())
-            .filter(Boolean) // Remove null/undefined/empty strings
-        );
-        countriesCount = uniqueDestinations.size;
+      if (countriesError) {
+        console.error('Error loading countries visited:', countriesError);
       }
 
       // Fetch total trips count (all trips, not just upcoming)
@@ -131,21 +102,21 @@ export function useProfileStats() {
         }
       }
 
-      // Fetch saved itinerary items count
-      const { count: savedItinerariesCount, error: savedItinerariesError } = await supabase
-        .from('saved_itinerary_items')
+      // Fetch wishlist items count
+      const { count: wishlistCount, error: wishlistError } = await supabase
+        .from('wishlist')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
 
-      if (savedItinerariesError) {
-        console.error('Error loading saved itineraries:', savedItinerariesError);
+      if (wishlistError) {
+        console.error('Error loading wishlist:', wishlistError);
       }
 
       setStats({
         countriesVisited: countriesCount || 0,
         totalTrips: tripsCount || 0,
         memories: memoriesCount,
-        savedItineraries: savedItinerariesCount || 0,
+        wishlistItems: wishlistCount || 0,
       });
     } catch (error) {
       console.error('Error loading profile stats:', error);
