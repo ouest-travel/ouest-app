@@ -239,50 +239,6 @@ export interface Database {
           created_at?: string
         }
       }
-      saved_itinerary_items: {
-        Row: {
-          id: string
-          user_id: string
-          activity_name: string
-          activity_location: string
-          activity_time: string | null
-          activity_cost: string | null
-          activity_description: string | null
-          activity_category: 'food' | 'activity' | 'transport' | 'accommodation'
-          source_trip_location: string | null
-          source_trip_user: string | null
-          day: number | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          activity_name: string
-          activity_location: string
-          activity_time?: string | null
-          activity_cost?: string | null
-          activity_description?: string | null
-          activity_category?: 'food' | 'activity' | 'transport' | 'accommodation'
-          source_trip_location?: string | null
-          source_trip_user?: string | null
-          day?: number | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          activity_name?: string
-          activity_location?: string
-          activity_time?: string | null
-          activity_cost?: string | null
-          activity_description?: string | null
-          activity_category?: 'food' | 'activity' | 'transport' | 'accommodation'
-          source_trip_location?: string | null
-          source_trip_user?: string | null
-          day?: number | null
-          created_at?: string
-        }
-      }
     }
     Views: {
       [_ in never]: never

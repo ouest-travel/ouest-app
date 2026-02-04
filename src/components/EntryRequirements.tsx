@@ -7,7 +7,12 @@ import { CountrySelector } from "./CountrySelector";
 import { ResultCard } from "./ResultCard";
 import { LoadingState } from "./LoadingState";
 import { InfoModal } from "./InfoModal";
-import { Country } from "@/data/countries";
+
+interface Country {
+  code: string;
+  name: string;
+  flag: string;
+}
 
 interface EntryRequirementsProps {
   onBack: () => void;

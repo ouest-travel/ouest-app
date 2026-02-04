@@ -31,13 +31,11 @@ interface ItineraryViewProps {
   tripLocation: string;
   tripDates: string;
   budget?: string;
-  spent?: string;
   activities: Activity[];
   onClose: () => void;
   isOwnTrip?: boolean;
   onAddActivity?: (activity: Activity) => void;
   onRemoveActivity?: (activityId: number) => void;
-  onAddItinerary?: () => void;
   addedActivityIds?: number[];
 }
 
@@ -60,13 +58,11 @@ export function ItineraryView({
   tripLocation,
   tripDates,
   budget,
-  spent,
   activities,
   onClose,
   isOwnTrip = false,
   onAddActivity,
   onRemoveActivity,
-  onAddItinerary,
   addedActivityIds = [],
 }: ItineraryViewProps) {
   const [selectedDay, setSelectedDay] = useState(1);
@@ -74,38 +70,20 @@ export function ItineraryView({
   const totalDays = Math.max(...activities.map((a) => a.day), 1);
   const dayActivities = activities.filter((a) => a.day === selectedDay);
 
-  const handleAddActivity = async (activity: Activity) => {
-    try {
-      const result = onAddActivity?.(activity);
-      // Await if it's a promise-like
-      if (result && typeof (result as any).then === 'function') {
-        await result;
-      }
-      toast.success(`Added "${activity.name}" to your itinerary`);
-    } catch (error) {
-      console.error('Error adding activity:', error);
-      toast.error(`Failed to add "${activity.name}"`);
-    }
+  const handleAddActivity = (activity: Activity) => {
+    onAddActivity?.(activity);
+    toast.success(`Added "${activity.name}" to your itinerary`);
   };
 
-  const handleRemoveActivity = async (activityId: number) => {
-    try {
-      const result = onRemoveActivity?.(activityId);
-      // Await if it's a promise-like
-      if (result && typeof (result as any).then === 'function') {
-        await result;
-      }
-      toast.success("Removed from your itinerary");
-    } catch (error) {
-      console.error('Error removing activity:', error);
-      toast.error("Failed to remove activity");
-    }
+  const handleRemoveActivity = (activityId: number) => {
+    onRemoveActivity?.(activityId);
+    toast.success("Removed from your itinerary");
   };
 
   const isActivityAdded = (activityId: number) => addedActivityIds.includes(activityId);
 
   return (
-    <div className="fixed inset-0 bg-background z-50 flex flex-col">
+    <div className="fixed inset-0 bg-white z-50 flex flex-col">
       {/* Header */}
       <div
         className="px-6 py-4 border-b border-border"
@@ -119,20 +97,7 @@ export function ItineraryView({
               <X className="w-5 h-5" />
             </Button>
             <h2 className="text-foreground">Itinerary</h2>
-            {!isOwnTrip && onAddItinerary && (
-              <Button
-                size="sm"
-                onClick={onAddItinerary}
-                className="gap-2"
-                style={{
-                  background: "var(--ouest-gradient-main)",
-                }}
-              >
-                <Plus className="w-4 h-4" />
-                Add to itinerary
-              </Button>
-            )}
-            {(!onAddItinerary || isOwnTrip) && <div className="w-10" />}
+            <div className="w-10" />
           </div>
 
           {/* Trip Info */}
@@ -159,7 +124,7 @@ export function ItineraryView({
       </div>
 
       {/* Day Selector */}
-      <div className="px-6 py-4 border-b border-border bg-background max-w-2xl mx-auto w-full">
+      <div className="px-6 py-4 border-b border-border bg-white max-w-2xl mx-auto w-full">
         <ScrollArea className="w-full">
           <div className="flex gap-2">
             {Array.from({ length: totalDays }, (_, i) => i + 1).map((day) => (
@@ -245,7 +210,7 @@ export function ItineraryView({
                           className="w-full gap-2"
                         >
                           <CheckCircle2 className="w-4 h-4 text-green-500" />
-                          Activity added
+                          Added to your itinerary
                         </Button>
                       ) : (
                         <Button
@@ -257,7 +222,7 @@ export function ItineraryView({
                           }}
                         >
                           <Plus className="w-4 h-4" />
-                          Add activity
+                          Add to my itinerary
                         </Button>
                       )}
                     </div>
@@ -270,21 +235,11 @@ export function ItineraryView({
       </ScrollArea>
 
       {/* Budget Summary at Bottom */}
-      {(budget || spent) && (
+      {budget && (
         <div className="px-6 py-4 border-t border-border bg-muted/30 max-w-2xl mx-auto w-full">
-          <div className="space-y-2">
-            {budget && (
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Total Trip Budget</span>
-                <span className="text-foreground">{budget}</span>
-              </div>
-            )}
-            {spent && (
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Total Spent</span>
-                <span className="text-foreground">{spent}</span>
-              </div>
-            )}
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Total Trip Budget</span>
+            <span className="text-foreground">{budget}</span>
           </div>
         </div>
       )}
