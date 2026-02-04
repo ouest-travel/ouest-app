@@ -8,3 +8,4 @@ Look for existing patterns and follow them. When adding new UI, study nearby imp
 - Render lightweight modal triggers in feature components.
 - Render the modal components themselves in the existing modal host for that feature (e.g. `Navbar/index.tsx` for top-level modals).
 - Only add new modal mounts elsewhere if a clear, documented exception exists.
+- Always test to avoid bugs as much as possible

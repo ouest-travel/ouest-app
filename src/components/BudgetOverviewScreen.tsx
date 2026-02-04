@@ -10,6 +10,7 @@ import { CurrencyConverterModal } from "./CurrencyConverterModal";
 import { EditTripModal } from "./EditTripModal";
 import { useExpenses } from "../hooks/useExpenses";
 import { useTripMembers } from "../hooks/useTripMembers";
+import { useTrips } from "../hooks/useTrips";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -26,8 +27,32 @@ interface BudgetOverviewScreenProps {
   tripId?: string | number | null;
 }
 
+// Currency symbols mapping
+const currencySymbols: Record<string, string> = {
+  USD: "$",
+  CAD: "$",
+  EUR: "€",
+  GBP: "£",
+  JPY: "¥",
+  AUD: "$",
+  CHF: "Fr",
+  CNY: "¥",
+  INR: "₹",
+  MXN: "$",
+};
+
+// Format currency amount with symbol
+function formatCurrency(amount: number, currency: string = "CAD"): string {
+  const symbol = currencySymbols[currency] || currency;
+  // JPY doesn't use decimals
+  if (currency === "JPY") {
+    return `${symbol}${Math.round(amount).toLocaleString()}`;
+  }
+  return `${symbol}${amount.toFixed(2)}`;
+}
+
 // Function to calculate who owes who based on expenses
-function calculateDebts(expenses: any[], members: any[]) {
+function calculateDebts(expenses: any[], members: any[], currency: string = "CAD") {
   // Calculate balance for each member
   const balances: Record<string, number> = {};
   
@@ -62,7 +87,7 @@ function calculateDebts(expenses: any[], members: any[]) {
           from: members.find(m => m.name === debtor.name)!,
           to: members.find(m => m.name === creditor.name)!,
           amount: Math.round(amount * 100) / 100,
-          currency: "CAD",
+          currency: currency,
         });
         debtor.amount -= amount;
         creditor.amount -= amount;
@@ -84,6 +109,10 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
   // Load expenses and members from hooks
   const { expenses, addExpense, updateExpense, deleteExpense } = useExpenses(tripId);
   const { members: tripMembers } = useTripMembers(tripId);
+  const { trips, updateTrip, deleteTrip } = useTrips();
+  
+  // Get the current trip data
+  const currentTrip = trips.find(trip => trip.id === tripId);
   
   // Transform members to expected format
   const mockMembers = tripMembers.map(member => ({
@@ -101,9 +130,12 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
   ];
 
   const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const totalBudget = 3500;
+  const tripCurrency = currentTrip?.currency || "CAD";
+  const totalBudget = typeof currentTrip?.budget === 'number' 
+    ? currentTrip.budget 
+    : (typeof currentTrip?.budget === 'string' ? parseFloat(currentTrip.budget) : 3500);
   const remaining = totalBudget - totalSpent;
-  const progressPercent = (totalSpent / totalBudget) * 100;
+  const progressPercent = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
   const handleAddExpense = async (expense: any) => {
     if (editingExpense) {
@@ -142,20 +174,76 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
     setShowAddExpense(true);
   };
 
-  const handleSaveTrip = (updatedTrip: any) => {
-    // TODO: Implement trip update logic with backend
-    console.log("Updated trip:", updatedTrip);
-    // For now, just close the modal
-    // In a real implementation, you would call an API to update the trip
+  const handleSaveTrip = async (updatedTrip: any) => {
+    if (!tripId) {
+      toast.error('Trip ID is missing');
+      return;
+    }
+
+    // Convert dates to ISO strings for database
+    const updates: any = {
+      name: updatedTrip.name,
+      destination: updatedTrip.destination,
+      budget: updatedTrip.budget ? parseFloat(updatedTrip.budget.toString()) : null,
+      currency: updatedTrip.currency || 'USD',
+      cover_image: updatedTrip.coverImage || null,
+    };
+
+    if (updatedTrip.startDate) {
+      updates.start_date = updatedTrip.startDate instanceof Date 
+        ? updatedTrip.startDate.toISOString() 
+        : updatedTrip.startDate;
+    }
+
+    if (updatedTrip.endDate) {
+      updates.end_date = updatedTrip.endDate instanceof Date 
+        ? updatedTrip.endDate.toISOString() 
+        : updatedTrip.endDate;
+    }
+
+    const { error } = await updateTrip(tripId, updates);
+
+    if (error) {
+      toast.error('Failed to update trip');
+      console.error('Error updating trip:', error);
+    } else {
+      toast.success('Trip updated successfully!');
+      setShowEditTrip(false);
+    }
   };
 
-  const handleDeleteTrip = () => {
-    // TODO: Implement trip deletion logic with backend
+  const handleDeleteTrip = async () => {
+    if (!tripId) {
+      toast.error('Trip ID is missing');
+      return;
+    }
+
+    // Check if trip is past (completed or end_date in the past)
+    const isPastTrip = currentTrip?.status === 'completed' || 
+      (currentTrip?.end_date && new Date(currentTrip.end_date) < new Date());
+
+    if (isPastTrip) {
+      toast.error('Cannot delete past trips. Past trips are preserved for your travel history.');
+      return;
+    }
+
     if (confirm("Are you sure you want to delete this trip? This action cannot be undone.")) {
-      console.log("Delete trip:", tripId);
-      // In a real implementation, you would call an API to delete the trip
-      // and navigate back to the home screen
-      onBack();
+      const { error } = await deleteTrip(tripId);
+      
+      if (error) {
+        const errorMessage = 'message' in error ? error.message : 'Failed to delete trip. You may not have permission to delete this trip.';
+        toast.error(errorMessage);
+        console.error('Error deleting trip:', {
+          message: 'message' in error ? error.message : 'Unknown error',
+          details: 'details' in error ? error.details : undefined,
+          hint: 'hint' in error ? error.hint : undefined,
+          code: 'code' in error ? error.code : undefined,
+          fullError: error,
+        });
+      } else {
+        toast.success('Trip deleted successfully');
+        onBack();
+      }
     }
   };
 
@@ -165,7 +253,7 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
   };
 
   // Calculate current debts based on expenses
-  const currentDebts = calculateDebts(expenses, members);
+  const currentDebts = calculateDebts(expenses, members, tripCurrency);
 
   // Filter expenses based on active tab
   const getFilteredExpenses = () => {
@@ -238,7 +326,11 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   onClick={handleDeleteTrip}
-                  className="text-destructive focus:text-destructive"
+                  disabled={
+                    currentTrip?.status === 'completed' || 
+                    (currentTrip?.end_date ? new Date(currentTrip.end_date) < new Date() : false)
+                  }
+                  className="text-destructive focus:text-destructive disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete Trip
@@ -313,13 +405,13 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
                 <p className="text-muted-foreground mb-1" style={{ fontSize: "13px" }}>
                   Total Spent
                 </p>
-                <p className="text-foreground">CAD ${totalSpent.toFixed(2)}</p>
+                <p className="text-foreground">{formatCurrency(totalSpent, tripCurrency)}</p>
               </div>
               <div>
                 <p className="text-muted-foreground mb-1" style={{ fontSize: "13px" }}>
                   Remaining Budget
                 </p>
-                <p className="text-foreground">CAD ${remaining.toFixed(2)}</p>
+                <p className="text-foreground">{formatCurrency(remaining, tripCurrency)}</p>
               </div>
             </div>
           </div>
@@ -468,7 +560,7 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-foreground">CAD ${groupTotal.toFixed(2)}</p>
+                      <p className="text-foreground">{formatCurrency(groupTotal, tripCurrency)}</p>
                       <span className="text-muted-foreground" style={{ fontSize: "12px" }}>
                         total
                       </span>
@@ -579,11 +671,17 @@ export function BudgetOverviewScreen({ onBack, onViewChat, tripName = "Tokyo Adv
         onClose={() => setShowEditTrip(false)}
         tripData={{
           id: tripId,
-          name: tripName,
-          destination: tripName.replace(" Budget", "").replace("Adventure", "").trim(),
-          budget: totalBudget.toString(),
-          currency: "CAD",
-          // TODO: Add actual dates from trip data when available
+          name: currentTrip?.name || tripName,
+          destination: currentTrip?.destination || tripName.replace(" Budget", "").replace("Adventure", "").trim(),
+          startDate: currentTrip?.start_date 
+            ? (currentTrip.start_date instanceof Date ? currentTrip.start_date : new Date(currentTrip.start_date))
+            : undefined,
+          endDate: currentTrip?.end_date 
+            ? (currentTrip.end_date instanceof Date ? currentTrip.end_date : new Date(currentTrip.end_date))
+            : undefined,
+          budget: currentTrip?.budget?.toString() || totalBudget.toString(),
+          currency: currentTrip?.currency || "CAD",
+          coverImage: currentTrip?.cover_image || null,
         }}
         onSave={handleSaveTrip}
       />

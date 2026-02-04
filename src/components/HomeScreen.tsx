@@ -1,14 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import {
-  Plus,
-  MapPin,
-  Calendar,
-  Users,
-  MessageCircle,
-  Clock,
-} from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { CreateTripForm } from "./CreateTripForm";
 import { ChatDemoScreen } from "./ChatDemoScreen";
@@ -17,26 +10,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useTrips } from "../hooks/useTrips";
 import { useProfileStats } from "../hooks/useProfileStats";
 import { toast } from "sonner";
+import { Trip } from "../types/trip";
+import { ActiveTripCard } from "./ActiveTripCard";
+
+
 
 interface HomeScreenProps {
   onNavigateToBudget?: (tripName: string, tripId: string | number) => void;
-}
-
-interface Trip {
-  id: string | number;
-  name?: string;
-  destination: string;
-  dates?: string;
-  image?: string;
-  budget?: number | string | null;
-  travelers?: number;
-  coverImage?: string;
-  cover_image?: string | null;
-  startDate?: Date;
-  start_date?: Date | string | null;
-  endDate?: Date;
-  end_date?: Date | string | null;
-  currency?: string;
 }
 
 const getLocationEmoji = (location: string) => {
@@ -85,7 +65,7 @@ export function HomeScreen({ onNavigateToBudget }: HomeScreenProps = {}) {
   const { stats } = useProfileStats();
 
   // Transform trips data to ensure consistent format
-  const trips: Trip[] = rawTrips.map((trip) => {
+  const trips = rawTrips.map((trip) => {
     const startDate = trip.start_date ? new Date(trip.start_date) : undefined;
     const endDate = trip.end_date ? new Date(trip.end_date) : undefined;
 
@@ -105,18 +85,21 @@ export function HomeScreen({ onNavigateToBudget }: HomeScreenProps = {}) {
           )}, ${endDate.getFullYear()}`
         : trip.dates || "Dates TBD";
 
+    const parts = (trip.destination || "").split(",");
+    const city = parts[0]?.trim() || trip.destination;
+    const country = parts.length > 1 ? parts[parts.length - 1].trim() : "";
+
     return {
       ...trip,
       startDate,
       endDate,
       dates,
       image: trip.image || getLocationEmoji(trip.destination),
-      budget:
-        typeof trip.budget === "number"
-          ? `${trip.currency || "USD"} ${trip.budget}`
-          : trip.budget || "No budget set",
+      city,
+      country,
+      locationImage: trip.cover_image || trip.image || "", 
       travelers: trip.travelers || 1,
-    };
+    } as Trip & { city: string; country: string; locationImage: string };
   });
 
   // Separate active and past trips based on end date
@@ -242,86 +225,16 @@ export function HomeScreen({ onNavigateToBudget }: HomeScreenProps = {}) {
               </div>
             ) : (
               activeTrips.map((trip, index) => (
-                <motion.div
+                <ActiveTripCard
                   key={trip.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() =>
-                    onNavigateToBudget?.(trip.destination, trip.id)
-                  }
-                  className="bg-card rounded-3xl p-6 shadow-lg border border-border hover:shadow-xl transition-all cursor-pointer relative"
-                >
-                  {/* Chat Icon Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedTripForChat(trip);
-                      setShowChat(true);
-                    }}
-                    className="absolute top-4 right-4 p-2.5 rounded-full transition-all hover:scale-105 z-10"
-                    style={{
-                      background: "var(--ouest-gradient-main)",
-                    }}
-                  >
-                    <MessageCircle className="w-5 h-5 text-white" />
-                  </button>
-
-                  <div className="flex items-start gap-4 mb-4">
-                    <span className="text-5xl">{trip.image}</span>
-                    <div className="flex-1 pr-10">
-                      <h3 className="text-foreground mb-1">
-                        {trip.destination}
-                      </h3>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Calendar className="w-4 h-4" />
-                        <span style={{ fontSize: "14px" }}>{trip.dates}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4 pt-4 border-t border-border">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="p-2 rounded-lg"
-                        style={{
-                          background: "var(--ouest-gradient-soft)",
-                        }}
-                      >
-                        <MapPin
-                          className="w-4 h-4"
-                          style={{ color: "var(--ouest-blue)" }}
-                        />
-                      </div>
-                      <span className="text-foreground">{trip.budget}</span>
-                    </div>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedTripForMembers(trip);
-                        setShowMembers(true);
-                      }}
-                      className="flex items-center gap-2 hover:scale-105 transition-all"
-                    >
-                      <div
-                        className="p-2 rounded-lg"
-                        style={{
-                          background: "var(--ouest-gradient-soft)",
-                        }}
-                      >
-                        <Users
-                          className="w-4 h-4"
-                          style={{ color: "var(--ouest-pink)" }}
-                        />
-                      </div>
-                      <span className="text-foreground">
-                        {trip.travelers} travelers
-                      </span>
-                    </button>
-                  </div>
-                </motion.div>
+                  trip={trip}
+                  index={index}
+                  onNavigateToBudget={onNavigateToBudget}
+                  onOpenChat={() => {
+                    setSelectedTripForChat(trip);
+                    setShowChat(true);
+                  }}
+                />
               ))
             )}
           </TabsContent>
@@ -336,84 +249,16 @@ export function HomeScreen({ onNavigateToBudget }: HomeScreenProps = {}) {
               </div>
             ) : (
               pastTrips.map((trip, index) => (
-                <motion.div
+                <ActiveTripCard
                   key={trip.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() =>
-                    onNavigateToBudget?.(trip.destination, trip.id)
-                  }
-                  className="bg-card rounded-3xl p-6 shadow-lg border border-border hover:shadow-xl transition-all cursor-pointer relative opacity-80"
-                >
-                  {/* Chat Icon Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedTripForChat(trip);
-                      setShowChat(true);
-                    }}
-                    className="absolute top-4 right-14 p-2.5 rounded-full transition-all hover:scale-105 z-10"
-                    style={{
-                      background: "var(--ouest-gradient-main)",
-                    }}
-                  >
-                    <MessageCircle className="w-5 h-5 text-white" />
-                  </button>
-
-                  {/* Past trip indicator */}
-                  <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-muted text-muted-foreground text-xs">
-                    Completed
-                  </div>
-
-                  <div className="flex items-start gap-4 mb-4">
-                    <span className="text-5xl grayscale">{trip.image}</span>
-                    <div className="flex-1 pr-24">
-                      <h3 className="text-foreground mb-1">
-                        {trip.destination}
-                      </h3>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Clock className="w-4 h-4" />
-                        <span style={{ fontSize: "14px" }}>{trip.dates}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4 pt-4 border-t border-border">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="p-2 rounded-lg"
-                        style={{
-                          background: "var(--ouest-gradient-soft)",
-                        }}
-                      >
-                        <MapPin
-                          className="w-4 h-4"
-                          style={{ color: "var(--ouest-blue)" }}
-                        />
-                      </div>
-                      <span className="text-foreground">{trip.budget}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="p-2 rounded-lg"
-                        style={{
-                          background: "var(--ouest-gradient-soft)",
-                        }}
-                      >
-                        <Users
-                          className="w-4 h-4"
-                          style={{ color: "var(--ouest-pink)" }}
-                        />
-                      </div>
-                      <span className="text-foreground">
-                        {trip.travelers} travelers
-                      </span>
-                    </div>
-                  </div>
-                </motion.div>
+                  trip={trip}
+                  index={index}
+                  onNavigateToBudget={onNavigateToBudget}
+                  onOpenChat={() => {
+                    setSelectedTripForChat(trip);
+                    setShowChat(true);
+                  }}
+                />
               ))
             )}
           </TabsContent>
