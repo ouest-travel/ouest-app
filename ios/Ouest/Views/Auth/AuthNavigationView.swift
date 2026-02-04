@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct AuthNavigationView: View {
+    @EnvironmentObject var appState: AppState
+
     var body: some View {
         NavigationStack {
             LoginView()
@@ -11,12 +13,14 @@ struct AuthNavigationView: View {
 // MARK: - Login View
 
 struct LoginView: View {
-    @EnvironmentObject var authManager: AuthManager
+    @EnvironmentObject var appState: AppState
 
     @State private var email = ""
     @State private var password = ""
-    @State private var isLoading = false
-    @State private var errorMessage: String?
+
+    private var viewModel: AuthViewModel {
+        appState.authViewModel
+    }
 
     var body: some View {
         ZStack {
@@ -60,7 +64,7 @@ struct LoginView: View {
                             icon: "lock"
                         )
 
-                        if let error = errorMessage {
+                        if let error = viewModel.error {
                             Text(error)
                                 .font(OuestTheme.Fonts.caption)
                                 .foregroundColor(OuestTheme.Colors.error)
@@ -69,13 +73,26 @@ struct LoginView: View {
 
                         OuestButton(
                             "Sign In",
-                            isLoading: isLoading,
+                            isLoading: viewModel.isLoading,
                             isFullWidth: true
                         ) {
                             signIn()
                         }
                     }
                     .padding(.top, OuestTheme.Spacing.lg)
+
+                    // Demo Mode Button
+                    Button {
+                        appState.isDemoMode = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "play.circle.fill")
+                            Text("Try Demo Mode")
+                        }
+                        .font(OuestTheme.Fonts.subheadline)
+                        .foregroundColor(OuestTheme.Colors.primary)
+                    }
+                    .padding(.top, OuestTheme.Spacing.sm)
 
                     // Sign Up Link
                     NavigationLink(destination: SignUpView()) {
@@ -94,24 +111,24 @@ struct LoginView: View {
             }
         }
         .navigationBarHidden(true)
+        .onChange(of: viewModel.error) { _, _ in
+            // Clear error after 5 seconds
+            if viewModel.error != nil {
+                Task {
+                    try? await Task.sleep(nanoseconds: 5_000_000_000)
+                    viewModel.clearError()
+                }
+            }
+        }
     }
 
     private func signIn() {
         guard !email.isEmpty, !password.isEmpty else {
-            errorMessage = "Please fill in all fields"
             return
         }
 
-        isLoading = true
-        errorMessage = nil
-
         Task {
-            do {
-                try await authManager.signIn(email: email, password: password)
-            } catch {
-                errorMessage = "Invalid email or password"
-            }
-            isLoading = false
+            await viewModel.signIn(email: email, password: password)
         }
     }
 }
@@ -119,15 +136,18 @@ struct LoginView: View {
 // MARK: - Sign Up View
 
 struct SignUpView: View {
-    @EnvironmentObject var authManager: AuthManager
+    @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) var dismiss
 
     @State private var displayName = ""
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
-    @State private var isLoading = false
-    @State private var errorMessage: String?
+    @State private var localError: String?
+
+    private var viewModel: AuthViewModel {
+        appState.authViewModel
+    }
 
     var body: some View {
         ZStack {
@@ -182,7 +202,7 @@ struct SignUpView: View {
                             icon: "lock.fill"
                         )
 
-                        if let error = errorMessage {
+                        if let error = localError ?? viewModel.error {
                             Text(error)
                                 .font(OuestTheme.Fonts.caption)
                                 .foregroundColor(OuestTheme.Colors.error)
@@ -191,7 +211,7 @@ struct SignUpView: View {
 
                         OuestButton(
                             "Create Account",
-                            isLoading: isLoading,
+                            isLoading: viewModel.isLoading,
                             isFullWidth: true
                         ) {
                             signUp()
@@ -222,56 +242,46 @@ struct SignUpView: View {
 
     private func signUp() {
         // Validation
+        localError = nil
+
         guard !displayName.isEmpty else {
-            errorMessage = "Please enter your name"
+            localError = "Please enter your name"
             return
         }
 
         guard !email.isEmpty else {
-            errorMessage = "Please enter your email"
+            localError = "Please enter your email"
             return
         }
 
         guard password.count >= 6 else {
-            errorMessage = "Password must be at least 6 characters"
+            localError = "Password must be at least 6 characters"
             return
         }
 
         guard password == confirmPassword else {
-            errorMessage = "Passwords don't match"
+            localError = "Passwords don't match"
             return
         }
 
-        isLoading = true
-        errorMessage = nil
-
         Task {
-            do {
-                try await authManager.signUp(
-                    email: email,
-                    password: password,
-                    displayName: displayName
-                )
-            } catch {
-                errorMessage = "Failed to create account. Please try again."
-            }
-            isLoading = false
+            await viewModel.signUp(
+                email: email,
+                password: password,
+                displayName: displayName
+            )
         }
     }
 }
 
 #Preview("Login") {
     AuthNavigationView()
-        .environmentObject(AuthManager())
-        .environmentObject(DemoModeManager())
-        .environmentObject(ThemeManager())
+        .environmentObject(AppState(isDemoMode: false))
 }
 
 #Preview("Sign Up") {
     NavigationStack {
         SignUpView()
-            .environmentObject(AuthManager())
-            .environmentObject(DemoModeManager())
-            .environmentObject(ThemeManager())
+            .environmentObject(AppState(isDemoMode: false))
     }
 }

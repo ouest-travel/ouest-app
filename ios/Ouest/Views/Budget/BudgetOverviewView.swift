@@ -1,14 +1,20 @@
 import SwiftUI
 
 struct BudgetOverviewView: View {
-    let trip: Trip
+    @EnvironmentObject var appState: AppState
+    @StateObject private var viewModel: BudgetViewModel
 
-    @EnvironmentObject var demoModeManager: DemoModeManager
-
-    @State private var expenses: [Expense] = []
-    @State private var members: [TripMember] = []
-    @State private var isLoading = true
     @State private var showAddExpense = false
+
+    init(trip: Trip, repositories: RepositoryProvider? = nil) {
+        // Use provided repositories or create default ones
+        let repos = repositories ?? RepositoryProvider()
+        _viewModel = StateObject(wrappedValue: BudgetViewModel(
+            trip: trip,
+            expenseRepository: repos.expenseRepository,
+            tripMemberRepository: repos.tripMemberRepository
+        ))
+    }
 
     var body: some View {
         ZStack {
@@ -40,21 +46,24 @@ struct BudgetOverviewView: View {
                 }
             }
         }
-        .navigationTitle(trip.name)
+        .navigationTitle(viewModel.trip.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink(destination: ChatView(trip: trip)) {
+                NavigationLink(destination: ChatView(trip: viewModel.trip)) {
                     Image(systemName: "bubble.left.fill")
                         .foregroundColor(OuestTheme.Colors.primary)
                 }
             }
         }
         .sheet(isPresented: $showAddExpense) {
-            AddExpenseSheet(trip: trip)
+            AddExpenseSheet(trip: viewModel.trip)
         }
-        .onAppear {
-            loadData()
+        .task {
+            await viewModel.loadData()
+        }
+        .refreshable {
+            await viewModel.refresh()
         }
     }
 
@@ -70,8 +79,8 @@ struct BudgetOverviewView: View {
                             .font(OuestTheme.Fonts.caption)
                             .foregroundColor(.white.opacity(0.8))
 
-                        if let budget = trip.budget {
-                            Text(CurrencyFormatter.format(amount: budget, currency: trip.currency))
+                        if let budget = viewModel.trip.budget {
+                            Text(CurrencyFormatter.format(amount: budget, currency: viewModel.trip.currency))
                                 .font(OuestTheme.Fonts.title)
                                 .foregroundColor(.white)
                         } else {
@@ -83,7 +92,7 @@ struct BudgetOverviewView: View {
 
                     Spacer()
 
-                    Text(trip.destinationEmoji)
+                    Text(viewModel.trip.destinationEmoji)
                         .font(.system(size: 40))
                 }
 
@@ -97,7 +106,7 @@ struct BudgetOverviewView: View {
                             .font(OuestTheme.Fonts.caption)
                             .foregroundColor(.white.opacity(0.8))
 
-                        Text(CurrencyFormatter.format(amount: totalSpent, currency: trip.currency))
+                        Text(CurrencyFormatter.format(amount: viewModel.totalSpent, currency: viewModel.trip.currency))
                             .font(OuestTheme.Fonts.headline)
                             .foregroundColor(.white)
                     }
@@ -109,9 +118,9 @@ struct BudgetOverviewView: View {
                             .font(OuestTheme.Fonts.caption)
                             .foregroundColor(.white.opacity(0.8))
 
-                        Text(CurrencyFormatter.format(amount: remaining, currency: trip.currency))
+                        Text(CurrencyFormatter.format(amount: viewModel.remaining, currency: viewModel.trip.currency))
                             .font(OuestTheme.Fonts.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(viewModel.isOverBudget ? OuestTheme.Colors.error : .white)
                     }
                 }
             }
@@ -126,9 +135,9 @@ struct BudgetOverviewView: View {
                 .font(OuestTheme.Fonts.headline)
                 .foregroundColor(OuestTheme.Colors.text)
 
-            if isLoading {
+            if viewModel.isLoading {
                 loadingView
-            } else if expenses.isEmpty {
+            } else if viewModel.expenses.isEmpty {
                 emptyStateView
             } else {
                 expensesListView
@@ -167,35 +176,9 @@ struct BudgetOverviewView: View {
 
     private var expensesListView: some View {
         LazyVStack(spacing: OuestTheme.Spacing.sm) {
-            ForEach(expenses) { expense in
+            ForEach(viewModel.expenses) { expense in
                 ExpenseRow(expense: expense)
             }
-        }
-    }
-
-    // MARK: - Computed Properties
-
-    private var totalSpent: Decimal {
-        expenses.reduce(0) { $0 + $1.amount }
-    }
-
-    private var remaining: Decimal {
-        (trip.budget ?? 0) - totalSpent
-    }
-
-    // MARK: - Data Loading
-
-    private func loadData() {
-        if demoModeManager.isDemoMode {
-            expenses = DemoModeManager.demoExpenses.filter { $0.tripId == trip.id }
-            isLoading = false
-            return
-        }
-
-        Task {
-            try? await Task.sleep(nanoseconds: 500_000_000)
-            expenses = []
-            isLoading = false
         }
     }
 }
@@ -263,9 +246,10 @@ struct AddExpenseSheet: View {
 
 #Preview {
     NavigationStack {
-        BudgetOverviewView(trip: DemoModeManager.demoTrips[0])
-            .environmentObject(AuthManager())
-            .environmentObject(DemoModeManager())
-            .environmentObject(ThemeManager())
+        BudgetOverviewView(
+            trip: DemoModeManager.demoTrips[0],
+            repositories: RepositoryProvider(isDemoMode: true)
+        )
+        .environmentObject(AppState(isDemoMode: true))
     }
 }

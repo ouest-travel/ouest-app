@@ -28,11 +28,28 @@ final class CommunityViewModel: ObservableObject {
     init(
         tripRepository: any TripRepositoryProtocol,
         savedItineraryRepository: any SavedItineraryRepositoryProtocol,
-        currentUserId: String
+        currentUserId: String = "demo-user"
     ) {
         self.tripRepository = tripRepository
         self.savedItineraryRepository = savedItineraryRepository
         self.currentUserId = currentUserId
+    }
+
+    // MARK: - Save Trip
+
+    func saveTrip(_ trip: Trip) async {
+        // Save the trip's itinerary to the user's saved items
+        await saveItineraryItem(
+            activityName: trip.name,
+            activityLocation: trip.destination,
+            activityTime: nil,
+            activityCost: nil,
+            activityDescription: trip.description,
+            activityCategory: .activity,
+            sourceTripLocation: trip.destination,
+            sourceTripUser: trip.creator?.displayNameOrEmail,
+            day: nil
+        )
     }
 
     // MARK: - Data Loading

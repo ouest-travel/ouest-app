@@ -4,7 +4,6 @@ struct HomeView: View {
     // MARK: - Environment
 
     @EnvironmentObject var appState: AppState
-    @Environment(\.repositories) var repositories
 
     // MARK: - ViewModel
 
@@ -16,11 +15,12 @@ struct HomeView: View {
 
     // MARK: - Initialization
 
-    init() {
-        // ViewModel will be properly initialized in onAppear
+    init(repositories: RepositoryProvider? = nil, userId: String? = nil) {
+        let repos = repositories ?? RepositoryProvider()
+        let id = userId ?? "demo-user"
         _viewModel = StateObject(wrappedValue: HomeViewModel(
-            tripRepository: MockTripRepository(),
-            userId: ""
+            tripRepository: repos.tripRepository,
+            userId: id
         ))
     }
 
@@ -61,33 +61,13 @@ struct HomeView: View {
                 CreateTripSheet(viewModel: viewModel)
             }
             .task {
-                await setupAndLoad()
+                await viewModel.loadTrips()
+                viewModel.startObserving()
             }
             .onDisappear {
                 viewModel.stopObserving()
             }
         }
-    }
-
-    // MARK: - Setup
-
-    private func setupAndLoad() async {
-        // Get current user ID
-        let userId = appState.isDemoMode
-            ? "demo-user-1"
-            : (appState.authViewModel.currentUserId ?? "")
-
-        // Create properly configured ViewModel
-        // Note: In production, you'd use a factory pattern here
-        let vm = HomeViewModel(
-            tripRepository: repositories.tripRepository,
-            userId: userId
-        )
-
-        // Since we can't reassign @StateObject, we work with the existing one
-        // This is a limitation - in production, use a coordinator pattern
-        await viewModel.loadTrips()
-        viewModel.startObserving()
     }
 
     // MARK: - Subviews
@@ -203,11 +183,13 @@ struct HomeView: View {
 
 struct TripDetailView: View {
     let trip: Trip
-
-    @Environment(\.repositories) var repositories
+    @EnvironmentObject var appState: AppState
 
     var body: some View {
-        BudgetOverviewView(trip: trip)
+        BudgetOverviewView(
+            trip: trip,
+            repositories: appState.repositories
+        )
     }
 }
 
@@ -341,6 +323,6 @@ struct ShimmerModifier: ViewModifier {
 // MARK: - Preview
 
 #Preview {
-    HomeView()
-        .environmentObject(AppState())
+    HomeView(repositories: RepositoryProvider(isDemoMode: true))
+        .environmentObject(AppState(isDemoMode: true))
 }

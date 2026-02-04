@@ -1,14 +1,16 @@
 import SwiftUI
 
 struct ChatView: View {
-    let trip: Trip
+    @EnvironmentObject var appState: AppState
+    @StateObject private var viewModel: ChatViewModel
 
-    @EnvironmentObject var authManager: AuthManager
-    @EnvironmentObject var demoModeManager: DemoModeManager
-
-    @State private var messages: [ChatMessage] = []
-    @State private var newMessage = ""
-    @State private var isLoading = true
+    init(trip: Trip, repositories: RepositoryProvider? = nil) {
+        let repos = repositories ?? RepositoryProvider()
+        _viewModel = StateObject(wrappedValue: ChatViewModel(
+            tripId: trip.id,
+            chatRepository: repos.chatRepository
+        ))
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -16,12 +18,12 @@ struct ChatView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: OuestTheme.Spacing.sm) {
-                        if isLoading {
+                        if viewModel.isLoading {
                             loadingView
-                        } else if messages.isEmpty {
+                        } else if viewModel.messages.isEmpty {
                             emptyStateView
                         } else {
-                            ForEach(messages) { message in
+                            ForEach(viewModel.messages) { message in
                                 ChatMessageRow(
                                     message: message,
                                     isCurrentUser: isCurrentUser(message)
@@ -33,8 +35,8 @@ struct ChatView: View {
                     .padding(.horizontal, OuestTheme.Spacing.md)
                     .padding(.vertical, OuestTheme.Spacing.sm)
                 }
-                .onChange(of: messages.count) { _, _ in
-                    if let lastMessage = messages.last {
+                .onChange(of: viewModel.messages.count) { _, _ in
+                    if let lastMessage = viewModel.messages.last {
                         withAnimation {
                             proxy.scrollTo(lastMessage.id, anchor: .bottom)
                         }
@@ -48,8 +50,8 @@ struct ChatView: View {
         .navigationTitle("Chat")
         .navigationBarTitleDisplayMode(.inline)
         .background(OuestTheme.Colors.background)
-        .onAppear {
-            loadMessages()
+        .task {
+            await viewModel.loadMessages()
         }
     }
 
@@ -90,7 +92,7 @@ struct ChatView: View {
 
     private var chatInputView: some View {
         HStack(spacing: OuestTheme.Spacing.sm) {
-            TextField("Type a message...", text: $newMessage)
+            TextField("Type a message...", text: $viewModel.newMessageText)
                 .font(OuestTheme.Fonts.body)
                 .padding(.horizontal, OuestTheme.Spacing.md)
                 .padding(.vertical, OuestTheme.Spacing.sm)
@@ -98,13 +100,15 @@ struct ChatView: View {
                 .cornerRadius(20)
 
             Button {
-                sendMessage()
+                Task {
+                    await viewModel.sendMessage()
+                }
             } label: {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 32))
-                    .foregroundColor(newMessage.isEmpty ? OuestTheme.Colors.textTertiary : OuestTheme.Colors.primary)
+                    .foregroundColor(viewModel.newMessageText.isEmpty ? OuestTheme.Colors.textTertiary : OuestTheme.Colors.primary)
             }
-            .disabled(newMessage.isEmpty)
+            .disabled(viewModel.newMessageText.isEmpty)
         }
         .padding(.horizontal, OuestTheme.Spacing.md)
         .padding(.vertical, OuestTheme.Spacing.sm)
@@ -114,30 +118,10 @@ struct ChatView: View {
     // MARK: - Helpers
 
     private func isCurrentUser(_ message: ChatMessage) -> Bool {
-        if demoModeManager.isDemoMode {
+        if appState.isDemoMode {
             return message.userId == "demo-user-1"
         }
-        return message.userId == authManager.user?.id.uuidString
-    }
-
-    private func loadMessages() {
-        if demoModeManager.isDemoMode {
-            messages = DemoModeManager.demoChatMessages.filter { $0.tripId == trip.id }
-            isLoading = false
-            return
-        }
-
-        Task {
-            try? await Task.sleep(nanoseconds: 500_000_000)
-            messages = []
-            isLoading = false
-        }
-    }
-
-    private func sendMessage() {
-        guard !newMessage.isEmpty else { return }
-        // TODO: Implement send message
-        newMessage = ""
+        return message.userId == appState.authViewModel.currentUserId
     }
 }
 
@@ -248,9 +232,10 @@ struct ChatMessageRow: View {
 
 #Preview {
     NavigationStack {
-        ChatView(trip: DemoModeManager.demoTrips[0])
-            .environmentObject(AuthManager())
-            .environmentObject(DemoModeManager())
-            .environmentObject(ThemeManager())
+        ChatView(
+            trip: DemoModeManager.demoTrips[0],
+            repositories: RepositoryProvider(isDemoMode: true)
+        )
+        .environmentObject(AppState(isDemoMode: true))
     }
 }

@@ -1,10 +1,16 @@
 import SwiftUI
 
 struct CommunityView: View {
-    @EnvironmentObject var demoModeManager: DemoModeManager
+    @EnvironmentObject var appState: AppState
+    @StateObject private var viewModel: CommunityViewModel
 
-    @State private var publicTrips: [Trip] = []
-    @State private var isLoading = true
+    init(repositories: RepositoryProvider? = nil) {
+        let repos = repositories ?? RepositoryProvider()
+        _viewModel = StateObject(wrappedValue: CommunityViewModel(
+            tripRepository: repos.tripRepository,
+            savedItineraryRepository: repos.savedItineraryRepository
+        ))
+    }
 
     var body: some View {
         NavigationStack {
@@ -28,9 +34,9 @@ struct CommunityView: View {
                         .padding(.top, OuestTheme.Spacing.md)
 
                         // Content
-                        if isLoading {
+                        if viewModel.isLoading {
                             loadingView
-                        } else if publicTrips.isEmpty {
+                        } else if viewModel.publicTrips.isEmpty {
                             emptyStateView
                         } else {
                             publicTripsListView
@@ -40,8 +46,11 @@ struct CommunityView: View {
                     .padding(.bottom, 100)
                 }
             }
-            .onAppear {
-                loadPublicTrips()
+            .task {
+                await viewModel.loadPublicTrips()
+            }
+            .refreshable {
+                await viewModel.refresh()
             }
         }
     }
@@ -76,49 +85,57 @@ struct CommunityView: View {
 
     private var publicTripsListView: some View {
         LazyVStack(spacing: OuestTheme.Spacing.md) {
-            ForEach(publicTrips) { trip in
-                CommunityTripCard(trip: trip)
+            ForEach(viewModel.publicTrips) { trip in
+                CommunityTripCard(trip: trip) {
+                    Task {
+                        await viewModel.saveTrip(trip)
+                    }
+                }
             }
-        }
-    }
-
-    private func loadPublicTrips() {
-        if demoModeManager.isDemoMode {
-            publicTrips = DemoModeManager.demoTrips.filter { $0.isPublic }
-            isLoading = false
-            return
-        }
-
-        Task {
-            try? await Task.sleep(nanoseconds: 500_000_000)
-            publicTrips = []
-            isLoading = false
         }
     }
 }
 
 struct CommunityTripCard: View {
     let trip: Trip
+    let onSave: () -> Void
+
+    @State private var isSaved = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Cover
-            ZStack(alignment: .bottomLeading) {
-                LinearGradient(
-                    colors: [OuestTheme.Colors.primary, OuestTheme.Colors.indigo],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+            ZStack(alignment: .topTrailing) {
+                ZStack(alignment: .bottomLeading) {
+                    LinearGradient(
+                        colors: [OuestTheme.Colors.primary, OuestTheme.Colors.indigo],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(trip.destinationEmoji)
-                        .font(.system(size: 32))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(trip.destinationEmoji)
+                            .font(.system(size: 32))
 
-                    Text(trip.destination)
-                        .font(OuestTheme.Fonts.title3)
-                        .foregroundColor(.white)
+                        Text(trip.destination)
+                            .font(OuestTheme.Fonts.title3)
+                            .foregroundColor(.white)
+                    }
+                    .padding(OuestTheme.Spacing.md)
                 }
-                .padding(OuestTheme.Spacing.md)
+
+                // Save button
+                Button {
+                    isSaved.toggle()
+                    onSave()
+                } label: {
+                    Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
+                        .foregroundColor(.white)
+                        .padding(OuestTheme.Spacing.sm)
+                        .background(Color.black.opacity(0.3))
+                        .clipShape(Circle())
+                }
+                .padding(OuestTheme.Spacing.sm)
             }
             .frame(height: 140)
 
@@ -161,8 +178,6 @@ struct CommunityTripCard: View {
 }
 
 #Preview {
-    CommunityView()
-        .environmentObject(AuthManager())
-        .environmentObject(DemoModeManager())
-        .environmentObject(ThemeManager())
+    CommunityView(repositories: RepositoryProvider(isDemoMode: true))
+        .environmentObject(AppState(isDemoMode: true))
 }

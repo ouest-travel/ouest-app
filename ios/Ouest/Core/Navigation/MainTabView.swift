@@ -33,7 +33,7 @@ struct MainTabView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Content
-            TabContent(selectedTab: selectedTab)
+            TabContent(selectedTab: selectedTab, appState: appState)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             // Custom Tab Bar
@@ -48,19 +48,26 @@ struct MainTabView: View {
 
 struct TabContent: View {
     let selectedTab: Tab
+    let appState: AppState
 
     var body: some View {
         // Use switch to avoid keeping all views in memory
         Group {
             switch selectedTab {
             case .home:
-                HomeView()
+                HomeView(
+                    repositories: appState.repositories,
+                    userId: appState.isDemoMode ? "demo-user-1" : appState.authViewModel.currentUserId
+                )
             case .guide:
                 GuideView()
             case .community:
-                CommunityView()
+                CommunityView(repositories: appState.repositories)
             case .you:
-                ProfileView()
+                ProfileView(
+                    repositories: appState.repositories,
+                    userId: appState.isDemoMode ? "demo-user-1" : appState.authViewModel.currentUserId
+                )
             }
         }
         .transition(.opacity)
@@ -144,5 +151,5 @@ struct TabBarButton: View {
 
 #Preview {
     MainTabView()
-        .environmentObject(AppState())
+        .environmentObject(AppState(isDemoMode: true))
 }

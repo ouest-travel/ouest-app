@@ -23,7 +23,7 @@ final class ChatViewModel: ObservableObject {
     // MARK: - Computed Properties
 
     var canSend: Bool {
-        !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSending
+        !newMessageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSending
     }
 
     var groupedMessages: [(date: String, messages: [ChatMessage])] {
@@ -35,15 +35,19 @@ final class ChatViewModel: ObservableObject {
             .sorted { $0.messages.first?.createdAt ?? Date() < $1.messages.first?.createdAt ?? Date() }
     }
 
+    // MARK: - Published Input
+
+    @Published var newMessageText = ""
+
     // MARK: - Initialization
 
     init(
-        chatRepository: any ChatRepositoryProtocol,
         tripId: String,
-        currentUserId: String
+        chatRepository: any ChatRepositoryProtocol,
+        currentUserId: String = "demo-user"
     ) {
-        self.chatRepository = chatRepository
         self.tripId = tripId
+        self.chatRepository = chatRepository
         self.currentUserId = currentUserId
     }
 
@@ -88,12 +92,12 @@ final class ChatViewModel: ObservableObject {
     // MARK: - Send Message
 
     func sendMessage() async {
-        let content = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let content = newMessageText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !content.isEmpty else { return }
 
         isSending = true
         let textToSend = content
-        messageText = "" // Clear immediately for better UX
+        newMessageText = "" // Clear immediately for better UX
 
         let request = CreateChatMessageRequest(
             tripId: tripId,
@@ -111,7 +115,7 @@ final class ChatViewModel: ObservableObject {
             }
         } catch {
             self.error = error.localizedDescription
-            messageText = textToSend // Restore text on failure
+            newMessageText = textToSend // Restore text on failure
         }
 
         isSending = false

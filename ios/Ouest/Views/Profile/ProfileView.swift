@@ -1,12 +1,20 @@
 import SwiftUI
 
 struct ProfileView: View {
-    @EnvironmentObject var authManager: AuthManager
-    @EnvironmentObject var demoModeManager: DemoModeManager
-    @EnvironmentObject var themeManager: ThemeManager
+    @EnvironmentObject var appState: AppState
+    @StateObject private var viewModel: ProfileViewModel
 
-    @State private var stats = ProfileStats.empty
     @State private var showEditProfile = false
+
+    init(repositories: RepositoryProvider? = nil, userId: String? = nil) {
+        let repos = repositories ?? RepositoryProvider()
+        let id = userId ?? "demo-user"
+        _viewModel = StateObject(wrappedValue: ProfileViewModel(
+            profileRepository: repos.profileRepository,
+            savedItineraryRepository: repos.savedItineraryRepository,
+            userId: id
+        ))
+    }
 
     var body: some View {
         NavigationStack {
@@ -30,10 +38,13 @@ struct ProfileView: View {
                 }
             }
             .sheet(isPresented: $showEditProfile) {
-                EditProfileSheet()
+                EditProfileSheet(viewModel: viewModel)
             }
-            .onAppear {
-                loadStats()
+            .task {
+                await viewModel.loadData()
+            }
+            .refreshable {
+                await viewModel.refresh()
             }
         }
     }
@@ -78,28 +89,28 @@ struct ProfileView: View {
         ], spacing: OuestTheme.Spacing.sm) {
             StatCard(
                 title: "Countries",
-                value: "\(stats.countriesVisited)",
+                value: "\(viewModel.stats.countriesVisited)",
                 icon: "globe",
                 color: .blue
             )
 
             StatCard(
                 title: "Trips",
-                value: "\(stats.totalTrips)",
+                value: "\(viewModel.stats.totalTrips)",
                 icon: "airplane",
                 color: .green
             )
 
             StatCard(
                 title: "Memories",
-                value: "\(stats.memories)",
+                value: "\(viewModel.stats.memories)",
                 icon: "heart.fill",
                 color: .pink
             )
 
             StatCard(
                 title: "Saved",
-                value: "\(stats.savedItineraries)",
+                value: "\(viewModel.stats.savedItineraries)",
                 icon: "bookmark.fill",
                 color: .orange
             )
@@ -116,8 +127,8 @@ struct ProfileView: View {
                 icon: "moon.fill"
             ) {
                 Toggle("", isOn: Binding(
-                    get: { themeManager.isDark },
-                    set: { themeManager.setDarkMode($0) }
+                    get: { appState.themeManager.isDark },
+                    set: { appState.themeManager.setDarkMode($0) }
                 ))
                 .labelsHidden()
             }
@@ -127,7 +138,7 @@ struct ProfileView: View {
                 title: "Demo Mode",
                 icon: "play.circle.fill"
             ) {
-                Toggle("", isOn: $demoModeManager.isDemoMode)
+                Toggle("", isOn: $appState.isDemoMode)
                     .labelsHidden()
             }
 
@@ -135,11 +146,14 @@ struct ProfileView: View {
                 .padding(.vertical, OuestTheme.Spacing.xs)
 
             // Saved Itineraries
-            SettingsRow(
-                title: "Saved Itineraries",
-                icon: "bookmark.fill",
-                showChevron: true
-            ) {}
+            NavigationLink(destination: SavedItinerariesView()) {
+                SettingsRow(
+                    title: "Saved Itineraries",
+                    icon: "bookmark.fill",
+                    showChevron: true
+                ) {}
+            }
+            .buttonStyle(PlainButtonStyle())
 
             // Help
             SettingsRow(
@@ -154,7 +168,7 @@ struct ProfileView: View {
             // Sign Out
             Button {
                 Task {
-                    await authManager.signOut()
+                    await appState.authViewModel.signOut()
                 }
             } label: {
                 HStack {
@@ -176,16 +190,7 @@ struct ProfileView: View {
     // MARK: - Helpers
 
     private var currentProfile: Profile? {
-        demoModeManager.isDemoMode ? DemoModeManager.demoProfile : authManager.profile
-    }
-
-    private func loadStats() {
-        if demoModeManager.isDemoMode {
-            stats = ProfileStats.demo
-        } else {
-            // TODO: Load real stats
-            stats = ProfileStats.empty
-        }
+        appState.isDemoMode ? DemoModeManager.demoProfile : viewModel.profile
     }
 }
 
@@ -255,25 +260,58 @@ struct SettingsRow<Trailing: View>: View {
 // MARK: - Edit Profile Sheet
 
 struct EditProfileSheet: View {
+    @ObservedObject var viewModel: ProfileViewModel
     @Environment(\.dismiss) var dismiss
+
+    @State private var displayName = ""
+    @State private var handle = ""
 
     var body: some View {
         NavigationStack {
-            Text("Edit Profile - Coming Soon")
-                .navigationTitle("Edit Profile")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { dismiss() }
+            Form {
+                Section("Profile Information") {
+                    TextField("Display Name", text: $displayName)
+                    TextField("Handle", text: $handle)
+                }
+            }
+            .navigationTitle("Edit Profile")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        Task {
+                            await viewModel.updateProfile(
+                                displayName: displayName.isEmpty ? nil : displayName,
+                                handle: handle.isEmpty ? nil : handle,
+                                avatarUrl: nil
+                            )
+                            dismiss()
+                        }
                     }
                 }
+            }
+            .onAppear {
+                displayName = viewModel.profile?.displayName ?? ""
+                handle = viewModel.profile?.handle ?? ""
+            }
         }
     }
 }
 
+// MARK: - Saved Itineraries View
+
+struct SavedItinerariesView: View {
+    var body: some View {
+        Text("Saved Itineraries - Coming Soon")
+            .navigationTitle("Saved")
+            .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
 #Preview {
-    ProfileView()
-        .environmentObject(AuthManager())
-        .environmentObject(DemoModeManager())
-        .environmentObject(ThemeManager())
+    ProfileView(repositories: RepositoryProvider(isDemoMode: true))
+        .environmentObject(AppState(isDemoMode: true))
 }

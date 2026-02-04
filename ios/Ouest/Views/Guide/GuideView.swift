@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct GuideView: View {
+    @EnvironmentObject var appState: AppState
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -110,7 +112,5 @@ struct GuideToolCard: View {
 
 #Preview {
     GuideView()
-        .environmentObject(AuthManager())
-        .environmentObject(DemoModeManager())
-        .environmentObject(ThemeManager())
+        .environmentObject(AppState(isDemoMode: true))
 }
