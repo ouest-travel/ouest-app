@@ -1,5 +1,7 @@
 import SwiftUI
 
+// MARK: - Tab Enum
+
 enum Tab: String, CaseIterable {
     case home = "Home"
     case guide = "Guide"
@@ -14,9 +16,17 @@ enum Tab: String, CaseIterable {
         case .you: return "person.fill"
         }
     }
+
+    var selectedIcon: String {
+        icon // Same for now, could differentiate filled/outlined
+    }
 }
 
+// MARK: - Main Tab View
+
 struct MainTabView: View {
+    @EnvironmentObject var appState: AppState
+
     @State private var selectedTab: Tab = .home
     @Namespace private var animation
 
@@ -30,25 +40,34 @@ struct MainTabView: View {
             CustomTabBar(selectedTab: $selectedTab, animation: animation)
         }
         .background(OuestTheme.Colors.background)
+        .ignoresSafeArea(.keyboard)
     }
 }
+
+// MARK: - Tab Content
 
 struct TabContent: View {
     let selectedTab: Tab
 
     var body: some View {
-        switch selectedTab {
-        case .home:
-            HomeView()
-        case .guide:
-            GuideView()
-        case .community:
-            CommunityView()
-        case .you:
-            ProfileView()
+        // Use switch to avoid keeping all views in memory
+        Group {
+            switch selectedTab {
+            case .home:
+                HomeView()
+            case .guide:
+                GuideView()
+            case .community:
+                CommunityView()
+            case .you:
+                ProfileView()
+            }
         }
+        .transition(.opacity)
     }
 }
+
+// MARK: - Custom Tab Bar
 
 struct CustomTabBar: View {
     @Binding var selectedTab: Tab
@@ -62,21 +81,27 @@ struct CustomTabBar: View {
                     isSelected: selectedTab == tab,
                     animation: animation
                 ) {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    let impact = UIImpactFeedbackGenerator(style: .light)
+                    impact.impactOccurred()
+
+                    withAnimation(OuestTheme.Animation.spring) {
                         selectedTab = tab
                     }
                 }
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.top, 12)
-        .padding(.bottom, 28)
+        .padding(.horizontal, OuestTheme.Spacing.xs)
+        .padding(.top, OuestTheme.Spacing.sm)
+        .padding(.bottom, 28) // Safe area
         .background(
             OuestTheme.Colors.cardBackground
-                .shadow(color: Color.black.opacity(0.05), radius: 10, y: -5)
+                .shadow(color: Color.black.opacity(0.08), radius: 16, y: -4)
+                .ignoresSafeArea()
         )
     }
 }
+
+// MARK: - Tab Bar Button
 
 struct TabBarButton: View {
     let tab: Tab
@@ -86,34 +111,38 @@ struct TabBarButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 4) {
+            VStack(spacing: OuestTheme.Spacing.xxs) {
                 ZStack {
                     if isSelected {
                         Capsule()
                             .fill(OuestTheme.Gradients.primary)
-                            .frame(width: 60, height: 32)
+                            .frame(width: 64, height: 36)
                             .matchedGeometryEffect(id: "TAB_BG", in: animation)
+                            .shadow(OuestTheme.Shadow.sm)
                     }
 
                     Image(systemName: tab.icon)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(isSelected ? .white : OuestTheme.Colors.textSecondary)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(isSelected ? .white : OuestTheme.Colors.textTertiary)
+                        .scaleEffect(isSelected ? 1.1 : 1.0)
                 }
-                .frame(height: 32)
+                .frame(height: 36)
 
                 Text(tab.rawValue)
                     .font(OuestTheme.Fonts.caption)
-                    .foregroundColor(isSelected ? OuestTheme.Colors.primary : OuestTheme.Colors.textSecondary)
+                    .foregroundColor(isSelected ? OuestTheme.Colors.primary : OuestTheme.Colors.textTertiary)
             }
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(PlainButtonStyle())
+        .accessibilityLabel(tab.rawValue)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
+// MARK: - Preview
+
 #Preview {
     MainTabView()
-        .environmentObject(AuthManager())
-        .environmentObject(DemoModeManager())
-        .environmentObject(ThemeManager())
+        .environmentObject(AppState())
 }

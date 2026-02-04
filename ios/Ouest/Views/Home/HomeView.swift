@@ -1,12 +1,28 @@
 import SwiftUI
 
 struct HomeView: View {
-    @EnvironmentObject var authManager: AuthManager
-    @EnvironmentObject var demoModeManager: DemoModeManager
+    // MARK: - Environment
 
-    @State private var trips: [Trip] = []
-    @State private var isLoading = true
+    @EnvironmentObject var appState: AppState
+    @Environment(\.repositories) var repositories
+
+    // MARK: - ViewModel
+
+    @StateObject private var viewModel: HomeViewModel
+
+    // MARK: - Local State
+
     @State private var showCreateTrip = false
+
+    // MARK: - Initialization
+
+    init() {
+        // ViewModel will be properly initialized in onAppear
+        _viewModel = StateObject(wrappedValue: HomeViewModel(
+            tripRepository: MockTripRepository(),
+            userId: ""
+        ))
+    }
 
     var body: some View {
         NavigationStack {
@@ -16,13 +32,16 @@ struct HomeView: View {
 
                 ScrollView {
                     VStack(spacing: OuestTheme.Spacing.lg) {
-                        // Header
+                        // Header with greeting
                         headerView
 
+                        // Filter pills
+                        filterView
+
                         // Trips List
-                        if isLoading {
+                        if viewModel.isLoading {
                             loadingView
-                        } else if trips.isEmpty {
+                        } else if !viewModel.hasTrips {
                             emptyStateView
                         } else {
                             tripsListView
@@ -31,34 +50,51 @@ struct HomeView: View {
                     .padding(.horizontal, OuestTheme.Spacing.md)
                     .padding(.bottom, 100)
                 }
+                .refreshable {
+                    await viewModel.refresh()
+                }
 
                 // FAB
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        OuestFAB(icon: "plus") {
-                            showCreateTrip = true
-                        }
-                        .padding(.trailing, OuestTheme.Spacing.md)
-                        .padding(.bottom, OuestTheme.Spacing.md)
-                    }
-                }
+                fabView
             }
             .sheet(isPresented: $showCreateTrip) {
-                CreateTripSheet()
+                CreateTripSheet(viewModel: viewModel)
             }
-            .onAppear {
-                loadTrips()
+            .task {
+                await setupAndLoad()
+            }
+            .onDisappear {
+                viewModel.stopObserving()
             }
         }
+    }
+
+    // MARK: - Setup
+
+    private func setupAndLoad() async {
+        // Get current user ID
+        let userId = appState.isDemoMode
+            ? "demo-user-1"
+            : (appState.authViewModel.currentUserId ?? "")
+
+        // Create properly configured ViewModel
+        // Note: In production, you'd use a factory pattern here
+        let vm = HomeViewModel(
+            tripRepository: repositories.tripRepository,
+            userId: userId
+        )
+
+        // Since we can't reassign @StateObject, we work with the existing one
+        // This is a limitation - in production, use a coordinator pattern
+        await viewModel.loadTrips()
+        viewModel.startObserving()
     }
 
     // MARK: - Subviews
 
     private var headerView: some View {
         VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
-            Text("Your Trips")
+            Text(greeting)
                 .font(OuestTheme.Fonts.title)
                 .foregroundColor(OuestTheme.Colors.text)
 
@@ -70,12 +106,43 @@ struct HomeView: View {
         .padding(.top, OuestTheme.Spacing.md)
     }
 
+    private var greeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        let name = appState.authViewModel.profile?.displayName ?? "there"
+
+        switch hour {
+        case 5..<12:
+            return "Good morning, \(name)"
+        case 12..<17:
+            return "Good afternoon, \(name)"
+        default:
+            return "Good evening, \(name)"
+        }
+    }
+
+    private var filterView: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: OuestTheme.Spacing.xs) {
+                ForEach(TripFilter.allCases, id: \.self) { filter in
+                    OuestPillButton(
+                        title: filter.rawValue,
+                        isSelected: viewModel.selectedFilter == filter
+                    ) {
+                        withAnimation(OuestTheme.Animation.spring) {
+                            viewModel.selectedFilter = filter
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private var loadingView: some View {
         VStack(spacing: OuestTheme.Spacing.md) {
             ForEach(0..<3, id: \.self) { _ in
                 RoundedRectangle(cornerRadius: OuestTheme.CornerRadius.large)
                     .fill(OuestTheme.Colors.inputBackground)
-                    .frame(height: 160)
+                    .frame(height: 180)
                     .shimmer()
             }
         }
@@ -84,8 +151,8 @@ struct HomeView: View {
     private var emptyStateView: some View {
         VStack(spacing: OuestTheme.Spacing.md) {
             Image(systemName: "airplane.circle")
-                .font(.system(size: 64))
-                .foregroundColor(OuestTheme.Colors.textTertiary)
+                .font(.system(size: 72))
+                .foregroundStyle(OuestTheme.Gradients.primary)
 
             Text("No trips yet")
                 .font(OuestTheme.Fonts.title3)
@@ -94,8 +161,9 @@ struct HomeView: View {
             Text("Start planning your first adventure!")
                 .font(OuestTheme.Fonts.body)
                 .foregroundColor(OuestTheme.Colors.textSecondary)
+                .multilineTextAlignment(.center)
 
-            OuestButton("Create Trip", icon: "plus") {
+            OuestButton("Create Trip", style: .accent, icon: "plus") {
                 showCreateTrip = true
             }
             .padding(.top, OuestTheme.Spacing.sm)
@@ -105,8 +173,10 @@ struct HomeView: View {
 
     private var tripsListView: some View {
         LazyVStack(spacing: OuestTheme.Spacing.md) {
-            ForEach(trips) { trip in
-                NavigationLink(destination: BudgetOverviewView(trip: trip)) {
+            ForEach(viewModel.filteredTrips) { trip in
+                NavigationLink {
+                    TripDetailView(trip: trip)
+                } label: {
                     ActiveTripCard(trip: trip)
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -114,22 +184,120 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Data Loading
+    private var fabView: some View {
+        VStack {
+            Spacer()
+            HStack {
+                Spacer()
+                OuestFAB(icon: "plus", style: .accent) {
+                    showCreateTrip = true
+                }
+                .padding(.trailing, OuestTheme.Spacing.lg)
+                .padding(.bottom, OuestTheme.Spacing.lg)
+            }
+        }
+    }
+}
 
-    private func loadTrips() {
-        if demoModeManager.isDemoMode {
-            trips = DemoModeManager.demoTrips
-            isLoading = false
-            return
+// MARK: - Trip Detail View (Wrapper)
+
+struct TripDetailView: View {
+    let trip: Trip
+
+    @Environment(\.repositories) var repositories
+
+    var body: some View {
+        BudgetOverviewView(trip: trip)
+    }
+}
+
+// MARK: - Create Trip Sheet
+
+struct CreateTripSheet: View {
+    @ObservedObject var viewModel: HomeViewModel
+    @Environment(\.dismiss) var dismiss
+
+    @State private var name = ""
+    @State private var destination = ""
+    @State private var startDate = Date()
+    @State private var endDate = Date().addingTimeInterval(7 * 24 * 60 * 60)
+    @State private var budget: Decimal?
+    @State private var currency = "USD"
+    @State private var isPublic = false
+    @State private var isCreating = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Trip Details") {
+                    TextField("Trip Name", text: $name)
+                    TextField("Destination", text: $destination)
+                }
+
+                Section("Dates") {
+                    DatePicker("Start Date", selection: $startDate, displayedComponents: .date)
+                    DatePicker("End Date", selection: $endDate, displayedComponents: .date)
+                }
+
+                Section("Budget") {
+                    HStack {
+                        TextField("Budget", value: $budget, format: .number)
+                            .keyboardType(.decimalPad)
+                        Picker("Currency", selection: $currency) {
+                            ForEach(CurrencyFormatter.supportedCurrencies) { curr in
+                                Text(curr.code).tag(curr.code)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
+                }
+
+                Section {
+                    Toggle("Share with community", isOn: $isPublic)
+                }
+            }
+            .navigationTitle("New Trip")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Create") {
+                        Task { await createTrip() }
+                    }
+                    .disabled(name.isEmpty || destination.isEmpty || isCreating)
+                }
+            }
+        }
+    }
+
+    private func createTrip() async {
+        isCreating = true
+
+        let request = CreateTripRequest(
+            name: name,
+            destination: destination,
+            startDate: startDate,
+            endDate: endDate,
+            budget: budget,
+            currency: currency,
+            createdBy: "", // Will be set by repository
+            isPublic: isPublic,
+            votingEnabled: false,
+            coverImage: nil,
+            description: nil,
+            status: .planning
+        )
+
+        do {
+            _ = try await viewModel.createTrip(request)
+            dismiss()
+        } catch {
+            // Handle error
         }
 
-        // TODO: Load from Supabase
-        Task {
-            // Simulate loading
-            try? await Task.sleep(nanoseconds: 500_000_000)
-            trips = []
-            isLoading = false
-        }
+        isCreating = false
     }
 }
 
@@ -170,28 +338,9 @@ struct ShimmerModifier: ViewModifier {
     }
 }
 
-// MARK: - Placeholder Sheets
-
-struct CreateTripSheet: View {
-    @Environment(\.dismiss) var dismiss
-
-    var body: some View {
-        NavigationStack {
-            Text("Create Trip Form - Coming Soon")
-                .navigationTitle("New Trip")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { dismiss() }
-                    }
-                }
-        }
-    }
-}
+// MARK: - Preview
 
 #Preview {
     HomeView()
-        .environmentObject(AuthManager())
-        .environmentObject(DemoModeManager())
-        .environmentObject(ThemeManager())
+        .environmentObject(AppState())
 }

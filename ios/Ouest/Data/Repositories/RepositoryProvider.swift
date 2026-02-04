@@ -1,59 +1,86 @@
 import Foundation
 import SwiftUI
 
-// MARK: - Repository Provider (Dependency Injection)
+// MARK: - Repository Provider (Dependency Injection Container)
 
-/// Provides repository instances based on demo mode state
+/// Central dependency injection container for all repositories
+/// Automatically switches between real and mock implementations based on demo mode
 @MainActor
 final class RepositoryProvider: ObservableObject {
     @Published var isDemoMode: Bool = false {
         didSet {
-            // Recreate repositories when demo mode changes
-            setupRepositories()
+            if oldValue != isDemoMode {
+                setupRepositories()
+            }
         }
     }
 
-    // Repository instances
+    // MARK: - Repository Instances
+
+    private(set) var authRepository: any AuthRepositoryProtocol
     private(set) var tripRepository: any TripRepositoryProtocol
     private(set) var expenseRepository: any ExpenseRepositoryProtocol
     private(set) var profileRepository: any ProfileRepositoryProtocol
+    private(set) var chatRepository: any ChatRepositoryProtocol
+    private(set) var tripMemberRepository: any TripMemberRepositoryProtocol
+    private(set) var savedItineraryRepository: any SavedItineraryRepositoryProtocol
+
+    // MARK: - Initialization
 
     init(isDemoMode: Bool = false) {
         self.isDemoMode = isDemoMode
 
         // Initialize with appropriate repositories
         if isDemoMode {
+            self.authRepository = MockAuthRepository()
             self.tripRepository = MockTripRepository()
             self.expenseRepository = MockExpenseRepository()
             self.profileRepository = MockProfileRepository()
+            self.chatRepository = MockChatRepository()
+            self.tripMemberRepository = MockTripMemberRepository()
+            self.savedItineraryRepository = MockSavedItineraryRepository()
         } else {
+            self.authRepository = AuthRepository()
             self.tripRepository = TripRepository()
             self.expenseRepository = ExpenseRepository()
             self.profileRepository = ProfileRepository()
+            self.chatRepository = ChatRepository()
+            self.tripMemberRepository = TripMemberRepository()
+            self.savedItineraryRepository = SavedItineraryRepository()
         }
     }
 
+    // MARK: - Repository Setup
+
     private func setupRepositories() {
         if isDemoMode {
+            authRepository = MockAuthRepository()
             tripRepository = MockTripRepository()
             expenseRepository = MockExpenseRepository()
             profileRepository = MockProfileRepository()
+            chatRepository = MockChatRepository()
+            tripMemberRepository = MockTripMemberRepository()
+            savedItineraryRepository = MockSavedItineraryRepository()
         } else {
+            authRepository = AuthRepository()
             tripRepository = TripRepository()
             expenseRepository = ExpenseRepository()
             profileRepository = ProfileRepository()
+            chatRepository = ChatRepository()
+            tripMemberRepository = TripMemberRepository()
+            savedItineraryRepository = SavedItineraryRepository()
         }
     }
 }
 
 // MARK: - Environment Key
 
-struct RepositoryProviderKey: EnvironmentKey {
-    static let defaultValue = RepositoryProvider()
+private struct RepositoryProviderKey: EnvironmentKey {
+    @MainActor static let defaultValue = RepositoryProvider()
 }
 
 extension EnvironmentValues {
-    var repositoryProvider: RepositoryProvider {
+    var repositories: RepositoryProvider {
         get { self[RepositoryProviderKey.self] }
         set { self[RepositoryProviderKey.self] = newValue }
     }
@@ -63,6 +90,6 @@ extension EnvironmentValues {
 
 extension View {
     func withRepositories(_ provider: RepositoryProvider) -> some View {
-        self.environment(\.repositoryProvider, provider)
+        self.environment(\.repositories, provider)
     }
 }
