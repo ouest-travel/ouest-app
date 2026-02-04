@@ -1,77 +1,70 @@
 import Foundation
-import Supabase
 
-// MARK: - Chat Repository Implementation
+// MARK: - Chat Repository Implementation (Local Storage)
 
 final class ChatRepository: ChatRepositoryProtocol {
-    private let client: SupabaseClient
+    private let userDefaultsKey = "ouest_chat_messages"
 
-    init(client: SupabaseClient = SupabaseService.shared.client) {
-        self.client = client
-    }
+    init() {}
 
     func getMessages(tripId: String) async throws -> [ChatMessage] {
-        let messages: [ChatMessage] = try await client
-            .from(Tables.chatMessages)
-            .select("*, profile:profiles!user_id(id, email, display_name, handle, avatar_url, created_at)")
-            .eq("trip_id", value: tripId)
-            .order("created_at", ascending: true)
-            .execute()
-            .value
-
-        return messages
+        let messages = loadMessages()
+        return messages.filter { $0.tripId == tripId }
+            .sorted { $0.createdAt < $1.createdAt }
     }
 
     func sendMessage(_ request: CreateChatMessageRequest) async throws -> ChatMessage {
-        let message: ChatMessage = try await client
-            .from(Tables.chatMessages)
-            .insert(request)
-            .select("*, profile:profiles!user_id(id, email, display_name, handle, avatar_url, created_at)")
-            .single()
-            .execute()
-            .value
+        var messages = loadMessages()
+
+        let message = ChatMessage(
+            id: UUID().uuidString,
+            tripId: request.tripId,
+            userId: request.userId,
+            content: request.content,
+            messageType: request.messageType,
+            metadata: request.metadata,
+            createdAt: Date(),
+            profile: nil
+        )
+
+        messages.append(message)
+        saveMessages(messages)
 
         return message
     }
 
     func observeMessages(tripId: String, onNewMessage: @escaping (ChatMessage) -> Void) -> any Cancellable {
-        let channel = client.realtimeV2.channel("chat_\(tripId)")
+        // Local storage doesn't support real-time updates
+        return SubscriptionToken { }
+    }
 
-        Task {
-            await channel.onPostgresChange(
-                InsertAction.self,
-                schema: "public",
-                table: Tables.chatMessages,
-                filter: "trip_id=eq.\(tripId)"
-            ) { [weak self] insert in
-                guard self != nil else { return }
-                // Fetch the full message with profile
-                Task {
-                    do {
-                        let message: ChatMessage = try await self!.client
-                            .from(Tables.chatMessages)
-                            .select("*, profile:profiles!user_id(id, email, display_name, handle, avatar_url, created_at)")
-                            .eq("id", value: insert.record["id"] as? String ?? "")
-                            .single()
-                            .execute()
-                            .value
+    // MARK: - Private Storage Methods
 
-                        await MainActor.run {
-                            onNewMessage(message)
-                        }
-                    } catch {
-                        print("Error fetching new message: \(error)")
-                    }
-                }
-            }
-
-            await channel.subscribe()
+    private func loadMessages() -> [ChatMessage] {
+        guard let data = UserDefaults.standard.data(forKey: userDefaultsKey) else {
+            return []
         }
 
-        return SubscriptionToken {
-            Task {
-                await channel.unsubscribe()
-            }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        do {
+            return try decoder.decode([ChatMessage].self, from: data)
+        } catch {
+            print("Failed to decode messages: \(error)")
+            return []
+        }
+    }
+
+    private func saveMessages(_ messages: [ChatMessage]) {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+
+        do {
+            let data = try encoder.encode(messages)
+            UserDefaults.standard.set(data, forKey: userDefaultsKey)
+        } catch {
+            print("Failed to save messages: \(error)")
         }
     }
 }
@@ -85,7 +78,6 @@ final class MockChatRepository: ChatRepositoryProtocol {
 
     func sendMessage(_ request: CreateChatMessageRequest) async throws -> ChatMessage {
         try await Task.sleep(nanoseconds: 300_000_000)
-        // Return a mock message
         return ChatMessage(
             id: UUID().uuidString,
             tripId: request.tripId,
@@ -93,7 +85,8 @@ final class MockChatRepository: ChatRepositoryProtocol {
             content: request.content,
             messageType: request.messageType,
             metadata: request.metadata,
-            createdAt: Date()
+            createdAt: Date(),
+            profile: nil
         )
     }
 

@@ -1,90 +1,111 @@
 import Foundation
-import Supabase
 
-// MARK: - Expense Repository Implementation
+// MARK: - Expense Repository Implementation (Local Storage)
 
 final class ExpenseRepository: ExpenseRepositoryProtocol {
-    private let client: SupabaseClient
+    private let userDefaultsKey = "ouest_expenses"
 
-    init(client: SupabaseClient = SupabaseService.shared.client) {
-        self.client = client
-    }
+    init() {}
 
     func getExpenses(tripId: String) async throws -> [Expense] {
-        let expenses: [Expense] = try await client
-            .from(Tables.expenses)
-            .select("*, paidByProfile:profiles!paid_by(id, email, display_name, handle, avatar_url, created_at)")
-            .eq("trip_id", value: tripId)
-            .order("date", ascending: false)
-            .execute()
-            .value
-
-        return expenses
+        let expenses = loadExpenses()
+        return expenses.filter { $0.tripId == tripId }
+            .sorted { $0.date > $1.date }
     }
 
     func createExpense(_ request: CreateExpenseRequest) async throws -> Expense {
-        let expense: Expense = try await client
-            .from(Tables.expenses)
-            .insert(request)
-            .select("*, paidByProfile:profiles!paid_by(id, email, display_name, handle, avatar_url, created_at)")
-            .single()
-            .execute()
-            .value
+        var expenses = loadExpenses()
+
+        let expense = Expense(
+            id: UUID().uuidString,
+            tripId: request.tripId,
+            title: request.title,
+            amount: request.amount,
+            currency: request.currency,
+            category: request.category,
+            paidBy: request.paidBy,
+            splitAmong: request.splitAmong,
+            date: request.date,
+            notes: request.notes,
+            receiptUrl: request.receiptUrl,
+            createdAt: Date(),
+            paidByProfile: nil
+        )
+
+        expenses.append(expense)
+        saveExpenses(expenses)
 
         return expense
     }
 
     func updateExpense(id: String, _ request: CreateExpenseRequest) async throws -> Expense {
-        let expense: Expense = try await client
-            .from(Tables.expenses)
-            .update(request)
-            .eq("id", value: id)
-            .select("*, paidByProfile:profiles!paid_by(id, email, display_name, handle, avatar_url, created_at)")
-            .single()
-            .execute()
-            .value
+        var expenses = loadExpenses()
 
-        return expense
+        guard let index = expenses.firstIndex(where: { $0.id == id }) else {
+            throw RepositoryError.notFound
+        }
+
+        let existing = expenses[index]
+        let updated = Expense(
+            id: existing.id,
+            tripId: request.tripId,
+            title: request.title,
+            amount: request.amount,
+            currency: request.currency,
+            category: request.category,
+            paidBy: request.paidBy,
+            splitAmong: request.splitAmong,
+            date: request.date,
+            notes: request.notes,
+            receiptUrl: request.receiptUrl,
+            createdAt: existing.createdAt,
+            paidByProfile: existing.paidByProfile
+        )
+
+        expenses[index] = updated
+        saveExpenses(expenses)
+
+        return updated
     }
 
     func deleteExpense(id: String) async throws {
-        try await client
-            .from(Tables.expenses)
-            .delete()
-            .eq("id", value: id)
-            .execute()
+        var expenses = loadExpenses()
+        expenses.removeAll { $0.id == id }
+        saveExpenses(expenses)
     }
 
     func observeExpenses(tripId: String, onChange: @escaping ([Expense]) -> Void) -> any Cancellable {
-        let channel = client.realtimeV2.channel("expenses_\(tripId)")
+        // Local storage doesn't support real-time updates
+        return SubscriptionToken { }
+    }
 
-        Task {
-            await channel.onPostgresChange(
-                AnyAction.self,
-                schema: "public",
-                table: Tables.expenses,
-                filter: "trip_id=eq.\(tripId)"
-            ) { [weak self] _ in
-                guard let self = self else { return }
-                Task {
-                    do {
-                        let expenses = try await self.getExpenses(tripId: tripId)
-                        await MainActor.run {
-                            onChange(expenses)
-                        }
-                    } catch {
-                        print("Error fetching expenses: \(error)")
-                    }
-                }
-            }
+    // MARK: - Private Storage Methods
 
-            await channel.subscribe()
+    private func loadExpenses() -> [Expense] {
+        guard let data = UserDefaults.standard.data(forKey: userDefaultsKey) else {
+            return []
         }
 
-        return SubscriptionToken {
-            Task {
-                await channel.unsubscribe()
-            }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        do {
+            return try decoder.decode([Expense].self, from: data)
+        } catch {
+            print("Failed to decode expenses: \(error)")
+            return []
+        }
+    }
+
+    private func saveExpenses(_ expenses: [Expense]) {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+
+        do {
+            let data = try encoder.encode(expenses)
+            UserDefaults.standard.set(data, forKey: userDefaultsKey)
+        } catch {
+            print("Failed to save expenses: \(error)")
         }
     }
 }

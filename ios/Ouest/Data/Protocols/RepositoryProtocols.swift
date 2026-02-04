@@ -43,6 +43,7 @@ protocol ExpenseRepositoryProtocol {
 
 protocol ProfileRepositoryProtocol {
     func getProfile(userId: String) async throws -> Profile?
+    func createProfile(userId: String, email: String, displayName: String) async throws -> Profile
     func updateProfile(userId: String, displayName: String?, handle: String?, avatarUrl: String?) async throws -> Profile
     func getProfileStats(userId: String) async throws -> ProfileStats
 }

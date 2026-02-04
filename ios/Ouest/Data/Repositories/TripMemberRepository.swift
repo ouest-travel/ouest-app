@@ -1,57 +1,92 @@
 import Foundation
-import Supabase
 
-// MARK: - Trip Member Repository Implementation
+// MARK: - Trip Member Repository Implementation (Local Storage)
 
 final class TripMemberRepository: TripMemberRepositoryProtocol {
-    private let client: SupabaseClient
+    private let userDefaultsKey = "ouest_trip_members"
 
-    init(client: SupabaseClient = SupabaseService.shared.client) {
-        self.client = client
-    }
+    init() {}
 
     func getMembers(tripId: String) async throws -> [TripMember] {
-        let members: [TripMember] = try await client
-            .from(Tables.tripMembers)
-            .select("*, profile:profiles!user_id(id, email, display_name, handle, avatar_url, created_at)")
-            .eq("trip_id", value: tripId)
-            .execute()
-            .value
-
-        return members
+        let members = loadMembers()
+        return members.filter { $0.tripId == tripId }
     }
 
     func addMember(_ request: CreateTripMemberRequest) async throws -> TripMember {
-        let member: TripMember = try await client
-            .from(Tables.tripMembers)
-            .insert(request)
-            .select("*, profile:profiles!user_id(id, email, display_name, handle, avatar_url, created_at)")
-            .single()
-            .execute()
-            .value
+        var members = loadMembers()
+
+        let member = TripMember(
+            id: UUID().uuidString,
+            tripId: request.tripId,
+            userId: request.userId,
+            role: request.role,
+            joinedAt: Date(),
+            profile: nil
+        )
+
+        members.append(member)
+        saveMembers(members)
 
         return member
     }
 
     func removeMember(id: String) async throws {
-        try await client
-            .from(Tables.tripMembers)
-            .delete()
-            .eq("id", value: id)
-            .execute()
+        var members = loadMembers()
+        members.removeAll { $0.id == id }
+        saveMembers(members)
     }
 
     func updateRole(memberId: String, role: MemberRole) async throws -> TripMember {
-        let member: TripMember = try await client
-            .from(Tables.tripMembers)
-            .update(["role": role.rawValue])
-            .eq("id", value: memberId)
-            .select("*, profile:profiles!user_id(id, email, display_name, handle, avatar_url, created_at)")
-            .single()
-            .execute()
-            .value
+        var members = loadMembers()
 
-        return member
+        guard let index = members.firstIndex(where: { $0.id == memberId }) else {
+            throw RepositoryError.notFound
+        }
+
+        let existing = members[index]
+        let updated = TripMember(
+            id: existing.id,
+            tripId: existing.tripId,
+            userId: existing.userId,
+            role: role,
+            joinedAt: existing.joinedAt,
+            profile: existing.profile
+        )
+
+        members[index] = updated
+        saveMembers(members)
+
+        return updated
+    }
+
+    // MARK: - Private Storage Methods
+
+    private func loadMembers() -> [TripMember] {
+        guard let data = UserDefaults.standard.data(forKey: userDefaultsKey) else {
+            return []
+        }
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        do {
+            return try decoder.decode([TripMember].self, from: data)
+        } catch {
+            print("Failed to decode members: \(error)")
+            return []
+        }
+    }
+
+    private func saveMembers(_ members: [TripMember]) {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+
+        do {
+            let data = try encoder.encode(members)
+            UserDefaults.standard.set(data, forKey: userDefaultsKey)
+        } catch {
+            print("Failed to save members: \(error)")
+        }
     }
 }
 
@@ -59,7 +94,6 @@ final class TripMemberRepository: TripMemberRepositoryProtocol {
 
 final class MockTripMemberRepository: TripMemberRepositoryProtocol {
     func getMembers(tripId: String) async throws -> [TripMember] {
-        // Create mock members from demo profiles
         return DemoModeManager.demoMembers.enumerated().map { index, profile in
             TripMember(
                 id: "member-\(index)",

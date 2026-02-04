@@ -1,176 +1,228 @@
 import Foundation
-import Supabase
+import AuthenticationServices
+
+// MARK: - Local User Model
+
+struct LocalUser: Codable, Equatable {
+    let id: String
+    let email: String?
+    let fullName: String?
+    let identityToken: String?
+    let authorizationCode: String?
+    let createdAt: Date
+
+    var displayName: String {
+        fullName ?? email?.components(separatedBy: "@").first ?? "User"
+    }
+}
+
+// MARK: - Auth Event
+
+enum LocalAuthEvent {
+    case signedIn
+    case signedOut
+    case initialSession
+}
 
 // MARK: - Auth Repository Protocol
 
 protocol AuthRepositoryProtocol {
     /// Current authenticated user
-    var currentUser: User? { get async }
+    var currentUser: LocalUser? { get }
 
-    /// Sign up with email and password
-    func signUp(email: String, password: String, displayName: String) async throws -> User
+    /// Check if user is authenticated
+    var isAuthenticated: Bool { get }
 
-    /// Sign in with email and password
-    func signIn(email: String, password: String) async throws -> Session
+    /// Handle Apple Sign In credential
+    func handleAppleSignIn(credential: ASAuthorizationAppleIDCredential) async throws -> LocalUser
 
     /// Sign out current user
     func signOut() async throws
 
-    /// Get current session
-    func getSession() async throws -> Session?
+    /// Get current session/user
+    func getSession() async throws -> LocalUser?
 
-    /// Listen to auth state changes
-    func observeAuthState(onChange: @escaping (AuthChangeEvent, Session?) -> Void) -> any Cancellable
+    /// Check credential state with Apple
+    func checkCredentialState() async -> Bool
 }
 
 // MARK: - Auth Repository Implementation
 
 final class AuthRepository: AuthRepositoryProtocol {
-    private let client: SupabaseClient
-    private let profileRepository: ProfileRepositoryProtocol
+    private let userDefaultsKey = "ouest_current_user"
+    private let keychainService = "com.ouest.auth"
 
-    init(
-        client: SupabaseClient = SupabaseService.shared.client,
-        profileRepository: ProfileRepositoryProtocol? = nil
-    ) {
-        self.client = client
-        self.profileRepository = profileRepository ?? ProfileRepository(client: client)
+    private(set) var currentUser: LocalUser?
+
+    var isAuthenticated: Bool {
+        currentUser != nil
     }
 
-    var currentUser: User? {
-        get async {
-            try? await client.auth.session.user
+    init() {
+        // Load saved user on init
+        loadSavedUser()
+    }
+
+    func handleAppleSignIn(credential: ASAuthorizationAppleIDCredential) async throws -> LocalUser {
+        let userId = credential.user
+
+        // Get email - only provided on first sign in
+        let email = credential.email
+
+        // Get full name - only provided on first sign in
+        var fullName: String?
+        if let nameComponents = credential.fullName {
+            let givenName = nameComponents.givenName ?? ""
+            let familyName = nameComponents.familyName ?? ""
+            fullName = "\(givenName) \(familyName)".trimmingCharacters(in: .whitespaces)
+            if fullName?.isEmpty == true {
+                fullName = nil
+            }
         }
-    }
 
-    func signUp(email: String, password: String, displayName: String) async throws -> User {
-        let response = try await client.auth.signUp(
-            email: email,
-            password: password,
-            data: ["display_name": .string(displayName)]
+        // Get identity token
+        var identityToken: String?
+        if let tokenData = credential.identityToken {
+            identityToken = String(data: tokenData, encoding: .utf8)
+        }
+
+        // Get authorization code
+        var authorizationCode: String?
+        if let codeData = credential.authorizationCode {
+            authorizationCode = String(data: codeData, encoding: .utf8)
+        }
+
+        // Check if we have an existing user (for re-authentication)
+        let existingUser = loadSavedUser()
+
+        // Create user - preserve existing data if this is a re-auth
+        let user = LocalUser(
+            id: userId,
+            email: email ?? existingUser?.email,
+            fullName: fullName ?? existingUser?.fullName,
+            identityToken: identityToken,
+            authorizationCode: authorizationCode,
+            createdAt: existingUser?.createdAt ?? Date()
         )
 
-        guard let user = response.user else {
-            throw AuthRepositoryError.signUpFailed
-        }
-
-        // Create profile for new user
-        try await createProfile(userId: user.id.uuidString, email: email, displayName: displayName)
+        // Save user
+        try saveUser(user)
+        currentUser = user
 
         return user
     }
 
-    func signIn(email: String, password: String) async throws -> Session {
-        let session = try await client.auth.signIn(
-            email: email,
-            password: password
-        )
-        return session
-    }
-
     func signOut() async throws {
-        try await client.auth.signOut()
+        clearSavedUser()
+        currentUser = nil
     }
 
-    func getSession() async throws -> Session? {
-        return try? await client.auth.session
+    func getSession() async throws -> LocalUser? {
+        return currentUser
     }
 
-    func observeAuthState(onChange: @escaping (AuthChangeEvent, Session?) -> Void) -> any Cancellable {
-        let task = Task {
-            for await (event, session) in client.auth.authStateChanges {
-                await MainActor.run {
-                    onChange(event, session)
+    func checkCredentialState() async -> Bool {
+        guard let userId = currentUser?.id else { return false }
+
+        return await withCheckedContinuation { continuation in
+            let provider = ASAuthorizationAppleIDProvider()
+            provider.getCredentialState(forUserID: userId) { state, error in
+                switch state {
+                case .authorized:
+                    continuation.resume(returning: true)
+                case .revoked, .notFound, .transferred:
+                    continuation.resume(returning: false)
+                @unknown default:
+                    continuation.resume(returning: false)
                 }
             }
         }
+    }
 
-        return SubscriptionToken {
-            task.cancel()
+    // MARK: - Private Storage Methods
+
+    @discardableResult
+    private func loadSavedUser() -> LocalUser? {
+        guard let data = UserDefaults.standard.data(forKey: userDefaultsKey) else {
+            return nil
+        }
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        do {
+            let user = try decoder.decode(LocalUser.self, from: data)
+            currentUser = user
+            return user
+        } catch {
+            print("Failed to decode saved user: \(error)")
+            return nil
         }
     }
 
-    // MARK: - Private Helpers
+    private func saveUser(_ user: LocalUser) throws {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
 
-    private func createProfile(userId: String, email: String, displayName: String) async throws {
-        let handle = generateHandle(from: displayName, email: email)
-
-        let profileData: [String: AnyJSON] = [
-            "id": .string(userId),
-            "email": .string(email),
-            "display_name": .string(displayName),
-            "handle": .string(handle)
-        ]
-
-        try await client
-            .from(Tables.profiles)
-            .insert(profileData)
-            .execute()
+        let data = try encoder.encode(user)
+        UserDefaults.standard.set(data, forKey: userDefaultsKey)
     }
 
-    private func generateHandle(from displayName: String, email: String) -> String {
-        let base = displayName.isEmpty
-            ? email.components(separatedBy: "@").first ?? "user"
-            : displayName
-
-        let handle = base
-            .lowercased()
-            .replacingOccurrences(of: " ", with: "")
-            .filter { $0.isLetter || $0.isNumber }
-
-        let suffix = String(Int.random(in: 100...999))
-        return "\(handle)\(suffix)"
+    private func clearSavedUser() {
+        UserDefaults.standard.removeObject(forKey: userDefaultsKey)
     }
 }
 
 // MARK: - Mock Auth Repository
 
 final class MockAuthRepository: AuthRepositoryProtocol {
-    var currentUser: User? {
-        get async { nil }
-    }
+    var currentUser: LocalUser? = LocalUser(
+        id: "demo-user-1",
+        email: "demo@ouest.app",
+        fullName: "Demo User",
+        identityToken: nil,
+        authorizationCode: nil,
+        createdAt: Date()
+    )
 
-    func signUp(email: String, password: String, displayName: String) async throws -> User {
-        try await Task.sleep(nanoseconds: 500_000_000)
-        throw AuthRepositoryError.signUpFailed // Demo mode doesn't support real auth
-    }
+    var isAuthenticated: Bool { currentUser != nil }
 
-    func signIn(email: String, password: String) async throws -> Session {
-        try await Task.sleep(nanoseconds: 500_000_000)
-        throw AuthRepositoryError.signInFailed
+    func handleAppleSignIn(credential: ASAuthorizationAppleIDCredential) async throws -> LocalUser {
+        // In demo mode, just return the demo user
+        return currentUser!
     }
 
     func signOut() async throws {
         // No-op in demo mode
     }
 
-    func getSession() async throws -> Session? {
-        return nil
+    func getSession() async throws -> LocalUser? {
+        return currentUser
     }
 
-    func observeAuthState(onChange: @escaping (AuthChangeEvent, Session?) -> Void) -> any Cancellable {
-        return SubscriptionToken { }
+    func checkCredentialState() async -> Bool {
+        return true
     }
 }
 
 // MARK: - Auth Repository Errors
 
 enum AuthRepositoryError: LocalizedError {
-    case signUpFailed
     case signInFailed
-    case sessionNotFound
-    case profileCreationFailed
+    case credentialRevoked
+    case userNotFound
+    case saveFailed
 
     var errorDescription: String? {
         switch self {
-        case .signUpFailed:
-            return "Failed to create account. Please try again."
         case .signInFailed:
-            return "Invalid email or password."
-        case .sessionNotFound:
-            return "No active session. Please sign in."
-        case .profileCreationFailed:
-            return "Failed to create profile."
+            return "Sign in with Apple failed. Please try again."
+        case .credentialRevoked:
+            return "Your Apple ID authorization was revoked. Please sign in again."
+        case .userNotFound:
+            return "No user found. Please sign in."
+        case .saveFailed:
+            return "Failed to save user data."
         }
     }
 }

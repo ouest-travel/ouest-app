@@ -1,45 +1,76 @@
 import Foundation
-import Supabase
 
-// MARK: - Saved Itinerary Repository Implementation
+// MARK: - Saved Itinerary Repository Implementation (Local Storage)
 
 final class SavedItineraryRepository: SavedItineraryRepositoryProtocol {
-    private let client: SupabaseClient
+    private let userDefaultsKey = "ouest_saved_items"
 
-    init(client: SupabaseClient = SupabaseService.shared.client) {
-        self.client = client
-    }
+    init() {}
 
     func getSavedItems(userId: String) async throws -> [SavedItineraryItem] {
-        let items: [SavedItineraryItem] = try await client
-            .from(Tables.savedItineraryItems)
-            .select()
-            .eq("user_id", value: userId)
-            .order("created_at", ascending: false)
-            .execute()
-            .value
-
-        return items
+        let items = loadItems()
+        return items.filter { $0.userId == userId }
+            .sorted { $0.createdAt > $1.createdAt }
     }
 
     func saveItem(_ request: CreateSavedItineraryItemRequest) async throws -> SavedItineraryItem {
-        let item: SavedItineraryItem = try await client
-            .from(Tables.savedItineraryItems)
-            .insert(request)
-            .select()
-            .single()
-            .execute()
-            .value
+        var items = loadItems()
+
+        let item = SavedItineraryItem(
+            id: UUID().uuidString,
+            userId: request.userId,
+            activityName: request.activityName,
+            activityLocation: request.activityLocation,
+            activityTime: request.activityTime,
+            activityCost: request.activityCost,
+            activityDescription: request.activityDescription,
+            activityCategory: request.activityCategory,
+            sourceTripLocation: request.sourceTripLocation,
+            sourceTripUser: request.sourceTripUser,
+            day: request.day,
+            createdAt: Date()
+        )
+
+        items.append(item)
+        saveItems(items)
 
         return item
     }
 
     func removeItem(id: String) async throws {
-        try await client
-            .from(Tables.savedItineraryItems)
-            .delete()
-            .eq("id", value: id)
-            .execute()
+        var items = loadItems()
+        items.removeAll { $0.id == id }
+        saveItems(items)
+    }
+
+    // MARK: - Private Storage Methods
+
+    private func loadItems() -> [SavedItineraryItem] {
+        guard let data = UserDefaults.standard.data(forKey: userDefaultsKey) else {
+            return []
+        }
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        do {
+            return try decoder.decode([SavedItineraryItem].self, from: data)
+        } catch {
+            print("Failed to decode saved items: \(error)")
+            return []
+        }
+    }
+
+    private func saveItems(_ items: [SavedItineraryItem]) {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+
+        do {
+            let data = try encoder.encode(items)
+            UserDefaults.standard.set(data, forKey: userDefaultsKey)
+        } catch {
+            print("Failed to save items: \(error)")
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 import Foundation
 import SwiftUI
-import Supabase
+import AuthenticationServices
 
 // MARK: - Auth State
 
@@ -27,6 +27,7 @@ final class AuthViewModel: ObservableObject {
     // MARK: - Published State
 
     @Published private(set) var state: AuthState = .loading
+    @Published private(set) var localUser: LocalUser?
     @Published private(set) var profile: Profile?
     @Published private(set) var error: String?
     @Published var isLoading = false
@@ -35,12 +36,13 @@ final class AuthViewModel: ObservableObject {
 
     private let authRepository: any AuthRepositoryProtocol
     private let profileRepository: any ProfileRepositoryProtocol
-    private var authSubscription: (any Cancellable)?
 
     // MARK: - Computed Properties
 
     var isAuthenticated: Bool { state.isAuthenticated }
     var currentUserId: String? { state.userId }
+    var currentUserDisplayName: String? { localUser?.displayName }
+    var currentUserEmail: String? { localUser?.email }
 
     // MARK: - Initialization
 
@@ -53,7 +55,6 @@ final class AuthViewModel: ObservableObject {
 
         Task {
             await checkSession()
-            observeAuthState()
         }
     }
 
@@ -63,9 +64,19 @@ final class AuthViewModel: ObservableObject {
         state = .loading
 
         do {
-            if let session = try await authRepository.getSession() {
-                state = .authenticated(userId: session.user.id.uuidString)
-                await loadProfile()
+            if let user = try await authRepository.getSession() {
+                // Verify credential is still valid with Apple
+                let isValid = await authRepository.checkCredentialState()
+
+                if isValid {
+                    localUser = user
+                    state = .authenticated(userId: user.id)
+                    await loadOrCreateProfile()
+                } else {
+                    // Credential revoked, sign out
+                    try await authRepository.signOut()
+                    state = .unauthenticated
+                }
             } else {
                 state = .unauthenticated
             }
@@ -74,82 +85,81 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
-    private func observeAuthState() {
-        authSubscription = authRepository.observeAuthState { [weak self] event, session in
-            Task { @MainActor in
-                guard let self = self else { return }
+    // MARK: - Apple Sign In
 
-                switch event {
-                case .signedIn:
-                    if let session = session {
-                        self.state = .authenticated(userId: session.user.id.uuidString)
-                        await self.loadProfile()
-                    }
-                case .signedOut:
-                    self.state = .unauthenticated
-                    self.profile = nil
-                default:
-                    break
-                }
+    func handleAppleSignIn(result: Result<ASAuthorization, Error>) async {
+        isLoading = true
+        error = nil
+
+        defer { isLoading = false }
+
+        switch result {
+        case .success(let authorization):
+            guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+                self.error = "Invalid credential type"
+                return
             }
-        }
-    }
 
-    // MARK: - Authentication Actions
+            do {
+                let user = try await authRepository.handleAppleSignIn(credential: appleIDCredential)
+                localUser = user
+                state = .authenticated(userId: user.id)
+                await loadOrCreateProfile()
+            } catch {
+                self.error = error.localizedDescription
+            }
 
-    func signUp(email: String, password: String, displayName: String) async {
-        isLoading = true
-        error = nil
-
-        do {
-            let user = try await authRepository.signUp(
-                email: email,
-                password: password,
-                displayName: displayName
-            )
-            state = .authenticated(userId: user.id.uuidString)
-            await loadProfile()
-        } catch {
+        case .failure(let error):
+            // Don't show error for user cancellation
+            if let authError = error as? ASAuthorizationError,
+               authError.code == .canceled {
+                return
+            }
             self.error = error.localizedDescription
         }
-
-        isLoading = false
-    }
-
-    func signIn(email: String, password: String) async {
-        isLoading = true
-        error = nil
-
-        do {
-            let session = try await authRepository.signIn(email: email, password: password)
-            state = .authenticated(userId: session.user.id.uuidString)
-            await loadProfile()
-        } catch {
-            self.error = error.localizedDescription
-        }
-
-        isLoading = false
     }
 
     func signOut() async {
         do {
             try await authRepository.signOut()
             state = .unauthenticated
+            localUser = nil
             profile = nil
         } catch {
             self.error = error.localizedDescription
         }
     }
 
-    // MARK: - Profile
+    // MARK: - Profile Management
 
-    private func loadProfile() async {
+    private func loadOrCreateProfile() async {
         guard let userId = currentUserId else { return }
 
         do {
+            // Try to load existing profile
             profile = try await profileRepository.getProfile(userId: userId)
         } catch {
-            print("Failed to load profile: \(error)")
+            // Profile doesn't exist, create one from Apple Sign In data
+            if let user = localUser {
+                do {
+                    profile = try await profileRepository.createProfile(
+                        userId: user.id,
+                        email: user.email ?? "\(user.id)@privaterelay.appleid.com",
+                        displayName: user.displayName
+                    )
+                } catch {
+                    print("Failed to create profile: \(error)")
+                    // Create a local profile as fallback
+                    profile = Profile(
+                        id: user.id,
+                        email: user.email ?? "",
+                        displayName: user.displayName,
+                        handle: nil,
+                        avatarUrl: nil,
+                        createdAt: user.createdAt
+                    )
+                }
+            }
         }
     }
 
@@ -194,5 +204,41 @@ final class DemoAuthViewModel: ObservableObject {
 
     func signOut() async {
         // No-op in demo mode, but could toggle to show sign-in screen
+    }
+}
+
+// MARK: - Apple Sign In Button Coordinator
+
+class AppleSignInCoordinator: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
+    var onComplete: ((Result<ASAuthorization, Error>) -> Void)?
+
+    func startSignIn() {
+        let request = ASAuthorizationAppleIDProvider().createRequest()
+        request.requestedScopes = [.fullName, .email]
+
+        let controller = ASAuthorizationController(authorizationRequests: [request])
+        controller.delegate = self
+        controller.presentationContextProvider = self
+        controller.performRequests()
+    }
+
+    // MARK: - ASAuthorizationControllerDelegate
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        onComplete?(.success(authorization))
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        onComplete?(.failure(error))
+    }
+
+    // MARK: - ASAuthorizationControllerPresentationContextProviding
+
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = scene.windows.first else {
+            return UIWindow()
+        }
+        return window
     }
 }

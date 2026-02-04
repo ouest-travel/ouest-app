@@ -1,4 +1,5 @@
 import SwiftUI
+import AuthenticationServices
 
 struct AuthNavigationView: View {
     @EnvironmentObject var appState: AppState
@@ -14,9 +15,7 @@ struct AuthNavigationView: View {
 
 struct LoginView: View {
     @EnvironmentObject var appState: AppState
-
-    @State private var email = ""
-    @State private var password = ""
+    @StateObject private var signInCoordinator = AppleSignInCoordinator()
 
     private var viewModel: AuthViewModel {
         appState.authViewModel
@@ -27,87 +26,102 @@ struct LoginView: View {
             OuestTheme.Colors.background
                 .ignoresSafeArea()
 
-            ScrollView {
-                VStack(spacing: OuestTheme.Spacing.xl) {
-                    // Logo / Header
-                    VStack(spacing: OuestTheme.Spacing.md) {
-                        Image(systemName: "airplane.circle.fill")
-                            .font(.system(size: 80))
-                            .foregroundStyle(OuestTheme.Gradients.primary)
+            VStack(spacing: OuestTheme.Spacing.xl) {
+                Spacer()
 
-                        Text("Ouest")
-                            .font(OuestTheme.Fonts.largeTitle)
-                            .foregroundColor(OuestTheme.Colors.text)
+                // Logo / Header
+                VStack(spacing: OuestTheme.Spacing.md) {
+                    Image(systemName: "airplane.circle.fill")
+                        .font(.system(size: 100))
+                        .foregroundStyle(OuestTheme.Gradients.primary)
 
-                        Text("Plan trips together")
-                            .font(OuestTheme.Fonts.subheadline)
-                            .foregroundColor(OuestTheme.Colors.textSecondary)
-                    }
-                    .padding(.top, OuestTheme.Spacing.xxl)
+                    Text("Ouest")
+                        .font(OuestTheme.Fonts.largeTitle)
+                        .foregroundColor(OuestTheme.Colors.text)
 
-                    // Form
-                    VStack(spacing: OuestTheme.Spacing.md) {
-                        OuestTextField(
-                            label: "Email",
-                            placeholder: "Enter your email",
-                            text: $email,
-                            keyboardType: .emailAddress,
-                            autocapitalization: .never,
-                            icon: "envelope"
-                        )
-
-                        OuestTextField(
-                            label: "Password",
-                            placeholder: "Enter your password",
-                            text: $password,
-                            isSecure: true,
-                            icon: "lock"
-                        )
-
-                        if let error = viewModel.error {
-                            Text(error)
-                                .font(OuestTheme.Fonts.caption)
-                                .foregroundColor(OuestTheme.Colors.error)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-
-                        OuestButton(
-                            "Sign In",
-                            isLoading: viewModel.isLoading,
-                            isFullWidth: true
-                        ) {
-                            signIn()
-                        }
-                    }
-                    .padding(.top, OuestTheme.Spacing.lg)
-
-                    // Demo Mode Button
-                    Button {
-                        appState.isDemoMode = true
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "play.circle.fill")
-                            Text("Try Demo Mode")
-                        }
+                    Text("Plan trips together")
                         .font(OuestTheme.Fonts.subheadline)
-                        .foregroundColor(OuestTheme.Colors.primary)
+                        .foregroundColor(OuestTheme.Colors.textSecondary)
+                }
+
+                Spacer()
+
+                // Sign In Buttons
+                VStack(spacing: OuestTheme.Spacing.md) {
+                    // Error message
+                    if let error = viewModel.error {
+                        Text(error)
+                            .font(OuestTheme.Fonts.caption)
+                            .foregroundColor(OuestTheme.Colors.error)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
                     }
-                    .padding(.top, OuestTheme.Spacing.sm)
 
-                    // Sign Up Link
-                    NavigationLink(destination: SignUpView()) {
-                        HStack(spacing: 4) {
-                            Text("Don't have an account?")
-                                .foregroundColor(OuestTheme.Colors.textSecondary)
-
-                            Text("Sign Up")
-                                .foregroundColor(OuestTheme.Colors.primary)
-                                .fontWeight(.semibold)
+                    // Sign in with Apple Button
+                    SignInWithAppleButton(
+                        onRequest: { request in
+                            request.requestedScopes = [.fullName, .email]
+                        },
+                        onCompletion: { result in
+                            Task {
+                                await viewModel.handleAppleSignIn(result: result)
+                            }
                         }
-                        .font(OuestTheme.Fonts.subheadline)
+                    )
+                    .signInWithAppleButtonStyle(.white)
+                    .frame(height: 54)
+                    .cornerRadius(OuestTheme.Radius.md)
+                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+
+                    // Loading indicator
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle())
+                            .padding(.top, OuestTheme.Spacing.sm)
                     }
                 }
-                .padding(.horizontal, OuestTheme.Spacing.lg)
+                .padding(.horizontal, OuestTheme.Spacing.xl)
+
+                // Demo Mode Button
+                Button {
+                    appState.isDemoMode = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "play.circle.fill")
+                        Text("Try Demo Mode")
+                    }
+                    .font(OuestTheme.Fonts.subheadline)
+                    .foregroundColor(OuestTheme.Colors.primary)
+                }
+                .padding(.top, OuestTheme.Spacing.md)
+
+                Spacer()
+
+                // Terms and Privacy
+                VStack(spacing: OuestTheme.Spacing.xs) {
+                    Text("By continuing, you agree to our")
+                        .font(OuestTheme.Fonts.caption)
+                        .foregroundColor(OuestTheme.Colors.textSecondary)
+
+                    HStack(spacing: 4) {
+                        Button("Terms of Service") {
+                            // Open Terms URL
+                        }
+                        .font(OuestTheme.Fonts.caption)
+                        .foregroundColor(OuestTheme.Colors.primary)
+
+                        Text("and")
+                            .font(OuestTheme.Fonts.caption)
+                            .foregroundColor(OuestTheme.Colors.textSecondary)
+
+                        Button("Privacy Policy") {
+                            // Open Privacy URL
+                        }
+                        .font(OuestTheme.Fonts.caption)
+                        .foregroundColor(OuestTheme.Colors.primary)
+                    }
+                }
+                .padding(.bottom, OuestTheme.Spacing.xl)
             }
         }
         .navigationBarHidden(true)
@@ -121,167 +135,9 @@ struct LoginView: View {
             }
         }
     }
-
-    private func signIn() {
-        guard !email.isEmpty, !password.isEmpty else {
-            return
-        }
-
-        Task {
-            await viewModel.signIn(email: email, password: password)
-        }
-    }
-}
-
-// MARK: - Sign Up View
-
-struct SignUpView: View {
-    @EnvironmentObject var appState: AppState
-    @Environment(\.dismiss) var dismiss
-
-    @State private var displayName = ""
-    @State private var email = ""
-    @State private var password = ""
-    @State private var confirmPassword = ""
-    @State private var localError: String?
-
-    private var viewModel: AuthViewModel {
-        appState.authViewModel
-    }
-
-    var body: some View {
-        ZStack {
-            OuestTheme.Colors.background
-                .ignoresSafeArea()
-
-            ScrollView {
-                VStack(spacing: OuestTheme.Spacing.xl) {
-                    // Header
-                    VStack(spacing: OuestTheme.Spacing.sm) {
-                        Text("Create Account")
-                            .font(OuestTheme.Fonts.title)
-                            .foregroundColor(OuestTheme.Colors.text)
-
-                        Text("Start planning your adventures")
-                            .font(OuestTheme.Fonts.subheadline)
-                            .foregroundColor(OuestTheme.Colors.textSecondary)
-                    }
-                    .padding(.top, OuestTheme.Spacing.lg)
-
-                    // Form
-                    VStack(spacing: OuestTheme.Spacing.md) {
-                        OuestTextField(
-                            label: "Display Name",
-                            placeholder: "Enter your name",
-                            text: $displayName,
-                            icon: "person"
-                        )
-
-                        OuestTextField(
-                            label: "Email",
-                            placeholder: "Enter your email",
-                            text: $email,
-                            keyboardType: .emailAddress,
-                            autocapitalization: .never,
-                            icon: "envelope"
-                        )
-
-                        OuestTextField(
-                            label: "Password",
-                            placeholder: "Create a password",
-                            text: $password,
-                            isSecure: true,
-                            icon: "lock"
-                        )
-
-                        OuestTextField(
-                            label: "Confirm Password",
-                            placeholder: "Confirm your password",
-                            text: $confirmPassword,
-                            isSecure: true,
-                            icon: "lock.fill"
-                        )
-
-                        if let error = localError ?? viewModel.error {
-                            Text(error)
-                                .font(OuestTheme.Fonts.caption)
-                                .foregroundColor(OuestTheme.Colors.error)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-
-                        OuestButton(
-                            "Create Account",
-                            isLoading: viewModel.isLoading,
-                            isFullWidth: true
-                        ) {
-                            signUp()
-                        }
-                    }
-                    .padding(.top, OuestTheme.Spacing.md)
-
-                    // Sign In Link
-                    Button {
-                        dismiss()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Text("Already have an account?")
-                                .foregroundColor(OuestTheme.Colors.textSecondary)
-
-                            Text("Sign In")
-                                .foregroundColor(OuestTheme.Colors.primary)
-                                .fontWeight(.semibold)
-                        }
-                        .font(OuestTheme.Fonts.subheadline)
-                    }
-                }
-                .padding(.horizontal, OuestTheme.Spacing.lg)
-            }
-        }
-        .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func signUp() {
-        // Validation
-        localError = nil
-
-        guard !displayName.isEmpty else {
-            localError = "Please enter your name"
-            return
-        }
-
-        guard !email.isEmpty else {
-            localError = "Please enter your email"
-            return
-        }
-
-        guard password.count >= 6 else {
-            localError = "Password must be at least 6 characters"
-            return
-        }
-
-        guard password == confirmPassword else {
-            localError = "Passwords don't match"
-            return
-        }
-
-        Task {
-            await viewModel.signUp(
-                email: email,
-                password: password,
-                displayName: displayName
-            )
-        }
-    }
 }
 
 #Preview("Login") {
     AuthNavigationView()
         .environmentObject(AppState(isDemoMode: false))
-}
-
-#Preview("Sign Up") {
-    NavigationStack {
-        SignUpView()
-            .environmentObject(AppState(isDemoMode: false))
-    }
 }
