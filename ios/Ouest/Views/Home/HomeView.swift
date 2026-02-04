@@ -155,7 +155,7 @@ struct HomeView: View {
         LazyVStack(spacing: OuestTheme.Spacing.md) {
             ForEach(viewModel.filteredTrips) { trip in
                 NavigationLink {
-                    TripDetailView(trip: trip)
+                    TripDetailView(trip: trip, repositories: appState.repositories)
                 } label: {
                     ActiveTripCard(trip: trip)
                 }
@@ -176,20 +176,6 @@ struct HomeView: View {
                 .padding(.bottom, OuestTheme.Spacing.lg)
             }
         }
-    }
-}
-
-// MARK: - Trip Detail View (Wrapper)
-
-struct TripDetailView: View {
-    let trip: Trip
-    @EnvironmentObject var appState: AppState
-
-    var body: some View {
-        BudgetOverviewView(
-            trip: trip,
-            repositories: appState.repositories
-        )
     }
 }
 
