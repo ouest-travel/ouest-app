@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "motion/react";
-import { 
+import {
   X, 
   MapPin, 
   Calendar as CalendarIcon, 
@@ -22,6 +22,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { toast } from "sonner";
+import { CountrySelector } from "./CountrySelector";
+import { Country, countries } from "@/data/countries";
+import { uploadImageToCloudinary } from "../lib/cloudinary/uploadImage";
 
 interface CreateTripFormProps {
   onClose: () => void;
@@ -59,10 +62,28 @@ export function CreateTripForm({ onClose, onSave, onCreateTrip }: CreateTripForm
   });
 
   const [showImageUpload, setShowImageUpload] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [selectedLocationCountry, setSelectedLocationCountry] = useState<Country | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const updateFormData = (updates: Partial<TripFormData>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
   };
+
+  useEffect(() => {
+    if (!formData.location) {
+      setSelectedLocationCountry(null);
+      return;
+    }
+
+    const match = countries.find(
+      (country) =>
+        country.name.toLowerCase() === formData.location.toLowerCase() ||
+        country.code.toLowerCase() === formData.location.toLowerCase(),
+    );
+
+    setSelectedLocationCountry(match ?? null);
+  }, [formData.location]);
 
   const handleSave = () => {
     if (!formData.name || !formData.location) {
@@ -89,10 +110,45 @@ export function CreateTripForm({ onClose, onSave, onCreateTrip }: CreateTripForm
     toast.success("Invite link copied to clipboard!");
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const imageUrl = await uploadImageToCloudinary(file);
+      updateFormData({ coverImage: imageUrl });
+      setShowImageUpload(false);
+      toast.success("Cover image uploaded successfully!");
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload image. Please try again.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleChooseFromGallery = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
-    <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-background z-50 overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-gray-100 z-10">
+      <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <Button variant="ghost" size="sm" onClick={onClose}>
             Cancel
@@ -117,19 +173,19 @@ export function CreateTripForm({ onClose, onSave, onCreateTrip }: CreateTripForm
           className="space-y-4"
         >
           {/* Public/Private Toggle */}
-          <div className="bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 rounded-2xl p-4 border border-purple-100">
+          <div className="bg-muted/50 rounded-2xl p-4 border border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {formData.isPublic ? (
-                  <Globe className="w-5 h-5 text-purple-600" />
+                  <Globe className="w-5 h-5" style={{ color: "var(--ouest-purple)" }} />
                 ) : (
-                  <Lock className="w-5 h-5 text-gray-600" />
+                  <Lock className="w-5 h-5 text-muted-foreground" />
                 )}
                 <div>
-                  <p className="text-sm">
+                  <p className="text-sm text-foreground">
                     {formData.isPublic ? "Public Trip" : "Private Trip"}
                   </p>
-                  <p className="text-xs text-gray-600">
+                  <p className="text-xs text-muted-foreground">
                     {formData.isPublic 
                       ? "Anyone can discover and join" 
                       : "Only invited members can see"}
@@ -144,19 +200,19 @@ export function CreateTripForm({ onClose, onSave, onCreateTrip }: CreateTripForm
           </div>
 
           {/* Trip Name */}
-          <div className="bg-white rounded-2xl border-2 border-gray-100 overflow-hidden hover:border-purple-200 transition-colors">
+          <div className="bg-card rounded-2xl border-2 border-border overflow-hidden hover:border-primary/50 transition-colors">
             <div className="p-4">
               <Input
                 value={formData.name}
                 onChange={(e) => updateFormData({ name: e.target.value })}
                 placeholder="Name your trip"
-                className="border-0 px-0 text-lg focus-visible:ring-0 placeholder:text-gray-400"
+                className="border-0 px-0 text-lg focus-visible:ring-0 placeholder:text-muted-foreground"
               />
             </div>
           </div>
 
           {/* Cover Image */}
-          <div className="bg-white rounded-2xl border-2 border-gray-100 overflow-hidden">
+          <div className="bg-card rounded-2xl border-2 border-border overflow-hidden">
             {formData.coverImage ? (
               <div className="relative aspect-[16/9] w-full">
                 <ImageWithFallback
@@ -166,7 +222,7 @@ export function CreateTripForm({ onClose, onSave, onCreateTrip }: CreateTripForm
                 />
                 <button
                   onClick={() => updateFormData({ coverImage: null })}
-                  className="absolute top-3 right-3 bg-white/90 rounded-full p-2 hover:bg-white transition-colors"
+                  className="absolute top-3 right-3 bg-background/90 rounded-full p-2 hover:bg-background transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -174,38 +230,58 @@ export function CreateTripForm({ onClose, onSave, onCreateTrip }: CreateTripForm
             ) : (
               <button
                 onClick={() => setShowImageUpload(true)}
-                className="w-full aspect-[16/9] flex flex-col items-center justify-center gap-3 hover:bg-gray-50 transition-colors"
+                disabled={uploading}
+                className="w-full aspect-[16/9] flex flex-col items-center justify-center gap-3 hover:bg-muted transition-colors disabled:opacity-50"
               >
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 flex items-center justify-center">
-                  <ImageIcon className="w-6 h-6 text-purple-600" />
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center"
+                  style={{
+                    background: "var(--ouest-gradient-soft)",
+                  }}
+                >
+                  <ImageIcon className="w-6 h-6" style={{ color: "var(--ouest-purple)" }} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Add cover image</p>
-                  <p className="text-xs text-gray-400">Choose from library or upload</p>
+                  <p className="text-sm text-foreground">
+                    {uploading ? "Uploading..." : "Add cover image"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Choose from gallery or upload</p>
                 </div>
               </button>
             )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
           </div>
 
           {/* Sections Container */}
-          <div className="bg-white rounded-2xl border-2 border-gray-100 overflow-hidden divide-y divide-gray-100">
+          <div className="bg-card rounded-2xl border-2 border-border overflow-hidden divide-y divide-border">
             {/* Location */}
-            <div className="p-4 flex items-center gap-4">
-              <MapPin className="w-5 h-5 text-gray-400 flex-shrink-0" />
-              <Input
-                value={formData.location}
-                onChange={(e) => updateFormData({ location: e.target.value })}
-                placeholder="Location"
-                className="border-0 px-0 focus-visible:ring-0 placeholder:text-gray-400"
+            <div className="p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <MapPin className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                <p className="text-foreground">Location</p>
+              </div>
+              <CountrySelector
+                label="Choose a destination"
+                value={selectedLocationCountry}
+                onChange={(country) => {
+                  setSelectedLocationCountry(country);
+                  updateFormData({ location: country.name });
+                }}
               />
             </div>
 
             {/* Date Range */}
             <Popover>
               <PopoverTrigger asChild>
-                <button className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors text-left">
-                  <CalendarIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                  <span className={formData.startDate ? "text-gray-900" : "text-gray-400"}>
+                <button className="w-full p-4 flex items-center gap-4 hover:bg-muted transition-colors text-left">
+                  <CalendarIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                  <span className={formData.startDate ? "text-foreground" : "text-muted-foreground"}>
                     {formatDateRange()}
                   </span>
                 </button>
@@ -231,20 +307,20 @@ export function CreateTripForm({ onClose, onSave, onCreateTrip }: CreateTripForm
             {/* Invite Members */}
             <button 
               onClick={handleShare}
-              className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors text-left"
+              className="w-full p-4 flex items-center gap-4 hover:bg-muted transition-colors text-left"
             >
-              <Share2 className="w-5 h-5 text-gray-400 flex-shrink-0" />
+              <Share2 className="w-5 h-5 text-muted-foreground flex-shrink-0" />
               <div>
-                <p className="text-gray-900">Send invites</p>
-                <p className="text-xs text-gray-500">Share trip with friends</p>
+                <p className="text-foreground">Send invites</p>
+                <p className="text-xs text-muted-foreground">Share trip with friends</p>
               </div>
             </button>
 
             {/* Budget */}
             <div className="p-4">
               <div className="flex items-center gap-4 mb-3">
-                <DollarSign className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                <p className="text-gray-900">Budget</p>
+                <DollarSign className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                <p className="text-foreground">Budget</p>
               </div>
               <div className="flex gap-3 pl-9">
                 <Select 
@@ -271,7 +347,7 @@ export function CreateTripForm({ onClose, onSave, onCreateTrip }: CreateTripForm
                 />
               </div>
               {formData.budget && (
-                <p className="text-xs text-gray-500 mt-2 pl-9">
+                <p className="text-xs text-muted-foreground mt-2 pl-9">
                   Connected to budget tracker • Split expenses with group
                 </p>
               )}
@@ -280,10 +356,10 @@ export function CreateTripForm({ onClose, onSave, onCreateTrip }: CreateTripForm
             {/* Voting Options */}
             <div className="p-4 flex items-center gap-4 justify-between">
               <div className="flex items-center gap-4">
-                <Vote className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                <Vote className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                 <div>
-                  <p className="text-gray-900">Enable voting</p>
-                  <p className="text-xs text-gray-500">Let members vote on activities</p>
+                  <p className="text-foreground">Enable voting</p>
+                  <p className="text-xs text-muted-foreground">Let members vote on activities</p>
                 </div>
               </div>
               <Switch
@@ -294,19 +370,19 @@ export function CreateTripForm({ onClose, onSave, onCreateTrip }: CreateTripForm
           </div>
 
           {/* Description */}
-          <div className="bg-white rounded-2xl border-2 border-gray-100 overflow-hidden p-4">
+          <div className="bg-card rounded-2xl border-2 border-border overflow-hidden p-4">
             <Textarea
               value={formData.description}
               onChange={(e) => updateFormData({ description: e.target.value })}
               placeholder="Add a description of your trip"
-              className="border-0 px-0 min-h-32 resize-none focus-visible:ring-0 placeholder:text-gray-400"
+              className="border-0 px-0 min-h-32 resize-none focus-visible:ring-0 placeholder:text-muted-foreground"
             />
           </div>
 
           {/* Connected Features Info */}
-          <div className="bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 rounded-2xl p-4 border border-purple-100">
-            <p className="text-xs text-gray-600 mb-2">✨ Features included:</p>
-            <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+          <div className="bg-muted/50 rounded-2xl p-4 border border-border">
+            <p className="text-xs text-muted-foreground mb-2">✨ Features included:</p>
+            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
               <div>• Budget tracking</div>
               <div>• Entry requirements</div>
               <div>• Group chat</div>
@@ -322,39 +398,32 @@ export function CreateTripForm({ onClose, onSave, onCreateTrip }: CreateTripForm
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl p-6 max-w-md w-full"
+            className="bg-card rounded-3xl p-6 max-w-md w-full border border-border"
           >
             <div className="flex items-center justify-between mb-4">
-              <h3>Choose Cover Image</h3>
-              <button onClick={() => setShowImageUpload(false)}>
+              <h3 className="text-foreground">Choose Cover Image</h3>
+              <button onClick={() => setShowImageUpload(false)} className="text-muted-foreground hover:text-foreground">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Select a stock image or upload your own
+            <p className="text-sm text-muted-foreground mb-4">
+              Choose an image from your gallery to use as the trip cover
             </p>
             <div className="space-y-3">
               <Button
                 className="w-full"
-                onClick={() => {
-                  // In a real app, this would open an image picker
-                  updateFormData({ 
-                    coverImage: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800" 
-                  });
-                  setShowImageUpload(false);
-                }}
+                onClick={handleChooseFromGallery}
+                disabled={uploading}
               >
-                Choose from Library
+                {uploading ? "Uploading..." : "Choose from Gallery"}
               </Button>
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => {
-                  toast.info("Upload functionality would be here");
-                  setShowImageUpload(false);
-                }}
+                onClick={() => setShowImageUpload(false)}
+                disabled={uploading}
               >
-                Upload Image
+                Cancel
               </Button>
             </div>
           </motion.div>

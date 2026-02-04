@@ -222,7 +222,39 @@ CREATE POLICY "Users can delete their own messages" ON chat_messages FOR DELETE
 USING (user_id = auth.uid());
 
 -- ============================================
--- 6. INDEXES FOR PERFORMANCE
+-- 6. SAVED ITINERARY ITEMS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS saved_itinerary_items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  activity_name TEXT NOT NULL,
+  activity_location TEXT NOT NULL,
+  activity_time TEXT,
+  activity_cost TEXT,
+  activity_description TEXT,
+  activity_category TEXT NOT NULL CHECK (activity_category IN ('food', 'activity', 'transport', 'accommodation')) DEFAULT 'activity',
+  source_trip_location TEXT,
+  source_trip_user TEXT,
+  day INTEGER,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE saved_itinerary_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own saved itinerary items" ON saved_itinerary_items FOR SELECT
+USING (user_id = auth.uid());
+
+CREATE POLICY "Users can insert their own saved itinerary items" ON saved_itinerary_items FOR INSERT
+WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can update their own saved itinerary items" ON saved_itinerary_items FOR UPDATE
+USING (user_id = auth.uid());
+
+CREATE POLICY "Users can delete their own saved itinerary items" ON saved_itinerary_items FOR DELETE
+USING (user_id = auth.uid());
+
+-- ============================================
+-- 7. INDEXES FOR PERFORMANCE
 -- ============================================
 CREATE INDEX IF NOT EXISTS idx_profiles_handle ON profiles(handle);
 CREATE INDEX IF NOT EXISTS idx_trips_created_by ON trips(created_by);
@@ -232,6 +264,7 @@ CREATE INDEX IF NOT EXISTS idx_expenses_trip_id ON expenses(trip_id);
 CREATE INDEX IF NOT EXISTS idx_expenses_paid_by ON expenses(paid_by);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_trip_id ON chat_messages(trip_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_user_id ON chat_messages(user_id);
+CREATE INDEX IF NOT EXISTS idx_saved_itinerary_items_user_id ON saved_itinerary_items(user_id);
 
 -- ============================================
 -- DONE! ✅
