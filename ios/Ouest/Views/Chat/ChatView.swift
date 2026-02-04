@@ -4,7 +4,14 @@ struct ChatView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel: ChatViewModel
 
+    @State private var showAttachmentOptions = false
+    @State private var showCreatePoll = false
+    @FocusState private var isInputFocused: Bool
+
+    let trip: Trip
+
     init(trip: Trip, repositories: RepositoryProvider? = nil) {
+        self.trip = trip
         let repos = repositories ?? RepositoryProvider()
         _viewModel = StateObject(wrappedValue: ChatViewModel(
             tripId: trip.id,
@@ -26,7 +33,8 @@ struct ChatView: View {
                             ForEach(viewModel.messages) { message in
                                 ChatMessageRow(
                                     message: message,
-                                    isCurrentUser: isCurrentUser(message)
+                                    isCurrentUser: isCurrentUser(message),
+                                    currentUserId: currentUserId
                                 )
                                 .id(message.id)
                             }
@@ -42,6 +50,9 @@ struct ChatView: View {
                         }
                     }
                 }
+                .onTapGesture {
+                    isInputFocused = false
+                }
             }
 
             // Input
@@ -52,7 +63,26 @@ struct ChatView: View {
         .background(OuestTheme.Colors.background)
         .task {
             await viewModel.loadMessages()
+            viewModel.startObserving()
         }
+        .onDisappear {
+            viewModel.stopObserving()
+        }
+        .sheet(isPresented: $showCreatePoll) {
+            CreatePollView(tripId: trip.id) { poll in
+                // TODO: Send poll message
+                print("Poll created: \(poll.question)")
+            }
+        }
+    }
+
+    // MARK: - Computed Properties
+
+    private var currentUserId: String {
+        if appState.isDemoMode {
+            return "demo-user-1"
+        }
+        return appState.authViewModel.currentUserId ?? ""
     }
 
     // MARK: - Subviews
@@ -91,37 +121,115 @@ struct ChatView: View {
     }
 
     private var chatInputView: some View {
-        HStack(spacing: OuestTheme.Spacing.sm) {
-            TextField("Type a message...", text: $viewModel.newMessageText)
-                .font(OuestTheme.Fonts.body)
-                .padding(.horizontal, OuestTheme.Spacing.md)
-                .padding(.vertical, OuestTheme.Spacing.sm)
-                .background(OuestTheme.Colors.inputBackground)
-                .cornerRadius(20)
-
-            Button {
-                Task {
-                    await viewModel.sendMessage()
-                }
-            } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundColor(viewModel.newMessageText.isEmpty ? OuestTheme.Colors.textTertiary : OuestTheme.Colors.primary)
+        VStack(spacing: 0) {
+            // Attachment options
+            if showAttachmentOptions {
+                attachmentOptionsView
             }
-            .disabled(viewModel.newMessageText.isEmpty)
+
+            // Input bar
+            HStack(spacing: OuestTheme.Spacing.sm) {
+                // Plus button for attachments
+                Button {
+                    withAnimation(OuestTheme.Animation.spring) {
+                        showAttachmentOptions.toggle()
+                        isInputFocused = false
+                    }
+                } label: {
+                    Image(systemName: showAttachmentOptions ? "xmark.circle.fill" : "plus.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundColor(showAttachmentOptions ? OuestTheme.Colors.textTertiary : OuestTheme.Colors.primary)
+                }
+
+                // Text input
+                TextField("Type a message...", text: $viewModel.newMessageText)
+                    .font(OuestTheme.Fonts.body)
+                    .padding(.horizontal, OuestTheme.Spacing.md)
+                    .padding(.vertical, OuestTheme.Spacing.sm)
+                    .background(OuestTheme.Colors.inputBackground)
+                    .cornerRadius(20)
+                    .focused($isInputFocused)
+                    .onChange(of: isInputFocused) { _, focused in
+                        if focused && showAttachmentOptions {
+                            showAttachmentOptions = false
+                        }
+                    }
+
+                // Send button
+                Button {
+                    Task {
+                        await viewModel.sendMessage()
+                    }
+                } label: {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundColor(viewModel.canSend ? OuestTheme.Colors.primary : OuestTheme.Colors.textTertiary)
+                }
+                .disabled(!viewModel.canSend)
+            }
+            .padding(.horizontal, OuestTheme.Spacing.md)
+            .padding(.vertical, OuestTheme.Spacing.sm)
         }
-        .padding(.horizontal, OuestTheme.Spacing.md)
-        .padding(.vertical, OuestTheme.Spacing.sm)
         .background(OuestTheme.Colors.cardBackground)
+    }
+
+    private var attachmentOptionsView: some View {
+        HStack(spacing: OuestTheme.Spacing.lg) {
+            AttachmentOption(icon: "chart.bar.fill", label: "Poll", color: OuestTheme.Colors.Brand.blue) {
+                showAttachmentOptions = false
+                showCreatePoll = true
+            }
+
+            AttachmentOption(icon: "photo.fill", label: "Photo", color: OuestTheme.Colors.Brand.pink) {
+                // TODO: Photo picker
+            }
+
+            AttachmentOption(icon: "location.fill", label: "Location", color: OuestTheme.Colors.Brand.coral) {
+                // TODO: Location picker
+            }
+
+            AttachmentOption(icon: "doc.fill", label: "File", color: OuestTheme.Colors.Brand.indigo) {
+                // TODO: File picker
+            }
+        }
+        .padding(.horizontal, OuestTheme.Spacing.lg)
+        .padding(.vertical, OuestTheme.Spacing.md)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
     // MARK: - Helpers
 
     private func isCurrentUser(_ message: ChatMessage) -> Bool {
-        if appState.isDemoMode {
-            return message.userId == "demo-user-1"
+        message.userId == currentUserId
+    }
+}
+
+// MARK: - Attachment Option
+
+struct AttachmentOption: View {
+    let icon: String
+    let label: String
+    let color: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: OuestTheme.Spacing.xs) {
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.15))
+                        .frame(width: 52, height: 52)
+
+                    Image(systemName: icon)
+                        .font(.system(size: 22))
+                        .foregroundColor(color)
+                }
+
+                Text(label)
+                    .font(OuestTheme.Fonts.caption)
+                    .foregroundColor(OuestTheme.Colors.textSecondary)
+            }
         }
-        return message.userId == appState.authViewModel.currentUserId
     }
 }
 
@@ -130,6 +238,7 @@ struct ChatView: View {
 struct ChatMessageRow: View {
     let message: ChatMessage
     let isCurrentUser: Bool
+    var currentUserId: String = ""
 
     var body: some View {
         HStack(alignment: .bottom, spacing: OuestTheme.Spacing.xs) {
