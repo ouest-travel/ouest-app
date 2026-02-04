@@ -372,6 +372,7 @@ struct StatCard: View {
 struct BudgetTabContent: View {
     @ObservedObject var viewModel: TripDetailViewModel
     @State private var showAddExpense = false
+    @State private var showSettleDebts = false
 
     var body: some View {
         ZStack {
@@ -379,6 +380,11 @@ struct BudgetTabContent: View {
                 VStack(spacing: OuestTheme.Spacing.lg) {
                     // Budget Summary
                     budgetSummaryCard
+
+                    // Settle Up Button (if there are debts)
+                    if !viewModel.debts.isEmpty {
+                        settleUpButton
+                    }
 
                     // Category Breakdown
                     if !viewModel.expenses.isEmpty {
@@ -407,7 +413,48 @@ struct BudgetTabContent: View {
             }
         }
         .sheet(isPresented: $showAddExpense) {
-            AddExpenseSheet(viewModel: viewModel)
+            AddExpenseView(
+                trip: viewModel.trip,
+                members: viewModel.members
+            ) { request in
+                await viewModel.addExpense(request)
+            }
+        }
+        .sheet(isPresented: $showSettleDebts) {
+            SettleDebtsView(
+                debts: viewModel.debts,
+                trip: viewModel.trip
+            ) { debt in
+                // TODO: Implement settle debt
+            }
+        }
+    }
+
+    private var settleUpButton: some View {
+        Button {
+            showSettleDebts = true
+        } label: {
+            HStack {
+                Image(systemName: "arrow.left.arrow.right")
+                    .font(.system(size: 16))
+
+                Text("Settle Up")
+                    .font(OuestTheme.Fonts.headline)
+
+                Spacer()
+
+                Text("\(viewModel.debts.count) payments")
+                    .font(OuestTheme.Fonts.caption)
+                    .foregroundColor(OuestTheme.Colors.textSecondary)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14))
+                    .foregroundColor(OuestTheme.Colors.textTertiary)
+            }
+            .foregroundColor(OuestTheme.Colors.text)
+            .padding(OuestTheme.Spacing.md)
+            .background(OuestTheme.Colors.cardBackground)
+            .cornerRadius(OuestTheme.CornerRadius.medium)
         }
     }
 
@@ -960,80 +1007,6 @@ struct EditTripSheet: View {
         )
 
         await viewModel.updateTrip(request)
-        dismiss()
-    }
-}
-
-// MARK: - Add Expense Sheet
-
-struct AddExpenseSheet: View {
-    @ObservedObject var viewModel: TripDetailViewModel
-    @Environment(\.dismiss) var dismiss
-
-    @State private var title = ""
-    @State private var amount: Decimal?
-    @State private var category: ExpenseCategory = .other
-    @State private var isSaving = false
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Expense Details") {
-                    TextField("Title", text: $title)
-
-                    HStack {
-                        TextField("Amount", value: $amount, format: .number)
-                            .keyboardType(.decimalPad)
-                        Text(viewModel.trip.currency)
-                            .foregroundColor(OuestTheme.Colors.textSecondary)
-                    }
-                }
-
-                Section("Category") {
-                    Picker("Category", selection: $category) {
-                        ForEach(ExpenseCategory.allCases, id: \.self) { cat in
-                            HStack {
-                                Text(cat.emoji)
-                                Text(cat.displayName)
-                            }
-                            .tag(cat)
-                        }
-                    }
-                    .pickerStyle(.navigationLink)
-                }
-            }
-            .navigationTitle("Add Expense")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
-                        Task { await addExpense() }
-                    }
-                    .disabled(title.isEmpty || amount == nil || isSaving)
-                }
-            }
-        }
-    }
-
-    private func addExpense() async {
-        guard let amount = amount else { return }
-        isSaving = true
-
-        let request = CreateExpenseRequest(
-            tripId: viewModel.trip.id,
-            title: title,
-            amount: amount,
-            currency: viewModel.trip.currency,
-            category: category,
-            paidBy: "demo-user-1", // TODO: Get current user
-            splitAmong: viewModel.members.map { $0.userId },
-            date: Date()
-        )
-
-        await viewModel.addExpense(request)
         dismiss()
     }
 }
