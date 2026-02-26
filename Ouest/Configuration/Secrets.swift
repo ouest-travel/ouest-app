@@ -43,4 +43,17 @@ enum Secrets {
         }
         return key
     }
+
+    #if DEBUG
+    /// Service role key for admin operations — DEBUG builds only.
+    /// Used exclusively by dev sign-in to create a pre-confirmed test user.
+    static var supabaseServiceRoleKey: String {
+        guard let key = appBundle.infoDictionary?["SUPABASE_SERVICE_ROLE_KEY"] as? String,
+              !key.isEmpty,
+              !key.hasPrefix("$(") else {
+            fatalError("SUPABASE_SERVICE_ROLE_KEY not configured. Set it in Debug.xcconfig.")
+        }
+        return key
+    }
+    #endif
 }
