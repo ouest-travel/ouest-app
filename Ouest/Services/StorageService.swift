@@ -1,0 +1,49 @@
+import Foundation
+import Supabase
+
+/// Handles file uploads/downloads to Supabase Storage
+enum StorageService {
+
+    /// Upload image data and return the public URL
+    /// - Parameters:
+    ///   - data: Raw image data (JPEG)
+    ///   - bucket: Storage bucket name
+    ///   - path: File path within the bucket (e.g. "userId/filename.jpg")
+    /// - Returns: The public URL string for the uploaded image
+    static func uploadImage(data: Data, bucket: String, path: String) async throws -> String {
+        try await SupabaseManager.client.storage
+            .from(bucket)
+            .upload(
+                path: path,
+                file: data,
+                options: FileOptions(
+                    contentType: "image/jpeg",
+                    upsert: true
+                )
+            )
+
+        let url = try SupabaseManager.client.storage
+            .from(bucket)
+            .getPublicURL(path: path)
+
+        return url.absoluteString
+    }
+
+    /// Delete a file from storage
+    static func deleteFile(bucket: String, paths: [String]) async throws {
+        try await SupabaseManager.client.storage
+            .from(bucket)
+            .remove(paths: paths)
+    }
+
+    /// Upload a trip cover image
+    /// - Parameters:
+    ///   - data: JPEG image data
+    ///   - userId: Current user's ID (used as folder prefix)
+    ///   - tripId: Trip ID (used in filename)
+    /// - Returns: Public URL for the uploaded cover image
+    static func uploadTripCover(data: Data, userId: UUID, tripId: UUID) async throws -> String {
+        let path = "\(userId.uuidString)/\(tripId.uuidString).jpg"
+        return try await uploadImage(data: data, bucket: "trip-covers", path: path)
+    }
+}

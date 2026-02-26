@@ -1,14 +1,11 @@
 import SwiftUI
 import PhotosUI
 
-struct CreateTripView: View {
+struct EditTripView: View {
+    @Bindable var viewModel: TripDetailViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var viewModel = TripDetailViewModel()
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var coverPreview: Image?
-
-    /// Called on successful creation (optional)
-    var onCreated: ((Trip) -> Void)?
 
     var body: some View {
         NavigationStack {
@@ -17,6 +14,7 @@ struct CreateTripView: View {
                     coverImagePicker
                     tripDetailsSection
                     dateSection
+                    statusSection
                     optionsSection
 
                     if let error = viewModel.errorMessage {
@@ -25,28 +23,34 @@ struct CreateTripView: View {
                             .foregroundStyle(.red)
                             .multilineTextAlignment(.center)
                     }
-
-                    OuestButton(
-                        title: "Create Trip",
-                        isLoading: viewModel.isSaving
-                    ) {
-                        Task {
-                            if let trip = await viewModel.createTrip() {
-                                onCreated?(trip)
-                                dismiss()
-                            }
-                        }
-                    }
-                    .disabled(!isFormValid)
-                    .padding(.top, 8)
                 }
                 .padding(20)
             }
-            .navigationTitle("New Trip")
+            .navigationTitle("Edit Trip")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Save") {
+                        Task {
+                            if await viewModel.updateTrip() {
+                                dismiss()
+                            }
+                        }
+                    }
+                    .fontWeight(.semibold)
+                    .disabled(viewModel.isSaving || !isFormValid)
+                }
+            }
+            .onAppear {
+                if let trip = viewModel.trip {
+                    viewModel.populateFromTrip(trip)
+                    // Load existing cover image preview
+                    if let urlString = trip.coverImageUrl, let url = URL(string: urlString) {
+                        loadRemoteCover(url)
+                    }
                 }
             }
         }
@@ -57,15 +61,13 @@ struct CreateTripView: View {
         !viewModel.destination.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    // MARK: - Cover Image Picker
+    // MARK: - Cover Image
 
     private var coverImagePicker: some View {
         PhotosPicker(selection: $selectedPhoto, matching: .images) {
             ZStack {
                 if let coverPreview {
-                    coverPreview
-                        .resizable()
-                        .scaledToFill()
+                    coverPreview.resizable().scaledToFill()
                 } else {
                     LinearGradient(
                         colors: [.teal.opacity(0.3), .blue.opacity(0.3)],
@@ -75,9 +77,9 @@ struct CreateTripView: View {
                 }
 
                 VStack(spacing: 8) {
-                    Image(systemName: coverPreview == nil ? "photo.badge.plus" : "arrow.triangle.2.circlepath")
+                    Image(systemName: "arrow.triangle.2.circlepath")
                         .font(.title2)
-                    Text(coverPreview == nil ? "Add Cover Photo" : "Change Photo")
+                    Text("Change Photo")
                         .font(.caption)
                         .fontWeight(.medium)
                 }
@@ -86,7 +88,7 @@ struct CreateTripView: View {
                 .background(.ultraThinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
-            .frame(height: 180)
+            .frame(height: 160)
             .clipShape(RoundedRectangle(cornerRadius: 16))
         }
         .onChange(of: selectedPhoto) {
@@ -101,28 +103,32 @@ struct CreateTripView: View {
         }
     }
 
-    // MARK: - Trip Details
+    private func loadRemoteCover(_ url: URL) {
+        Task {
+            if let (data, _) = try? await URLSession.shared.data(from: url),
+               let uiImage = UIImage(data: data) {
+                coverPreview = Image(uiImage: uiImage)
+            }
+        }
+    }
+
+    // MARK: - Fields
 
     private var tripDetailsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Details")
                 .font(.headline)
 
-            OuestTextField(text: $viewModel.title, placeholder: "Trip name (e.g. Summer in Paris)")
-                .textInputAutocapitalization(.words)
+            OuestTextField(text: $viewModel.title, placeholder: "Trip name")
+            OuestTextField(text: $viewModel.destination, placeholder: "Destination")
 
-            OuestTextField(text: $viewModel.destination, placeholder: "Destination (e.g. Paris, France)")
-                .textInputAutocapitalization(.words)
-
-            TextField("What's this trip about?", text: $viewModel.description, axis: .vertical)
+            TextField("Description", text: $viewModel.description, axis: .vertical)
                 .lineLimit(3...6)
                 .padding(16)
                 .background(Color(.systemGray6))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
-
-    // MARK: - Dates
 
     private var dateSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -137,27 +143,15 @@ struct CreateTripView: View {
             if viewModel.hasDates {
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Start")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Text("Start").font(.caption).foregroundStyle(.secondary)
                         DatePicker("", selection: $viewModel.startDate, displayedComponents: .date)
                             .labelsHidden()
                     }
-
-                    Image(systemName: "arrow.right")
-                        .foregroundStyle(.secondary)
-
+                    Image(systemName: "arrow.right").foregroundStyle(.secondary)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("End")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        DatePicker(
-                            "",
-                            selection: $viewModel.endDate,
-                            in: viewModel.startDate...,
-                            displayedComponents: .date
-                        )
-                        .labelsHidden()
+                        Text("End").font(.caption).foregroundStyle(.secondary)
+                        DatePicker("", selection: $viewModel.endDate, in: viewModel.startDate..., displayedComponents: .date)
+                            .labelsHidden()
                     }
                 }
                 .padding(12)
@@ -167,11 +161,36 @@ struct CreateTripView: View {
         }
     }
 
-    // MARK: - Options
+    private var statusSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Status")
+                .font(.headline)
+
+            Picker("Status", selection: Binding(
+                get: { viewModel.trip?.status ?? .planning },
+                set: { newStatus in
+                    guard let tripId = viewModel.trip?.id else { return }
+                    Task {
+                        _ = try? await TripService.updateTrip(
+                            id: tripId,
+                            UpdateTripPayload(status: newStatus)
+                        )
+                        viewModel.trip?.status = newStatus
+                    }
+                }
+            )) {
+                ForEach(TripStatus.allCases, id: \.self) { status in
+                    Label(status.label, systemImage: status.icon)
+                        .tag(status)
+                }
+            }
+            .pickerStyle(.segmented)
+        }
+    }
 
     private var optionsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Options")
+            Text("Visibility")
                 .font(.headline)
 
             Toggle(isOn: $viewModel.isPublic) {
@@ -196,5 +215,5 @@ struct CreateTripView: View {
 }
 
 #Preview {
-    CreateTripView()
+    EditTripView(viewModel: TripDetailViewModel())
 }
