@@ -1,0 +1,862 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		010AF9C2190C208CADA90941 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77AE0754D05E053779AEA16A /* EmptyStateView.swift */; };
+		0FCFB6AB42F8FF495D9DA6B8 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15D2561FDBAF19DC839A7EF7 /* Secrets.swift */; };
+		136C2931919D81BA4737E0E9 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D890038FEE1E7EB64D7D246 /* MainTabView.swift */; };
+		1A6B8687BB964CC7C28E43CE /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 273CE2266E9D1A8C1C78F1B4 /* Date+Extensions.swift */; };
+		1DB3824A8551B9905C8D2A05 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1471B5493D5E72E118435843 /* ContentView.swift */; };
+		2EB97875E4112D2237AD6D21 /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2076A15544CFB733C0C1862 /* NotificationsView.swift */; };
+		4455C306F6B353902EE9F213 /* OuestCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 404D729B581F8B721C76679F /* OuestCard.swift */; };
+		45F635ACD00D4774CDF7EDA8 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 863416E959E9B98060F6A2A2 /* SplashView.swift */; };
+		47D625EA1EF09F167B6C9158 /* Validators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4225F980CD876EF1F5D9A4 /* Validators.swift */; };
+		4869FE0A1A9AE632CF785731 /* OuestUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 441D81C05C14347E28C0914C /* OuestUITests.swift */; };
+		4E0CEAD5D6CD54B257CEB116 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = D4F1E2A48F213E152328004C /* Supabase */; };
+		5172DEE5926D8C4139B9E416 /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6551B92B98EB9C5DA8E49114 /* SupabaseClient.swift */; };
+		542E96006380DB66BD2C1199 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31849C9F45EECCF3DBB25945 /* Constants.swift */; };
+		581F64E8F5A561E461436A47 /* OuestTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BB7BB942DEEF21FF3A8E41A /* OuestTextField.swift */; };
+		5EB65A2DE0954DC2C6A499F7 /* CreateTripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 555E3504804406B935D1700B /* CreateTripView.swift */; };
+		723DD61C9C389F441D5E6FA4 /* OuestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA8C3DDECF1C8A020FA707E1 /* OuestTests.swift */; };
+		8AE4C82B5C339832A831F2A5 /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A0B3F20A09687C202B8D50 /* ErrorView.swift */; };
+		8C09AB25F698869BA1D9C803 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80A6FE65E2EF16888306AEB7 /* ExploreView.swift */; };
+		8D3679DD26E0E31C48C259C3 /* View+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AFDA635CF662A4CB4B27143 /* View+Extensions.swift */; };
+		9D55D58F70F6FECA6CC8140D /* SignUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F72E1AF6FFF12B586EAE87D /* SignUpView.swift */; };
+		A9ECFD759750E74784B9AC53 /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 397854801594D36C025C2BDA /* LoadingView.swift */; };
+		AB905DA25B43915F4D495983 /* Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD3B364293BB2ABF0739899 /* Profile.swift */; };
+		AC8AC0C72DB597A5D24BD5E7 /* ForgotPasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80F152390B340DA30C3C3A44 /* ForgotPasswordView.swift */; };
+		B267D7B8D349EF967680E5BA /* AvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DD881F42F0C2A0924F7314E /* AvatarView.swift */; };
+		B2828590210B82792A1C2057 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE248B4B6BD7442F1D87B75A /* ProfileView.swift */; };
+		BD64BF6C99BBA6F9C8D9084A /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD7DD48EC6F4CA8FF341E807 /* LoginView.swift */; };
+		C3CC7CDDD48172665E8317C0 /* OuestApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 540EA22C5B16A039C9D5767E /* OuestApp.swift */; };
+		DD770E3B6CD09CC9A331E8A7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 12970E485458B2C116D83E12 /* Assets.xcassets */; };
+		E37D216B540A8C27054C64C5 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AB76DC74BD804B52FBAF4E6 /* HomeView.swift */; };
+		EDD057D776A1D56700C857FC /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B64776D1C9BD0D75EB45437 /* AuthViewModel.swift */; };
+		FE5DCAFD7A9347802DC6B656 /* OuestButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB906B1EA5BAB038D8EE16FB /* OuestButton.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		1E6EE7B4BC7C926FD6A30896 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4DAFA49D4AEF4AC22B531300 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CA9FFEB31A9B77306F255B56;
+			remoteInfo = Ouest;
+		};
+		4051121A5EC183A9A0B76642 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4DAFA49D4AEF4AC22B531300 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CA9FFEB31A9B77306F255B56;
+			remoteInfo = Ouest;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0B64776D1C9BD0D75EB45437 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+		0D6692E2310C332A41F0689D /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		12970E485458B2C116D83E12 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1471B5493D5E72E118435843 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		15D2561FDBAF19DC839A7EF7 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
+		273CE2266E9D1A8C1C78F1B4 /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
+		2AB76DC74BD804B52FBAF4E6 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		31849C9F45EECCF3DBB25945 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		397854801594D36C025C2BDA /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
+		3AFDA635CF662A4CB4B27143 /* View+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+Extensions.swift"; sourceTree = "<group>"; };
+		404D729B581F8B721C76679F /* OuestCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OuestCard.swift; sourceTree = "<group>"; };
+		441D81C05C14347E28C0914C /* OuestUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OuestUITests.swift; sourceTree = "<group>"; };
+		4C4225F980CD876EF1F5D9A4 /* Validators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validators.swift; sourceTree = "<group>"; };
+		4F72E1AF6FFF12B586EAE87D /* SignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpView.swift; sourceTree = "<group>"; };
+		540EA22C5B16A039C9D5767E /* OuestApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OuestApp.swift; sourceTree = "<group>"; };
+		555E3504804406B935D1700B /* CreateTripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTripView.swift; sourceTree = "<group>"; };
+		5DD426F6FF14661ABF01AF4F /* OuestUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = OuestUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		63B254D3DCA0DE091FF6A1BE /* OuestTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = OuestTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		6551B92B98EB9C5DA8E49114 /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
+		70B7BDC723C294712E1A4233 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		748084841F7F82623081CD48 /* Ouest.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Ouest.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		77AE0754D05E053779AEA16A /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
+		7BB7BB942DEEF21FF3A8E41A /* OuestTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OuestTextField.swift; sourceTree = "<group>"; };
+		7D890038FEE1E7EB64D7D246 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		7DD881F42F0C2A0924F7314E /* AvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
+		80A6FE65E2EF16888306AEB7 /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
+		80F152390B340DA30C3C3A44 /* ForgotPasswordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgotPasswordView.swift; sourceTree = "<group>"; };
+		863416E959E9B98060F6A2A2 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		8FD3B364293BB2ABF0739899 /* Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Profile.swift; sourceTree = "<group>"; };
+		A2076A15544CFB733C0C1862 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
+		CD7DD48EC6F4CA8FF341E807 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		DE248B4B6BD7442F1D87B75A /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		E6A0B3F20A09687C202B8D50 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
+		EB906B1EA5BAB038D8EE16FB /* OuestButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OuestButton.swift; sourceTree = "<group>"; };
+		EFCE4DDF25B2E47F541CB8EE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		FA8C3DDECF1C8A020FA707E1 /* OuestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OuestTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		0BEDFECEF23418CA024B912A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4E0CEAD5D6CD54B257CEB116 /* Supabase in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		03251993154A39CCB7C2528E /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		09F896346D9C2E8F6F67F312 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				80F152390B340DA30C3C3A44 /* ForgotPasswordView.swift */,
+				CD7DD48EC6F4CA8FF341E807 /* LoginView.swift */,
+				4F72E1AF6FFF12B586EAE87D /* SignUpView.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		13C80CAC1CF5EA41479325A2 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				273CE2266E9D1A8C1C78F1B4 /* Date+Extensions.swift */,
+				3AFDA635CF662A4CB4B27143 /* View+Extensions.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		29AECA54436EF16FDBA9D8CF /* Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				0D6692E2310C332A41F0689D /* Debug.xcconfig */,
+				70B7BDC723C294712E1A4233 /* Release.xcconfig */,
+				15D2561FDBAF19DC839A7EF7 /* Secrets.swift */,
+			);
+			path = Configuration;
+			sourceTree = "<group>";
+		};
+		31BA1E09F99873BD1816E267 /* Expenses */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Expenses;
+			sourceTree = "<group>";
+		};
+		3D66CE31D6491D8367010EFA /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				0B64776D1C9BD0D75EB45437 /* AuthViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		51CD234B0E096B475D4F81B7 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				7DD881F42F0C2A0924F7314E /* AvatarView.swift */,
+				77AE0754D05E053779AEA16A /* EmptyStateView.swift */,
+				E6A0B3F20A09687C202B8D50 /* ErrorView.swift */,
+				397854801594D36C025C2BDA /* LoadingView.swift */,
+				EB906B1EA5BAB038D8EE16FB /* OuestButton.swift */,
+				404D729B581F8B721C76679F /* OuestCard.swift */,
+				7BB7BB942DEEF21FF3A8E41A /* OuestTextField.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		576F5D96A078CDB2A951AE3A /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				6551B92B98EB9C5DA8E49114 /* SupabaseClient.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		5EBBA2444F96223309DD479A /* Notifications */ = {
+			isa = PBXGroup;
+			children = (
+				A2076A15544CFB733C0C1862 /* NotificationsView.swift */,
+			);
+			path = Notifications;
+			sourceTree = "<group>";
+		};
+		894B24EE31E11D280CA1E825 /* Voting */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Voting;
+			sourceTree = "<group>";
+		};
+		89851B8AAF8BB741CF71833A /* OuestTests */ = {
+			isa = PBXGroup;
+			children = (
+				FA8C3DDECF1C8A020FA707E1 /* OuestTests.swift */,
+				DAE14625DEF904E14C761952 /* Services */,
+				D3E3733B208F1412FDE2276C /* Utilities */,
+				03251993154A39CCB7C2528E /* ViewModels */,
+			);
+			path = OuestTests;
+			sourceTree = "<group>";
+		};
+		8A50DFB941194169ED06D0BC /* Trip */ = {
+			isa = PBXGroup;
+			children = (
+				555E3504804406B935D1700B /* CreateTripView.swift */,
+			);
+			path = Trip;
+			sourceTree = "<group>";
+		};
+		8ED75E74B97F6274BEC0C148 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				31849C9F45EECCF3DBB25945 /* Constants.swift */,
+				4C4225F980CD876EF1F5D9A4 /* Validators.swift */,
+				13C80CAC1CF5EA41479325A2 /* Extensions */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		971554975031125A8E8923CB /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				8FD3B364293BB2ABF0739899 /* Profile.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		985684FF095476BBA6A1F377 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				DE248B4B6BD7442F1D87B75A /* ProfileView.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
+		A53D5FECBCDAEE15C9F268A3 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				7D890038FEE1E7EB64D7D246 /* MainTabView.swift */,
+				863416E959E9B98060F6A2A2 /* SplashView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		A67289FD976D73CFC27F5C9F /* Social */ = {
+			isa = PBXGroup;
+			children = (
+				80A6FE65E2EF16888306AEB7 /* ExploreView.swift */,
+			);
+			path = Social;
+			sourceTree = "<group>";
+		};
+		AB02953DD5F89BCC4F3BD50A = {
+			isa = PBXGroup;
+			children = (
+				ED79C56F844743832A82EEF1 /* Ouest */,
+				89851B8AAF8BB741CF71833A /* OuestTests */,
+				F3DC7B3D2BA772EF80B869ED /* OuestUITests */,
+				D503E634D787B2F9E3AE06AF /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AF682CF2B74A2A7718EEF50D /* Journal */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Journal;
+			sourceTree = "<group>";
+		};
+		B0F920386E730DACEA8FDE6D /* EntryRequirements */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = EntryRequirements;
+			sourceTree = "<group>";
+		};
+		B1F50A56CED45D270DC5A23E /* Chat */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Chat;
+			sourceTree = "<group>";
+		};
+		C58E9CAC0D8398F4636195CC /* Itinerary */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Itinerary;
+			sourceTree = "<group>";
+		};
+		CDC412D123B14CA2F38C8E43 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A53D5FECBCDAEE15C9F268A3 /* App */,
+				09F896346D9C2E8F6F67F312 /* Auth */,
+				B1F50A56CED45D270DC5A23E /* Chat */,
+				51CD234B0E096B475D4F81B7 /* Components */,
+				B0F920386E730DACEA8FDE6D /* EntryRequirements */,
+				31BA1E09F99873BD1816E267 /* Expenses */,
+				D5EC5BA7B4ADCFD08D684E23 /* Home */,
+				C58E9CAC0D8398F4636195CC /* Itinerary */,
+				AF682CF2B74A2A7718EEF50D /* Journal */,
+				5EBBA2444F96223309DD479A /* Notifications */,
+				985684FF095476BBA6A1F377 /* Profile */,
+				D276BC8390E1A118D6ACE0D9 /* Sharing */,
+				A67289FD976D73CFC27F5C9F /* Social */,
+				8A50DFB941194169ED06D0BC /* Trip */,
+				894B24EE31E11D280CA1E825 /* Voting */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		D276BC8390E1A118D6ACE0D9 /* Sharing */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Sharing;
+			sourceTree = "<group>";
+		};
+		D3E3733B208F1412FDE2276C /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		D503E634D787B2F9E3AE06AF /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				748084841F7F82623081CD48 /* Ouest.app */,
+				63B254D3DCA0DE091FF6A1BE /* OuestTests.xctest */,
+				5DD426F6FF14661ABF01AF4F /* OuestUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D5EC5BA7B4ADCFD08D684E23 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				2AB76DC74BD804B52FBAF4E6 /* HomeView.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		DAE14625DEF904E14C761952 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		E78B9B3C61270C97A575C2B7 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				12970E485458B2C116D83E12 /* Assets.xcassets */,
+				EFCE4DDF25B2E47F541CB8EE /* Info.plist */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		ED79C56F844743832A82EEF1 /* Ouest */ = {
+			isa = PBXGroup;
+			children = (
+				1471B5493D5E72E118435843 /* ContentView.swift */,
+				540EA22C5B16A039C9D5767E /* OuestApp.swift */,
+				29AECA54436EF16FDBA9D8CF /* Configuration */,
+				971554975031125A8E8923CB /* Models */,
+				E78B9B3C61270C97A575C2B7 /* Resources */,
+				576F5D96A078CDB2A951AE3A /* Services */,
+				8ED75E74B97F6274BEC0C148 /* Utilities */,
+				3D66CE31D6491D8367010EFA /* ViewModels */,
+				CDC412D123B14CA2F38C8E43 /* Views */,
+			);
+			path = Ouest;
+			sourceTree = "<group>";
+		};
+		F3DC7B3D2BA772EF80B869ED /* OuestUITests */ = {
+			isa = PBXGroup;
+			children = (
+				441D81C05C14347E28C0914C /* OuestUITests.swift */,
+			);
+			path = OuestUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		3AD16A4CBA8FE5D9062B05B1 /* OuestUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 23A0EE8ED1D2DB4427DEFC82 /* Build configuration list for PBXNativeTarget "OuestUITests" */;
+			buildPhases = (
+				FC7C7897781ED9ADED323B9B /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5861DF5029F2A7A70A892F19 /* PBXTargetDependency */,
+			);
+			name = OuestUITests;
+			packageProductDependencies = (
+			);
+			productName = OuestUITests;
+			productReference = 5DD426F6FF14661ABF01AF4F /* OuestUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		6D5DF82F0138555C8387FF49 /* OuestTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0FC26B85F2B9D46E9983E8BD /* Build configuration list for PBXNativeTarget "OuestTests" */;
+			buildPhases = (
+				F9BD23136709572A6B67FC35 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B5D7238AFAD7E0B252551F3E /* PBXTargetDependency */,
+			);
+			name = OuestTests;
+			packageProductDependencies = (
+			);
+			productName = OuestTests;
+			productReference = 63B254D3DCA0DE091FF6A1BE /* OuestTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		CA9FFEB31A9B77306F255B56 /* Ouest */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 28017690F7BB459E031EEB5A /* Build configuration list for PBXNativeTarget "Ouest" */;
+			buildPhases = (
+				8791EEFAD6CAB0B399D9DCE5 /* Sources */,
+				D1D2D08665F43D5E8C79579F /* Resources */,
+				0BEDFECEF23418CA024B912A /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Ouest;
+			packageProductDependencies = (
+				D4F1E2A48F213E152328004C /* Supabase */,
+			);
+			productName = Ouest;
+			productReference = 748084841F7F82623081CD48 /* Ouest.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4DAFA49D4AEF4AC22B531300 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					3AD16A4CBA8FE5D9062B05B1 = {
+						TestTargetID = CA9FFEB31A9B77306F255B56;
+					};
+				};
+			};
+			buildConfigurationList = C78AEED936B9E9467E196EDA /* Build configuration list for PBXProject "Ouest" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = AB02953DD5F89BCC4F3BD50A;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				EEB06C2C71492EE27D0E7E9B /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CA9FFEB31A9B77306F255B56 /* Ouest */,
+				6D5DF82F0138555C8387FF49 /* OuestTests */,
+				3AD16A4CBA8FE5D9062B05B1 /* OuestUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D1D2D08665F43D5E8C79579F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DD770E3B6CD09CC9A331E8A7 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8791EEFAD6CAB0B399D9DCE5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EDD057D776A1D56700C857FC /* AuthViewModel.swift in Sources */,
+				B267D7B8D349EF967680E5BA /* AvatarView.swift in Sources */,
+				542E96006380DB66BD2C1199 /* Constants.swift in Sources */,
+				1DB3824A8551B9905C8D2A05 /* ContentView.swift in Sources */,
+				5EB65A2DE0954DC2C6A499F7 /* CreateTripView.swift in Sources */,
+				1A6B8687BB964CC7C28E43CE /* Date+Extensions.swift in Sources */,
+				010AF9C2190C208CADA90941 /* EmptyStateView.swift in Sources */,
+				8AE4C82B5C339832A831F2A5 /* ErrorView.swift in Sources */,
+				8C09AB25F698869BA1D9C803 /* ExploreView.swift in Sources */,
+				AC8AC0C72DB597A5D24BD5E7 /* ForgotPasswordView.swift in Sources */,
+				E37D216B540A8C27054C64C5 /* HomeView.swift in Sources */,
+				A9ECFD759750E74784B9AC53 /* LoadingView.swift in Sources */,
+				BD64BF6C99BBA6F9C8D9084A /* LoginView.swift in Sources */,
+				136C2931919D81BA4737E0E9 /* MainTabView.swift in Sources */,
+				2EB97875E4112D2237AD6D21 /* NotificationsView.swift in Sources */,
+				C3CC7CDDD48172665E8317C0 /* OuestApp.swift in Sources */,
+				FE5DCAFD7A9347802DC6B656 /* OuestButton.swift in Sources */,
+				4455C306F6B353902EE9F213 /* OuestCard.swift in Sources */,
+				581F64E8F5A561E461436A47 /* OuestTextField.swift in Sources */,
+				AB905DA25B43915F4D495983 /* Profile.swift in Sources */,
+				B2828590210B82792A1C2057 /* ProfileView.swift in Sources */,
+				0FCFB6AB42F8FF495D9DA6B8 /* Secrets.swift in Sources */,
+				9D55D58F70F6FECA6CC8140D /* SignUpView.swift in Sources */,
+				45F635ACD00D4774CDF7EDA8 /* SplashView.swift in Sources */,
+				5172DEE5926D8C4139B9E416 /* SupabaseClient.swift in Sources */,
+				47D625EA1EF09F167B6C9158 /* Validators.swift in Sources */,
+				8D3679DD26E0E31C48C259C3 /* View+Extensions.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F9BD23136709572A6B67FC35 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				723DD61C9C389F441D5E6FA4 /* OuestTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FC7C7897781ED9ADED323B9B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4869FE0A1A9AE632CF785731 /* OuestUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5861DF5029F2A7A70A892F19 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CA9FFEB31A9B77306F255B56 /* Ouest */;
+			targetProxy = 1E6EE7B4BC7C926FD6A30896 /* PBXContainerItemProxy */;
+		};
+		B5D7238AFAD7E0B252551F3E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CA9FFEB31A9B77306F255B56 /* Ouest */;
+			targetProxy = 4051121A5EC183A9A0B76642 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0051EB66DD940F155FB1B276 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ouest.OuestUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Ouest;
+			};
+			name = Release;
+		};
+		0DA1C63FD9753D8F4F0DBFB0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Ouest/Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Ouest;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ouest.app;
+				SDKROOT = iphoneos;
+				SUPABASE_ANON_KEY = "$(SUPABASE_ANON_KEY)";
+				SUPABASE_URL = "$(SUPABASE_URL)";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				xcconfig = Ouest/Configuration/Debug.xcconfig;
+			};
+			name = Debug;
+		};
+		2AA908C26360A2CEFC7D20C4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Ouest/Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Ouest;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ouest.app;
+				SDKROOT = iphoneos;
+				SUPABASE_ANON_KEY = "$(SUPABASE_ANON_KEY)";
+				SUPABASE_URL = "$(SUPABASE_URL)";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				xcconfig = Ouest/Configuration/Release.xcconfig;
+			};
+			name = Release;
+		};
+		54B15C630ECA3176E59115D9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ouest.OuestTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Ouest.app/Ouest";
+			};
+			name = Debug;
+		};
+		7141D59A32D1C698E6A944A9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		C3D12B11D30E41D94CE62C31 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ouest.OuestUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Ouest;
+			};
+			name = Debug;
+		};
+		EE06F7AA371EFAD12CD30E18 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		F5D1F434AFF04F0ABAC31B8A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ouest.OuestTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Ouest.app/Ouest";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0FC26B85F2B9D46E9983E8BD /* Build configuration list for PBXNativeTarget "OuestTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				54B15C630ECA3176E59115D9 /* Debug */,
+				F5D1F434AFF04F0ABAC31B8A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		23A0EE8ED1D2DB4427DEFC82 /* Build configuration list for PBXNativeTarget "OuestUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C3D12B11D30E41D94CE62C31 /* Debug */,
+				0051EB66DD940F155FB1B276 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		28017690F7BB459E031EEB5A /* Build configuration list for PBXNativeTarget "Ouest" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0DA1C63FD9753D8F4F0DBFB0 /* Debug */,
+				2AA908C26360A2CEFC7D20C4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C78AEED936B9E9467E196EDA /* Build configuration list for PBXProject "Ouest" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7141D59A32D1C698E6A944A9 /* Debug */,
+				EE06F7AA371EFAD12CD30E18 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		EEB06C2C71492EE27D0E7E9B /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D4F1E2A48F213E152328004C /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EEB06C2C71492EE27D0E7E9B /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 4DAFA49D4AEF4AC22B531300 /* Project object */;
+}
