@@ -76,6 +76,29 @@ struct LoginView: View {
                     .fontWeight(.semibold)
                 }
                 .font(.subheadline)
+
+                #if DEBUG
+                // Dev sign-in — visible only in debug builds
+                Button {
+                    Task { await authViewModel.devSignIn() }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "wrench.and.screwdriver")
+                            .font(.caption)
+                        Text("Dev Sign In")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(.orange.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [4]))
+                    )
+                }
+                .padding(.bottom, 8)
+                #endif
             }
             .padding(.horizontal, 24)
             .navigationDestination(isPresented: $showSignUp) {

@@ -94,4 +94,37 @@ final class AuthViewModel {
             currentUser = nil
         }
     }
+
+    // MARK: - Dev Sign-In (DEBUG only)
+
+    #if DEBUG
+    /// One-tap dev sign-in using a test Supabase account.
+    /// If the test account doesn't exist yet, creates it first.
+    func devSignIn() async {
+        let email = "dev@ouest.app"
+        let password = "devpassword123"
+        let fullName = "Dev User"
+
+        errorMessage = nil
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            // Try signing in first
+            let session = try await AuthService.signIn(email: email, password: password)
+            isAuthenticated = true
+            await loadProfile(userId: session.user.id)
+        } catch {
+            // Account likely doesn't exist — create it, then sign in
+            do {
+                _ = try await AuthService.signUp(email: email, password: password, fullName: fullName)
+                let session = try await AuthService.signIn(email: email, password: password)
+                isAuthenticated = true
+                await loadProfile(userId: session.user.id)
+            } catch {
+                errorMessage = "Dev sign-in failed: \(error.localizedDescription)"
+            }
+        }
+    }
+    #endif
 }
