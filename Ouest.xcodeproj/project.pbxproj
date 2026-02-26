@@ -21,8 +21,11 @@
 		5172DEE5926D8C4139B9E416 /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6551B92B98EB9C5DA8E49114 /* SupabaseClient.swift */; };
 		542E96006380DB66BD2C1199 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31849C9F45EECCF3DBB25945 /* Constants.swift */; };
 		581F64E8F5A561E461436A47 /* OuestTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BB7BB942DEEF21FF3A8E41A /* OuestTextField.swift */; };
+		5CD04F36C6FE4220B706FCD7 /* AuthViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84C7D86159E0B359EA9D01D7 /* AuthViewModelTests.swift */; };
 		5EB65A2DE0954DC2C6A499F7 /* CreateTripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 555E3504804406B935D1700B /* CreateTripView.swift */; };
+		7186BC4842F4F3359224E9ED /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2503CCBB38708B06F75CEAC /* AuthService.swift */; };
 		723DD61C9C389F441D5E6FA4 /* OuestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA8C3DDECF1C8A020FA707E1 /* OuestTests.swift */; };
+		87904E8AF3932235359F72E4 /* AuthServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7632576DB97B7B51BD4DABE /* AuthServiceTests.swift */; };
 		8AE4C82B5C339832A831F2A5 /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A0B3F20A09687C202B8D50 /* ErrorView.swift */; };
 		8C09AB25F698869BA1D9C803 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80A6FE65E2EF16888306AEB7 /* ExploreView.swift */; };
 		8D3679DD26E0E31C48C259C3 /* View+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AFDA635CF662A4CB4B27143 /* View+Extensions.swift */; };
@@ -85,9 +88,12 @@
 		7DD881F42F0C2A0924F7314E /* AvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
 		80A6FE65E2EF16888306AEB7 /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
 		80F152390B340DA30C3C3A44 /* ForgotPasswordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgotPasswordView.swift; sourceTree = "<group>"; };
+		84C7D86159E0B359EA9D01D7 /* AuthViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModelTests.swift; sourceTree = "<group>"; };
 		863416E959E9B98060F6A2A2 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		8FD3B364293BB2ABF0739899 /* Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Profile.swift; sourceTree = "<group>"; };
 		A2076A15544CFB733C0C1862 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
+		C2503CCBB38708B06F75CEAC /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		C7632576DB97B7B51BD4DABE /* AuthServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthServiceTests.swift; sourceTree = "<group>"; };
 		CD7DD48EC6F4CA8FF341E807 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		DE248B4B6BD7442F1D87B75A /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		E6A0B3F20A09687C202B8D50 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
@@ -111,6 +117,7 @@
 		03251993154A39CCB7C2528E /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				84C7D86159E0B359EA9D01D7 /* AuthViewModelTests.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -176,6 +183,7 @@
 		576F5D96A078CDB2A951AE3A /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				C2503CCBB38708B06F75CEAC /* AuthService.swift */,
 				6551B92B98EB9C5DA8E49114 /* SupabaseClient.swift */,
 			);
 			path = Services;
@@ -353,6 +361,7 @@
 		DAE14625DEF904E14C761952 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				C7632576DB97B7B51BD4DABE /* AuthServiceTests.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -503,6 +512,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7186BC4842F4F3359224E9ED /* AuthService.swift in Sources */,
 				EDD057D776A1D56700C857FC /* AuthViewModel.swift in Sources */,
 				B267D7B8D349EF967680E5BA /* AvatarView.swift in Sources */,
 				542E96006380DB66BD2C1199 /* Constants.swift in Sources */,
@@ -537,6 +547,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				87904E8AF3932235359F72E4 /* AuthServiceTests.swift in Sources */,
+				5CD04F36C6FE4220B706FCD7 /* AuthViewModelTests.swift in Sources */,
 				723DD61C9C389F441D5E6FA4 /* OuestTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -583,9 +595,11 @@
 		};
 		0DA1C63FD9753D8F4F0DBFB0 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 0D6692E2310C332A41F0689D /* Debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Ouest/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Ouest;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -596,18 +610,17 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ouest.app;
 				SDKROOT = iphoneos;
-				SUPABASE_ANON_KEY = "$(SUPABASE_ANON_KEY)";
-				SUPABASE_URL = "$(SUPABASE_URL)";
 				TARGETED_DEVICE_FAMILY = "1,2";
-				xcconfig = Ouest/Configuration/Debug.xcconfig;
 			};
 			name = Debug;
 		};
 		2AA908C26360A2CEFC7D20C4 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 70B7BDC723C294712E1A4233 /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Ouest/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Ouest;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -618,10 +631,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ouest.app;
 				SDKROOT = iphoneos;
-				SUPABASE_ANON_KEY = "$(SUPABASE_ANON_KEY)";
-				SUPABASE_URL = "$(SUPABASE_URL)";
 				TARGETED_DEVICE_FAMILY = "1,2";
-				xcconfig = Ouest/Configuration/Release.xcconfig;
 			};
 			name = Release;
 		};

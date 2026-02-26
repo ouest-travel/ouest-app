@@ -13,6 +13,19 @@ struct SignUpView: View {
     }
 
     var body: some View {
+        Group {
+            if authViewModel.needsEmailConfirmation {
+                emailConfirmationView
+            } else {
+                signUpFormView
+            }
+        }
+        .navigationBarBackButtonHidden(false)
+    }
+
+    // MARK: - Sign Up Form
+
+    private var signUpFormView: some View {
         VStack(spacing: 32) {
             VStack(spacing: 8) {
                 Text("Create Account")
@@ -78,7 +91,38 @@ struct SignUpView: View {
             Spacer()
         }
         .padding(.horizontal, 24)
-        .navigationBarBackButtonHidden(false)
+    }
+
+    // MARK: - Email Confirmation
+
+    private var emailConfirmationView: some View {
+        VStack(spacing: 24) {
+            Spacer()
+
+            Image(systemName: "envelope.badge.fill")
+                .font(.system(size: 64))
+                .foregroundStyle(.green)
+
+            VStack(spacing: 8) {
+                Text("Check Your Email")
+                    .font(.title2)
+                    .fontWeight(.bold)
+
+                Text("We've sent a confirmation link to **\(email)**. Tap the link to activate your account, then come back and sign in.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            OuestButton(title: "Back to Sign In") {
+                authViewModel.needsEmailConfirmation = false
+                dismiss()
+            }
+            .padding(.top, 8)
+
+            Spacer()
+        }
+        .padding(.horizontal, 24)
     }
 }
 

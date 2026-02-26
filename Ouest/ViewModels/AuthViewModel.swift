@@ -1,6 +1,5 @@
 import Foundation
 import Observation
-import Supabase
 
 @MainActor @Observable
 final class AuthViewModel {
@@ -8,15 +7,16 @@ final class AuthViewModel {
     var isLoading = true
     var currentUser: Profile?
     var errorMessage: String?
+    var needsEmailConfirmation = false
 
     func restoreSession() async {
         isLoading = true
         defer { isLoading = false }
 
         do {
-            let session = try await SupabaseManager.client.auth.session
+            let session = try await AuthService.restoreSession()
             isAuthenticated = true
-            await fetchProfile(userId: session.user.id)
+            await loadProfile(userId: session.user.id)
         } catch {
             isAuthenticated = false
         }
@@ -28,12 +28,11 @@ final class AuthViewModel {
         defer { isLoading = false }
 
         do {
-            let session = try await SupabaseManager.client.auth.signIn(
-                email: email,
-                password: password
-            )
+            let session = try await AuthService.signIn(email: email, password: password)
             isAuthenticated = true
-            await fetchProfile(userId: session.user.id)
+            await loadProfile(userId: session.user.id)
+        } catch let error as AuthError {
+            errorMessage = error.errorDescription
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -41,19 +40,27 @@ final class AuthViewModel {
 
     func signUp(email: String, password: String, fullName: String) async {
         errorMessage = nil
+        needsEmailConfirmation = false
         isLoading = true
         defer { isLoading = false }
 
         do {
-            let response = try await SupabaseManager.client.auth.signUp(
+            let session = try await AuthService.signUp(
                 email: email,
                 password: password,
-                data: ["full_name": .string(fullName)]
+                fullName: fullName
             )
-            if response.session != nil {
+
+            if let session {
+                // Logged in immediately (email confirmation disabled)
                 isAuthenticated = true
-                await fetchProfile(userId: response.user.id)
+                await loadProfile(userId: session.user.id)
+            } else {
+                // Email confirmation required
+                needsEmailConfirmation = true
             }
+        } catch let error as AuthError {
+            errorMessage = error.errorDescription
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -61,9 +68,10 @@ final class AuthViewModel {
 
     func signOut() async {
         do {
-            try await SupabaseManager.client.auth.signOut()
+            try await AuthService.signOut()
             isAuthenticated = false
             currentUser = nil
+            needsEmailConfirmation = false
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -72,22 +80,15 @@ final class AuthViewModel {
     func resetPassword(email: String) async {
         errorMessage = nil
         do {
-            try await SupabaseManager.client.auth.resetPasswordForEmail(email)
+            try await AuthService.resetPassword(email: email)
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
-    private func fetchProfile(userId: UUID) async {
+    private func loadProfile(userId: UUID) async {
         do {
-            let profile: Profile = try await SupabaseManager.client
-                .from("profiles")
-                .select()
-                .eq("id", value: userId)
-                .single()
-                .execute()
-                .value
-            currentUser = profile
+            currentUser = try await AuthService.fetchProfile(userId: userId)
         } catch {
             // Profile may not exist yet if trigger hasn't fired
             currentUser = nil

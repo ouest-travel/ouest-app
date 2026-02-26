@@ -24,21 +24,18 @@ targets:
     platform: iOS
     sources:
       - Ouest
+    configFiles:
+      Debug: Ouest/Configuration/Debug.xcconfig
+      Release: Ouest/Configuration/Release.xcconfig
     settings:
       base:
         INFOPLIST_FILE: Ouest/Resources/Info.plist
+        GENERATE_INFOPLIST_FILE: false
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_BUNDLE_IDENTIFIER: com.ouest.app
         INFOPLIST_KEY_CFBundleDisplayName: Ouest
         INFOPLIST_KEY_UILaunchScreen_Generation: true
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
-        SUPABASE_URL: $(SUPABASE_URL)
-        SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
-      configs:
-        Debug:
-          xcconfig: Ouest/Configuration/Debug.xcconfig
-        Release:
-          xcconfig: Ouest/Configuration/Release.xcconfig
     dependencies:
       - package: Supabase
     info:
