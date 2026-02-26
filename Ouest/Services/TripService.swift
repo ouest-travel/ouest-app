@@ -82,7 +82,7 @@ enum TripService {
     static func fetchMembers(tripId: UUID) async throws -> [TripMember] {
         try await SupabaseManager.client
             .from("trip_members")
-            .select("*, profile:profiles(*)")
+            .select("*, profile:profiles!trip_members_user_id_fkey(*)")
             .eq("trip_id", value: tripId)
             .order("joined_at")
             .execute()
@@ -94,7 +94,7 @@ enum TripService {
         try await SupabaseManager.client
             .from("trip_members")
             .insert(payload)
-            .select("*, profile:profiles(*)")
+            .select("*, profile:profiles!trip_members_user_id_fkey(*)")
             .single()
             .execute()
             .value
@@ -118,6 +118,16 @@ enum TripService {
             .execute()
     }
 
+    /// Fetch lightweight member previews for multiple trips in one query (home screen)
+    static func fetchMemberPreviews(tripIds: [UUID]) async throws -> [TripMemberPreview] {
+        try await SupabaseManager.client
+            .from("trip_members")
+            .select("id, trip_id, user_id, role, profile:profiles!trip_members_user_id_fkey(avatar_url, full_name)")
+            .in("trip_id", values: tripIds)
+            .execute()
+            .value
+    }
+
     /// Search profiles by handle for inviting to a trip
     static func searchProfiles(query: String) async throws -> [Profile] {
         try await SupabaseManager.client
@@ -137,6 +147,29 @@ enum TripService {
             .eq("is_public", value: true)
             .order("created_at", ascending: false)
             .range(from: offset, to: offset + limit - 1)
+            .execute()
+            .value
+    }
+
+    /// Fetch a single profile by user ID
+    static func fetchProfile(userId: UUID) async throws -> Profile {
+        try await SupabaseManager.client
+            .from("profiles")
+            .select()
+            .eq("id", value: userId)
+            .single()
+            .execute()
+            .value
+    }
+
+    /// Fetch public trips by a specific user
+    static func fetchUserPublicTrips(userId: UUID) async throws -> [Trip] {
+        try await SupabaseManager.client
+            .from("trips")
+            .select()
+            .eq("created_by", value: userId)
+            .eq("is_public", value: true)
+            .order("created_at", ascending: false)
             .execute()
             .value
     }

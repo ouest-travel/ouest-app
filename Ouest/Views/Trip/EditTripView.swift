@@ -10,21 +10,22 @@ struct EditTripView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: OuestTheme.Spacing.xxl) {
                     coverImagePicker
                     tripDetailsSection
                     dateSection
+                    budgetSection
                     statusSection
                     optionsSection
 
                     if let error = viewModel.errorMessage {
                         Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                            .font(OuestTheme.Typography.caption)
+                            .foregroundStyle(OuestTheme.Colors.error)
                             .multilineTextAlignment(.center)
                     }
                 }
-                .padding(20)
+                .padding(OuestTheme.Spacing.xl)
             }
             .navigationTitle("Edit Trip")
             .navigationBarTitleDisplayMode(.inline)
@@ -68,6 +69,7 @@ struct EditTripView: View {
             ZStack {
                 if let coverPreview {
                     coverPreview.resizable().scaledToFill()
+                        .transition(.opacity)
                 } else {
                     LinearGradient(
                         colors: [.teal.opacity(0.3), .blue.opacity(0.3)],
@@ -76,27 +78,33 @@ struct EditTripView: View {
                     )
                 }
 
-                VStack(spacing: 8) {
+                VStack(spacing: OuestTheme.Spacing.sm) {
                     Image(systemName: "arrow.triangle.2.circlepath")
                         .font(.title2)
+                        .symbolEffect(.bounce, value: coverPreview != nil)
                     Text("Change Photo")
-                        .font(.caption)
+                        .font(OuestTheme.Typography.caption)
                         .fontWeight(.medium)
                 }
                 .foregroundStyle(.white)
-                .padding(12)
+                .padding(OuestTheme.Spacing.md)
                 .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
             }
             .frame(height: 160)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
         }
+        .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 2)
+        .pressEffect(scale: 0.97)
         .onChange(of: selectedPhoto) {
             Task {
                 if let data = try? await selectedPhoto?.loadTransferable(type: Data.self) {
                     viewModel.coverImageData = data
                     if let uiImage = UIImage(data: data) {
-                        coverPreview = Image(uiImage: uiImage)
+                        withAnimation(OuestTheme.Anim.smooth) {
+                            coverPreview = Image(uiImage: uiImage)
+                        }
+                        HapticFeedback.selection()
                     }
                 }
             }
@@ -115,56 +123,122 @@ struct EditTripView: View {
     // MARK: - Fields
 
     private var tripDetailsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Details")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: OuestTheme.Spacing.md) {
+            sectionHeader("Details", icon: "pencil.line")
 
             OuestTextField(text: $viewModel.title, placeholder: "Trip name")
+                .textInputAutocapitalization(.words)
             OuestTextField(text: $viewModel.destination, placeholder: "Destination")
+                .textInputAutocapitalization(.words)
 
             TextField("Description", text: $viewModel.description, axis: .vertical)
                 .lineLimit(3...6)
-                .padding(16)
-                .background(Color(.systemGray6))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(OuestTheme.Spacing.lg)
+                .background(OuestTheme.Colors.surfaceSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
         }
     }
 
     private var dateSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: OuestTheme.Spacing.md) {
             HStack {
-                Text("Dates")
-                    .font(.headline)
+                sectionHeader("Dates", icon: "calendar")
                 Spacer()
                 Toggle("", isOn: $viewModel.hasDates)
                     .labelsHidden()
+                    .tint(OuestTheme.Colors.brand)
             }
 
             if viewModel.hasDates {
-                HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Start").font(.caption).foregroundStyle(.secondary)
+                HStack(spacing: OuestTheme.Spacing.md) {
+                    VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
+                        Text("Start")
+                            .font(OuestTheme.Typography.caption)
+                            .foregroundStyle(OuestTheme.Colors.textSecondary)
                         DatePicker("", selection: $viewModel.startDate, displayedComponents: .date)
                             .labelsHidden()
                     }
-                    Image(systemName: "arrow.right").foregroundStyle(.secondary)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("End").font(.caption).foregroundStyle(.secondary)
+                    Image(systemName: "arrow.right")
+                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+                        .font(.caption)
+                    VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
+                        Text("End")
+                            .font(OuestTheme.Typography.caption)
+                            .foregroundStyle(OuestTheme.Colors.textSecondary)
                         DatePicker("", selection: $viewModel.endDate, in: viewModel.startDate..., displayedComponents: .date)
                             .labelsHidden()
                     }
                 }
-                .padding(12)
-                .background(Color(.systemGray6))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(OuestTheme.Spacing.md)
+                .background(OuestTheme.Colors.surfaceSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+        .animation(OuestTheme.Anim.smooth, value: viewModel.hasDates)
     }
 
+    // MARK: - Budget
+
+    private static let currencies: [(code: String, symbol: String)] = [
+        ("USD", "$"), ("EUR", "€"), ("GBP", "£"), ("CAD", "C$"),
+        ("JPY", "¥"), ("AUD", "A$"), ("CHF", "CHF")
+    ]
+
+    private var budgetSection: some View {
+        VStack(alignment: .leading, spacing: OuestTheme.Spacing.md) {
+            HStack {
+                sectionHeader("Budget", icon: "dollarsign.circle")
+                Spacer()
+                Toggle("", isOn: $viewModel.hasBudget)
+                    .labelsHidden()
+                    .tint(OuestTheme.Colors.brand)
+            }
+
+            if viewModel.hasBudget {
+                VStack(spacing: OuestTheme.Spacing.md) {
+                    // Currency picker
+                    HStack {
+                        Text("Currency")
+                            .font(OuestTheme.Typography.caption)
+                            .foregroundStyle(OuestTheme.Colors.textSecondary)
+                        Spacer()
+                        Picker("Currency", selection: $viewModel.currency) {
+                            ForEach(Self.currencies, id: \.code) { curr in
+                                Text("\(curr.symbol) \(curr.code)").tag(curr.code)
+                            }
+                        }
+                        .tint(OuestTheme.Colors.brand)
+                    }
+
+                    // Budget amount
+                    HStack(spacing: OuestTheme.Spacing.sm) {
+                        Text(Self.currencies.first(where: { $0.code == viewModel.currency })?.symbol ?? "$")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(OuestTheme.Colors.brand)
+                            .frame(width: 28)
+
+                        TextField("0", text: $viewModel.budgetText)
+                            .keyboardType(.decimalPad)
+                            .font(.title3)
+                            .fontWeight(.medium)
+                    }
+                    .padding(OuestTheme.Spacing.md)
+                    .background(OuestTheme.Colors.surfaceSecondary)
+                    .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .animation(OuestTheme.Anim.smooth, value: viewModel.hasBudget)
+    }
+
+    // MARK: - Status
+
     private var statusSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Status")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: OuestTheme.Spacing.md) {
+            sectionHeader("Status", icon: "flag")
 
             Picker("Status", selection: Binding(
                 get: { viewModel.trip?.status ?? .planning },
@@ -189,27 +263,42 @@ struct EditTripView: View {
     }
 
     private var optionsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Visibility")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: OuestTheme.Spacing.md) {
+            sectionHeader("Visibility", icon: "eye")
 
             Toggle(isOn: $viewModel.isPublic) {
                 HStack(spacing: 10) {
                     Image(systemName: viewModel.isPublic ? "globe" : "lock.fill")
-                        .foregroundStyle(viewModel.isPublic ? .green : .secondary)
+                        .foregroundStyle(viewModel.isPublic ? OuestTheme.Colors.success : OuestTheme.Colors.textSecondary)
                         .frame(width: 20)
-                    VStack(alignment: .leading, spacing: 2) {
+                        .contentTransition(.symbolEffect(.replace))
+                    VStack(alignment: .leading, spacing: OuestTheme.Spacing.xxs) {
                         Text(viewModel.isPublic ? "Public" : "Private")
                             .font(.subheadline)
+                            .fontWeight(.medium)
                         Text(viewModel.isPublic ? "Anyone can discover this trip" : "Only invited members can see")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(OuestTheme.Typography.caption)
+                            .foregroundStyle(OuestTheme.Colors.textSecondary)
                     }
                 }
             }
-            .padding(12)
-            .background(Color(.systemGray6))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .tint(OuestTheme.Colors.brand)
+            .padding(OuestTheme.Spacing.md)
+            .background(OuestTheme.Colors.surfaceSecondary)
+            .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+        }
+        .animation(OuestTheme.Anim.quick, value: viewModel.isPublic)
+    }
+
+    // MARK: - Section Header
+
+    private func sectionHeader(_ title: String, icon: String) -> some View {
+        HStack(spacing: OuestTheme.Spacing.sm) {
+            Image(systemName: icon)
+                .font(.subheadline)
+                .foregroundStyle(OuestTheme.Colors.brand)
+            Text(title)
+                .font(OuestTheme.Typography.sectionTitle)
         }
     }
 }

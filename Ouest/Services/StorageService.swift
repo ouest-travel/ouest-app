@@ -14,8 +14,8 @@ enum StorageService {
         try await SupabaseManager.client.storage
             .from(bucket)
             .upload(
-                path: path,
-                file: data,
+                path,
+                data: data,
                 options: FileOptions(
                     contentType: "image/jpeg",
                     upsert: true
@@ -45,5 +45,15 @@ enum StorageService {
     static func uploadTripCover(data: Data, userId: UUID, tripId: UUID) async throws -> String {
         let path = "\(userId.uuidString)/\(tripId.uuidString).jpg"
         return try await uploadImage(data: data, bucket: "trip-covers", path: path)
+    }
+
+    /// Upload a profile avatar image
+    /// - Parameters:
+    ///   - data: JPEG image data
+    ///   - userId: Current user's ID (used as folder + filename)
+    /// - Returns: Public URL for the uploaded avatar
+    static func uploadProfileAvatar(data: Data, userId: UUID) async throws -> String {
+        let path = "\(userId.uuidString)/avatar.jpg"
+        return try await uploadImage(data: data, bucket: "profile-avatars", path: path)
     }
 }

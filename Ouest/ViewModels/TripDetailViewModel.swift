@@ -22,6 +22,9 @@ final class TripDetailViewModel {
     var hasDates = true
     var isPublic = false
     var coverImageData: Data?
+    var budgetText = ""
+    var currency = "USD"
+    var hasBudget = false
 
     // MARK: - Members search
     var searchQuery = ""
@@ -86,7 +89,9 @@ final class TripDetailViewModel {
                 startDate: hasDates ? startDate : nil,
                 endDate: hasDates ? endDate : nil,
                 status: .planning,
-                isPublic: isPublic
+                isPublic: isPublic,
+                budget: hasBudget ? Double(budgetText) : nil,
+                currency: hasBudget ? currency : nil
             )
 
             let newTrip = try await TripService.createTrip(payload)
@@ -101,6 +106,15 @@ final class TripDetailViewModel {
                 _ = try await TripService.updateTrip(
                     id: newTrip.id,
                     UpdateTripPayload(coverImageUrl: finalUrl)
+                )
+            }
+
+            // Auto-generate itinerary days if trip has dates
+            if hasDates {
+                try? await ItineraryService.generateDaysForTrip(
+                    tripId: newTrip.id,
+                    startDate: startDate,
+                    endDate: endDate
                 )
             }
 
@@ -141,10 +155,26 @@ final class TripDetailViewModel {
                 coverImageUrl: coverUrl,
                 startDate: hasDates ? startDate : nil,
                 endDate: hasDates ? endDate : nil,
-                isPublic: isPublic
+                isPublic: isPublic,
+                budget: hasBudget ? Double(budgetText) : nil,
+                currency: hasBudget ? currency : nil
             )
 
+            let oldTrip = trip
             trip = try await TripService.updateTrip(id: tripId, payload)
+
+            // If dates were added/changed, auto-generate itinerary days (only if none exist)
+            if hasDates && (oldTrip?.startDate == nil || oldTrip?.endDate == nil) {
+                let existingDays = try await ItineraryService.fetchDays(tripId: tripId)
+                if existingDays.isEmpty {
+                    try? await ItineraryService.generateDaysForTrip(
+                        tripId: tripId,
+                        startDate: startDate,
+                        endDate: endDate
+                    )
+                }
+            }
+
             isSaving = false
             return true
         } catch {
@@ -164,6 +194,9 @@ final class TripDetailViewModel {
         endDate = trip.endDate ?? Date().addingTimeInterval(7 * 24 * 60 * 60)
         hasDates = trip.startDate != nil
         isPublic = trip.isPublic
+        hasBudget = trip.budget != nil && trip.budget! > 0
+        budgetText = trip.budget.map { String(format: "%.0f", $0) } ?? ""
+        currency = trip.currency ?? "USD"
     }
 
     // MARK: - Members

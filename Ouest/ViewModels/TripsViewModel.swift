@@ -5,6 +5,7 @@ import Observation
 @MainActor @Observable
 final class TripsViewModel {
     var trips: [Trip] = []
+    var tripMembers: [UUID: [TripMemberPreview]] = [:]
     var isLoading = false
     var errorMessage: String?
 
@@ -21,12 +22,25 @@ final class TripsViewModel {
             .first
     }
 
+    /// Get member previews for a specific trip
+    func membersForTrip(_ trip: Trip) -> [TripMemberPreview] {
+        tripMembers[trip.id] ?? []
+    }
+
     func fetchTrips() async {
         isLoading = trips.isEmpty // Only show loading on first load
         errorMessage = nil
 
         do {
             trips = try await TripService.fetchMyTrips()
+
+            // Batch-fetch member previews for all trips
+            if !trips.isEmpty {
+                let allMembers = try await TripService.fetchMemberPreviews(
+                    tripIds: trips.map(\.id)
+                )
+                tripMembers = Dictionary(grouping: allMembers, by: \.tripId)
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -38,10 +52,25 @@ final class TripsViewModel {
         do {
             try await TripService.deleteTrip(id: trip.id)
             trips.removeAll { $0.id == trip.id }
+            tripMembers.removeValue(forKey: trip.id)
             return true
         } catch {
             errorMessage = error.localizedDescription
             return false
+        }
+    }
+
+    func updateTripStatus(_ trip: Trip, to status: TripStatus) async {
+        do {
+            let updated = try await TripService.updateTrip(
+                id: trip.id,
+                UpdateTripPayload(status: status)
+            )
+            if let index = trips.firstIndex(where: { $0.id == trip.id }) {
+                trips[index] = updated
+            }
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 }

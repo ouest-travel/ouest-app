@@ -5,10 +5,10 @@ struct OuestCard<Content: View>: View {
 
     var body: some View {
         content()
-            .padding(16)
-            .background(Color(.systemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 2)
+            .padding(OuestTheme.Spacing.lg)
+            .background(OuestTheme.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
+            .shadow(OuestTheme.Shadow.md)
     }
 }
 

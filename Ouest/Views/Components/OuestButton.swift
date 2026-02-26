@@ -13,11 +13,15 @@ struct OuestButton: View {
     }
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
+        Button {
+            HapticFeedback.light()
+            action()
+        } label: {
+            HStack(spacing: OuestTheme.Spacing.sm) {
                 if isLoading {
                     ProgressView()
                         .tint(foregroundColor)
+                        .transition(.scale.combined(with: .opacity))
                 }
                 Text(title)
                     .fontWeight(.semibold)
@@ -26,23 +30,25 @@ struct OuestButton: View {
             .frame(height: 50)
             .background(backgroundColor)
             .foregroundStyle(foregroundColor)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
         }
         .disabled(isLoading)
+        .pressEffect(scale: 0.97)
+        .animation(OuestTheme.Anim.quick, value: isLoading)
     }
 
     private var backgroundColor: Color {
         switch style {
-        case .primary: .primary
-        case .secondary: Color(.systemGray5)
-        case .destructive: .red
+        case .primary: OuestTheme.Colors.brand
+        case .secondary: OuestTheme.Colors.surfaceTertiary
+        case .destructive: OuestTheme.Colors.error
         }
     }
 
     private var foregroundColor: Color {
         switch style {
-        case .primary: Color(.systemBackground)
-        case .secondary: .primary
+        case .primary: .white
+        case .secondary: OuestTheme.Colors.textPrimary
         case .destructive: .white
         }
     }

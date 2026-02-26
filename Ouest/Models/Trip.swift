@@ -37,16 +37,23 @@ struct Trip: Codable, Identifiable, Sendable {
     var endDate: Date?
     var status: TripStatus
     var isPublic: Bool
+    var budget: Double?
+    var currency: String?
+    var votingEnabled: Bool?
+    var tags: [String]?
+    var countryCodes: [String]?
     let createdAt: Date?
     var updatedAt: Date?
 
     enum CodingKeys: String, CodingKey {
-        case id, title, destination, description, status
+        case id, title, destination, description, status, budget, currency, tags
         case createdBy = "created_by"
         case coverImageUrl = "cover_image_url"
         case startDate = "start_date"
         case endDate = "end_date"
         case isPublic = "is_public"
+        case votingEnabled = "voting_enabled"
+        case countryCodes = "country_codes"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -81,6 +88,15 @@ struct Trip: Codable, Identifiable, Sendable {
         guard let start = startDate else { return nil }
         return Calendar.current.dateComponents([.day], from: Date(), to: start).day
     }
+
+    /// Formatted budget for display (e.g. "$2,500.00")
+    var formattedBudget: String? {
+        guard let budget, budget > 0 else { return nil }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = currency ?? "USD"
+        return formatter.string(from: NSNumber(value: budget))
+    }
 }
 
 // MARK: - Trip creation payload (only fields the user provides)
@@ -95,9 +111,11 @@ struct CreateTripPayload: Codable, Sendable {
     let endDate: Date?
     let status: TripStatus
     let isPublic: Bool
+    let budget: Double?
+    let currency: String?
 
     enum CodingKeys: String, CodingKey {
-        case title, destination, description, status
+        case title, destination, description, status, budget, currency
         case createdBy = "created_by"
         case coverImageUrl = "cover_image_url"
         case startDate = "start_date"
@@ -117,9 +135,11 @@ struct UpdateTripPayload: Codable, Sendable {
     var endDate: Date?
     var status: TripStatus?
     var isPublic: Bool?
+    var budget: Double?
+    var currency: String?
 
     enum CodingKeys: String, CodingKey {
-        case title, destination, description, status
+        case title, destination, description, status, budget, currency
         case coverImageUrl = "cover_image_url"
         case startDate = "start_date"
         case endDate = "end_date"

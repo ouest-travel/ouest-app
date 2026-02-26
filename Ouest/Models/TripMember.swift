@@ -70,6 +70,32 @@ struct TripMember: Codable, Identifiable, Sendable {
     }
 }
 
+// MARK: - Lightweight member preview (for home screen trip cards)
+
+struct MemberProfilePreview: Codable, Sendable {
+    let avatarUrl: String?
+    let fullName: String?
+
+    enum CodingKeys: String, CodingKey {
+        case avatarUrl = "avatar_url"
+        case fullName = "full_name"
+    }
+}
+
+struct TripMemberPreview: Codable, Identifiable, Sendable {
+    let id: UUID
+    let tripId: UUID
+    let userId: UUID
+    let role: MemberRole
+    let profile: MemberProfilePreview?
+
+    enum CodingKeys: String, CodingKey {
+        case id, role, profile
+        case tripId = "trip_id"
+        case userId = "user_id"
+    }
+}
+
 // MARK: - Add member payload
 
 struct AddMemberPayload: Codable, Sendable {

@@ -86,6 +86,28 @@ final class AuthViewModel {
         }
     }
 
+    // MARK: - Profile Management
+
+    /// Update the current user's profile fields and refresh the cached profile
+    func updateProfile(_ payload: UpdateProfilePayload) async throws {
+        guard let userId = currentUser?.id else { return }
+        let updated: Profile = try await SupabaseManager.client
+            .from("profiles")
+            .update(payload)
+            .eq("id", value: userId)
+            .select()
+            .single()
+            .execute()
+            .value
+        currentUser = updated
+    }
+
+    /// Refresh the cached profile from the server
+    func refreshProfile() async {
+        guard let userId = currentUser?.id else { return }
+        await loadProfile(userId: userId)
+    }
+
     private func loadProfile(userId: UUID) async {
         do {
             currentUser = try await AuthService.fetchProfile(userId: userId)

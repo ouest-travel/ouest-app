@@ -3,6 +3,7 @@ import SwiftUI
 struct TripCardView: View {
     let trip: Trip
     var style: CardStyle = .standard
+    var members: [TripMemberPreview] = []
 
     enum CardStyle {
         case standard   // Regular list card
@@ -31,35 +32,47 @@ struct TripCardView: View {
                 endPoint: .bottom
             )
 
-            VStack(alignment: .leading, spacing: 6) {
-                if let days = trip.daysUntilStart, days >= 0 {
-                    Text(days == 0 ? "Today!" : "\(days) day\(days == 1 ? "" : "s") away")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Capsule())
-                }
-
-                Text(trip.title)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white)
-
-                HStack(spacing: 12) {
-                    Label(trip.destination, systemImage: "mappin")
-                    if let dates = trip.dateRangeText {
-                        Label(dates, systemImage: "calendar")
+            // Content
+            HStack(alignment: .bottom) {
+                VStack(alignment: .leading, spacing: 6) {
+                    if let days = trip.daysUntilStart, days >= 0 {
+                        Text(days == 0 ? "Today!" : "\(days) day\(days == 1 ? "" : "s") away")
+                            .font(OuestTheme.Typography.micro)
+                            .fontWeight(.semibold)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, OuestTheme.Spacing.xs)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Capsule())
+                            .pulseEffect(isActive: days == 0)
                     }
+
+                    Text(trip.title)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.white)
+
+                    HStack(spacing: OuestTheme.Spacing.md) {
+                        Label(trip.destination, systemImage: "mappin")
+                        if let dates = trip.dateRangeText {
+                            Label(dates, systemImage: "calendar")
+                        }
+                    }
+                    .font(OuestTheme.Typography.caption)
+                    .foregroundStyle(.white.opacity(0.9))
                 }
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.9))
+
+                Spacer()
+
+                // Member avatar stack (featured)
+                if !members.isEmpty {
+                    memberAvatarStack(size: 28, maxVisible: 4, bordered: true)
+                }
             }
-            .padding(16)
+            .padding(OuestTheme.Spacing.lg)
         }
         .frame(height: 220)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.xl))
+        .shadow(OuestTheme.Shadow.lg)
     }
 
     // MARK: - Standard List Card
@@ -69,37 +82,84 @@ struct TripCardView: View {
             // Small cover thumbnail
             coverImage(height: 80)
                 .frame(width: 80, height: 80)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
                 Text(trip.title)
-                    .font(.headline)
+                    .font(OuestTheme.Typography.cardTitle)
                     .lineLimit(1)
 
-                HStack(spacing: 4) {
+                HStack(spacing: OuestTheme.Spacing.xs) {
                     Image(systemName: "mappin")
                         .font(.caption2)
                     Text(trip.destination)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(OuestTheme.Colors.textSecondary)
                         .lineLimit(1)
                 }
 
                 if let dates = trip.dateRangeText {
                     Text(dates)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(OuestTheme.Typography.caption)
+                        .foregroundStyle(OuestTheme.Colors.textSecondary)
                 }
 
-                statusBadge
+                HStack {
+                    statusBadge
+
+                    Spacer()
+
+                    // Member avatar stack (standard)
+                    if !members.isEmpty {
+                        memberAvatarStack(size: 22, maxVisible: 3, bordered: false)
+                    }
+                }
             }
 
-            Spacer()
+            Spacer(minLength: 0)
         }
-        .padding(12)
-        .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 2)
+        .padding(OuestTheme.Spacing.md)
+        .background(OuestTheme.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
+        .shadow(OuestTheme.Shadow.md)
+    }
+
+    // MARK: - Member Avatar Stack
+
+    private func memberAvatarStack(size: CGFloat, maxVisible: Int, bordered: Bool) -> some View {
+        let visible = Array(members.prefix(maxVisible))
+        let overflow = members.count - maxVisible
+
+        return HStack(spacing: -(size * 0.3)) {
+            ForEach(visible) { member in
+                AvatarView(url: member.profile?.avatarUrl, size: size)
+                    .overlay {
+                        if bordered {
+                            Circle().stroke(.white.opacity(0.8), lineWidth: 1.5)
+                        }
+                    }
+            }
+
+            if overflow > 0 {
+                Text("+\(overflow)")
+                    .font(.system(size: size * 0.4, weight: .semibold))
+                    .foregroundStyle(bordered ? .white : OuestTheme.Colors.textSecondary)
+                    .frame(width: size, height: size)
+                    .background {
+                        if bordered {
+                            Circle().fill(.ultraThinMaterial)
+                        } else {
+                            Circle().fill(OuestTheme.Colors.surfaceSecondary)
+                        }
+                    }
+                    .clipShape(Circle())
+                    .overlay {
+                        if bordered {
+                            Circle().stroke(.white.opacity(0.8), lineWidth: 1.5)
+                        }
+                    }
+            }
+        }
     }
 
     // MARK: - Shared Components
@@ -107,12 +167,21 @@ struct TripCardView: View {
     private func coverImage(height: CGFloat) -> some View {
         Group {
             if let urlString = trip.coverImageUrl, let url = URL(string: urlString) {
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    placeholderGradient
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .transition(.opacity)
+                    case .failure:
+                        placeholderGradient
+                    case .empty:
+                        placeholderGradient
+                            .shimmerEffect()
+                    @unknown default:
+                        placeholderGradient
+                    }
                 }
             } else {
                 placeholderGradient
@@ -138,39 +207,28 @@ struct TripCardView: View {
     /// Generate a consistent gradient based on the destination name
     private var destinationColors: [Color] {
         let hash = abs(trip.destination.hashValue)
-        let palettes: [[Color]] = [
-            [.blue, .purple],
-            [.teal, .blue],
-            [.orange, .pink],
-            [.green, .teal],
-            [.indigo, .blue],
-            [.pink, .orange],
-            [.purple, .indigo],
-            [.mint, .green],
-        ]
-        return palettes[hash % palettes.count]
+        return OuestTheme.Colors.tripGradients[hash % OuestTheme.Colors.tripGradients.count]
     }
 
     private var statusBadge: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: OuestTheme.Spacing.xs) {
             Image(systemName: trip.status.icon)
                 .font(.caption2)
             Text(trip.status.label)
-                .font(.caption2)
-                .fontWeight(.medium)
+                .font(OuestTheme.Typography.micro)
         }
         .foregroundStyle(statusColor)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 2)
+        .padding(.horizontal, OuestTheme.Spacing.sm)
+        .padding(.vertical, OuestTheme.Spacing.xxs)
         .background(statusColor.opacity(0.12))
         .clipShape(Capsule())
     }
 
     private var statusColor: Color {
         switch trip.status {
-        case .planning: .blue
-        case .active: .green
-        case .completed: .secondary
+        case .planning: OuestTheme.Colors.planning
+        case .active: OuestTheme.Colors.active
+        case .completed: OuestTheme.Colors.completed
         }
     }
 }
@@ -188,6 +246,11 @@ struct TripCardView: View {
             endDate: Date().addingTimeInterval(21 * 86400),
             status: .planning,
             isPublic: false,
+            budget: nil,
+            currency: nil,
+            votingEnabled: nil,
+            tags: nil,
+            countryCodes: nil,
             createdAt: Date(),
             updatedAt: Date()
         ),
@@ -209,6 +272,11 @@ struct TripCardView: View {
             endDate: Date().addingTimeInterval(37 * 86400),
             status: .planning,
             isPublic: true,
+            budget: 3000,
+            currency: "USD",
+            votingEnabled: nil,
+            tags: nil,
+            countryCodes: nil,
             createdAt: Date(),
             updatedAt: Date()
         ),
