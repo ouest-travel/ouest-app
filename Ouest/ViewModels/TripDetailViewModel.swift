@@ -25,11 +25,18 @@ final class TripDetailViewModel {
     var budgetText = ""
     var currency = "USD"
     var hasBudget = false
+    var countryCodes: [String] = []
 
     // MARK: - Members search
     var searchQuery = ""
     var searchResults: [Profile] = []
     var isSearching = false
+
+    // MARK: - Invite state
+    var invites: [TripInvite] = []
+    var activeInvite: TripInvite?
+    var isGeneratingInvite = false
+    var inviteError: String?
 
     /// Current user's role in this trip
     var myRole: MemberRole? {
@@ -41,6 +48,13 @@ final class TripDetailViewModel {
     }
 
     private var currentUserId: UUID?
+
+    /// Lightweight init for standalone sharing (e.g., from HomeView context menu).
+    /// Sets trip and resolves current user without a full network load.
+    func prepareForSharing(trip: Trip) async {
+        self.trip = trip
+        self.currentUserId = try? await SupabaseManager.client.auth.session.user.id
+    }
 
     // MARK: - Load Trip
 
@@ -91,7 +105,8 @@ final class TripDetailViewModel {
                 status: .planning,
                 isPublic: isPublic,
                 budget: hasBudget ? Double(budgetText) : nil,
-                currency: hasBudget ? currency : nil
+                currency: hasBudget ? currency : nil,
+                countryCodes: countryCodes.isEmpty ? nil : countryCodes
             )
 
             let newTrip = try await TripService.createTrip(payload)
@@ -157,7 +172,8 @@ final class TripDetailViewModel {
                 endDate: hasDates ? endDate : nil,
                 isPublic: isPublic,
                 budget: hasBudget ? Double(budgetText) : nil,
-                currency: hasBudget ? currency : nil
+                currency: hasBudget ? currency : nil,
+                countryCodes: countryCodes.isEmpty ? nil : countryCodes
             )
 
             let oldTrip = trip
@@ -197,6 +213,7 @@ final class TripDetailViewModel {
         hasBudget = trip.budget != nil && trip.budget! > 0
         budgetText = trip.budget.map { String(format: "%.0f", $0) } ?? ""
         currency = trip.currency ?? "USD"
+        countryCodes = trip.countryCodes ?? []
     }
 
     // MARK: - Members
@@ -259,6 +276,57 @@ final class TripDetailViewModel {
             }
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: - Invite Links
+
+    func fetchInvites() async {
+        guard let tripId = trip?.id else { return }
+        do {
+            invites = try await TripService.fetchInvites(tripId: tripId)
+            activeInvite = invites.first(where: { $0.isValid })
+        } catch {
+            inviteError = error.localizedDescription
+        }
+    }
+
+    func generateInvite(role: MemberRole = .viewer) async {
+        guard let tripId = trip?.id, let userId = currentUserId else { return }
+        isGeneratingInvite = true
+        inviteError = nil
+
+        // Try up to 2 times in case of code collision
+        for _ in 0..<2 {
+            do {
+                let payload = CreateInvitePayload(
+                    tripId: tripId,
+                    createdBy: userId,
+                    code: TripService.generateInviteCode(),
+                    role: role,
+                    expiresAt: nil,
+                    maxUses: 0
+                )
+                let invite = try await TripService.createInvite(payload)
+                invites.insert(invite, at: 0)
+                activeInvite = invite
+                isGeneratingInvite = false
+                return
+            } catch {
+                inviteError = error.localizedDescription
+            }
+        }
+
+        isGeneratingInvite = false
+    }
+
+    func revokeInvite(_ invite: TripInvite) async {
+        do {
+            try await TripService.revokeInvite(id: invite.id)
+            // Refetch to get updated state
+            await fetchInvites()
+        } catch {
+            inviteError = error.localizedDescription
         }
     }
 }

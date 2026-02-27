@@ -36,6 +36,10 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Ouest
         INFOPLIST_KEY_UILaunchScreen_Generation: true
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
+    entitlements:
+      path: Ouest/Ouest.entitlements
+      properties:
+        aps-environment: development
     dependencies:
       - package: Supabase
     info:
@@ -50,6 +54,11 @@ targets:
         SUPABASE_URL: $(SUPABASE_URL)
         SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
         SUPABASE_SERVICE_ROLE_KEY: $(SUPABASE_SERVICE_ROLE_KEY)
+        RAPIDAPI_KEY: $(RAPIDAPI_KEY)
+        CFBundleURLTypes:
+          - CFBundleURLName: com.ouest.app
+            CFBundleURLSchemes:
+              - ouest
 
   OuestTests:
     type: bundle.unit-test

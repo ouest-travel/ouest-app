@@ -7,6 +7,7 @@ struct TripDetailView: View {
     @State private var viewModel = TripDetailViewModel()
     @State private var showEditTrip = false
     @State private var showMembers = false
+    @State private var showShareSheet = false
     @State private var showDeleteConfirmation = false
     @State private var contentAppeared = false
 
@@ -112,6 +113,12 @@ struct TripDetailView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button {
+                            showShareSheet = true
+                        } label: {
+                            Label("Share Trip", systemImage: "square.and.arrow.up")
+                        }
+
+                        Button {
                             showEditTrip = true
                         } label: {
                             Label("Edit Trip", systemImage: "pencil")
@@ -135,6 +142,11 @@ struct TripDetailView: View {
                         Image(systemName: "ellipsis.circle")
                     }
                 }
+            }
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let trip = viewModel.trip {
+                ShareTripSheet(trip: trip)
             }
         }
         .sheet(isPresented: $showEditTrip) {
@@ -272,10 +284,31 @@ struct TripDetailView: View {
                 }
                 .buttonStyle(ScaledButtonStyle(scale: 0.92))
 
-                // Future phases (non-functional placeholders)
-                actionButtonLabel("Journal", icon: "book", color: .purple, index: 2)
-                actionButtonLabel("Polls", icon: "chart.bar", color: .orange, index: 3)
-                actionButtonLabel("Chat", icon: "bubble.left.and.bubble.right", color: .teal, index: 4)
+                // Entry Requirements — live NavigationLink
+                NavigationLink {
+                    EntryRequirementsView(trip: trip)
+                        .environment(authViewModel)
+                } label: {
+                    actionButtonLabel("Entry Reqs", icon: "doc.text.magnifyingglass", color: .red, index: 2)
+                }
+                .buttonStyle(ScaledButtonStyle(scale: 0.92))
+
+                // Journal — live NavigationLink
+                NavigationLink {
+                    JournalView(trip: trip)
+                } label: {
+                    actionButtonLabel("Journal", icon: "book", color: .purple, index: 3)
+                }
+                .buttonStyle(ScaledButtonStyle(scale: 0.92))
+
+                // Polls — live NavigationLink
+                NavigationLink {
+                    PollsView(trip: trip)
+                } label: {
+                    actionButtonLabel("Polls", icon: "chart.bar", color: .orange, index: 4)
+                }
+                .buttonStyle(ScaledButtonStyle(scale: 0.92))
+                actionButtonLabel("Chat", icon: "bubble.left.and.bubble.right", color: .teal, index: 5)
             }
             .padding(.horizontal, OuestTheme.Spacing.xl)
             .padding(.vertical, OuestTheme.Spacing.lg)
@@ -380,7 +413,7 @@ struct TripDetailView: View {
                 Image(systemName: "sparkles")
                     .foregroundStyle(OuestTheme.Colors.brand)
                     .symbolEffect(.pulse)
-                Text("Journal, polls, and more coming soon")
+                Text("Chat and more coming soon")
                     .font(OuestTheme.Typography.caption)
                     .foregroundStyle(OuestTheme.Colors.textSecondary)
             }

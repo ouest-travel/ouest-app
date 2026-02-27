@@ -5,6 +5,7 @@ struct MainTabView: View {
     @State private var selectedTab = 0
     @State private var showCreateTrip = false
     @State private var previousTab = 0
+    @State private var notificationsVM = NotificationsViewModel()
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -27,10 +28,11 @@ struct MainTabView: View {
                 }
                 .tag(2)
 
-            NotificationsView()
+            NotificationsView(viewModel: notificationsVM)
                 .tabItem {
                     Label("Activity", systemImage: "bell.fill")
                 }
+                .badge(notificationsVM.unreadCount)
                 .tag(3)
 
             ProfileView()
@@ -51,6 +53,10 @@ struct MainTabView: View {
         .sheet(isPresented: $showCreateTrip) {
             CreateTripView()
                 .environment(authViewModel)
+        }
+        .task {
+            // Refresh badge on app launch
+            await notificationsVM.refreshUnreadCount()
         }
     }
 }

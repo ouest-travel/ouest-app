@@ -56,4 +56,15 @@ enum StorageService {
         let path = "\(userId.uuidString)/avatar.jpg"
         return try await uploadImage(data: data, bucket: "profile-avatars", path: path)
     }
+
+    /// Upload a journal entry photo
+    /// - Parameters:
+    ///   - data: JPEG image data
+    ///   - tripId: Trip ID (used as folder prefix)
+    ///   - entryId: Entry ID (used in filename)
+    /// - Returns: Public URL for the uploaded journal photo
+    static func uploadJournalPhoto(data: Data, tripId: UUID, entryId: UUID) async throws -> String {
+        let path = "\(tripId.uuidString)/\(entryId.uuidString).jpg"
+        return try await uploadImage(data: data, bucket: "trip-journal", path: path)
+    }
 }

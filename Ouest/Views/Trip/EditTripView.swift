@@ -6,6 +6,7 @@ struct EditTripView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var coverPreview: Image?
+    @State private var showCountryPicker = false
 
     var body: some View {
         NavigationStack {
@@ -13,6 +14,7 @@ struct EditTripView: View {
                 VStack(spacing: OuestTheme.Spacing.xxl) {
                     coverImagePicker
                     tripDetailsSection
+                    destinationCountriesSection
                     dateSection
                     budgetSection
                     statusSection
@@ -44,6 +46,9 @@ struct EditTripView: View {
                     .fontWeight(.semibold)
                     .disabled(viewModel.isSaving || !isFormValid)
                 }
+            }
+            .sheet(isPresented: $showCountryPicker) {
+                CountryPickerView(selectedCodes: $viewModel.countryCodes)
             }
             .onAppear {
                 if let trip = viewModel.trip {
@@ -116,6 +121,50 @@ struct EditTripView: View {
             if let (data, _) = try? await URLSession.shared.data(from: url),
                let uiImage = UIImage(data: data) {
                 coverPreview = Image(uiImage: uiImage)
+            }
+        }
+    }
+
+    // MARK: - Destination Countries
+
+    private var destinationCountriesSection: some View {
+        VStack(alignment: .leading, spacing: OuestTheme.Spacing.md) {
+            sectionHeader("Destination Countries", icon: "globe")
+
+            if !viewModel.countryCodes.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: OuestTheme.Spacing.sm) {
+                        ForEach(viewModel.countryCodes, id: \.self) { code in
+                            HStack(spacing: OuestTheme.Spacing.xs) {
+                                Text(EntryRequirementService.flag(for: code))
+                                Text(EntryRequirementService.countryName(for: code))
+                                    .font(OuestTheme.Typography.caption)
+                                    .fontWeight(.medium)
+                            }
+                            .padding(.horizontal, OuestTheme.Spacing.md)
+                            .padding(.vertical, OuestTheme.Spacing.sm)
+                            .background(OuestTheme.Colors.brandLight)
+                            .clipShape(Capsule())
+                        }
+                    }
+                }
+            }
+
+            Button {
+                HapticFeedback.light()
+                showCountryPicker = true
+            } label: {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text(viewModel.countryCodes.isEmpty ? "Add Countries" : "Edit Countries")
+                        .fontWeight(.medium)
+                }
+                .font(.subheadline)
+                .foregroundStyle(OuestTheme.Colors.brand)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, OuestTheme.Spacing.md)
+                .background(OuestTheme.Colors.surfaceSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
             }
         }
     }

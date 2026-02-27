@@ -8,6 +8,7 @@ struct CreateTripView: View {
     @State private var coverPreview: Image?
     @State private var appeared = false
     @State private var hasError = false
+    @State private var showCountryPicker = false
 
     /// Called on successful creation (optional)
     var onCreated: ((Trip) -> Void)?
@@ -25,11 +26,14 @@ struct CreateTripView: View {
                     dateSection
                         .fadeSlideIn(isVisible: appeared, delay: 0.15)
 
-                    budgetSection
+                    destinationCountriesSection
                         .fadeSlideIn(isVisible: appeared, delay: 0.18)
 
-                    optionsSection
+                    budgetSection
                         .fadeSlideIn(isVisible: appeared, delay: 0.22)
+
+                    optionsSection
+                        .fadeSlideIn(isVisible: appeared, delay: 0.26)
 
                     if let error = viewModel.errorMessage {
                         Text(error)
@@ -76,6 +80,9 @@ struct CreateTripView: View {
                 withAnimation(OuestTheme.Anim.smooth) {
                     appeared = true
                 }
+            }
+            .sheet(isPresented: $showCountryPicker) {
+                CountryPickerView(selectedCodes: $viewModel.countryCodes)
             }
         }
     }
@@ -153,6 +160,50 @@ struct CreateTripView: View {
                 .padding(OuestTheme.Spacing.lg)
                 .background(OuestTheme.Colors.surfaceSecondary)
                 .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+        }
+    }
+
+    // MARK: - Destination Countries
+
+    private var destinationCountriesSection: some View {
+        VStack(alignment: .leading, spacing: OuestTheme.Spacing.md) {
+            sectionHeader("Destination Countries", icon: "globe")
+
+            if !viewModel.countryCodes.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: OuestTheme.Spacing.sm) {
+                        ForEach(viewModel.countryCodes, id: \.self) { code in
+                            HStack(spacing: OuestTheme.Spacing.xs) {
+                                Text(EntryRequirementService.flag(for: code))
+                                Text(EntryRequirementService.countryName(for: code))
+                                    .font(OuestTheme.Typography.caption)
+                                    .fontWeight(.medium)
+                            }
+                            .padding(.horizontal, OuestTheme.Spacing.md)
+                            .padding(.vertical, OuestTheme.Spacing.sm)
+                            .background(OuestTheme.Colors.brandLight)
+                            .clipShape(Capsule())
+                        }
+                    }
+                }
+            }
+
+            Button {
+                HapticFeedback.light()
+                showCountryPicker = true
+            } label: {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text(viewModel.countryCodes.isEmpty ? "Add Countries" : "Edit Countries")
+                        .fontWeight(.medium)
+                }
+                .font(.subheadline)
+                .foregroundStyle(OuestTheme.Colors.brand)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, OuestTheme.Spacing.md)
+                .background(OuestTheme.Colors.surfaceSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+            }
         }
     }
 
