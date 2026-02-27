@@ -39,6 +39,15 @@ extension View {
             .opacity(isVisible ? 1 : 0)
             .animation(OuestTheme.Anim.bouncy.delay(delay), value: isVisible)
     }
+
+    /// Warm reveal — gentle opacity + subtle scale from 0.96 anchored to leading edge.
+    /// Designed for hero text elements that should feel calm and inviting.
+    func warmReveal(isVisible: Bool, delay: Double = 0) -> some View {
+        self
+            .opacity(isVisible ? 1 : 0)
+            .scaleEffect(isVisible ? 1 : 0.96, anchor: .leading)
+            .animation(OuestTheme.Anim.gentle.delay(delay), value: isVisible)
+    }
 }
 
 // MARK: - Shimmer Modifier

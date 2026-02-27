@@ -9,6 +9,7 @@ struct HomeView: View {
     // Context menu state
     @State private var tripToDelete: Trip?
     @State private var tripToEdit: Trip?
+    @State private var tripToShare: Trip?
     @State private var showPastTrips = false
 
     var body: some View {
@@ -58,6 +59,9 @@ struct HomeView: View {
             .sheet(item: $tripToEdit) { trip in
                 editTripSheet(for: trip)
             }
+            .sheet(item: $tripToShare) { trip in
+                ShareTripSheet(trip: trip)
+            }
             .alert("Delete Trip", isPresented: deleteAlertBinding) {
                 Button("Cancel", role: .cancel) {
                     tripToDelete = nil
@@ -104,27 +108,71 @@ struct HomeView: View {
 
     private var greetingHeader: some View {
         VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
-            Text(greetingText)
+            // Functional label
+            Text("My Trips")
                 .font(.subheadline)
                 .foregroundStyle(OuestTheme.Colors.textSecondary)
+                .warmReveal(isVisible: cardsAppeared, delay: 0)
 
-            if let name = authViewModel.currentUser?.fullName?.components(separatedBy: " ").first {
-                Text("My Trips, \(name)")
-                    .font(OuestTheme.Typography.screenTitle)
-            } else {
-                Text("My Trips")
-                    .font(OuestTheme.Typography.screenTitle)
+            // Hero greeting
+            Text(personalGreeting)
+                .font(OuestTheme.Typography.heroTitle)
+                .foregroundStyle(OuestTheme.Colors.textPrimary)
+                .warmReveal(isVisible: cardsAppeared, delay: 0.12)
+
+            // Name + time-of-day icon
+            if let firstName {
+                HStack(spacing: OuestTheme.Spacing.sm) {
+                    Text(firstName)
+                        .font(OuestTheme.Typography.screenTitle)
+                        .foregroundStyle(OuestTheme.Colors.brand)
+
+                    Image(systemName: greetingIcon)
+                        .font(.system(size: 20))
+                        .foregroundStyle(greetingIconGradient)
+                        .bouncyAppear(isVisible: cardsAppeared, delay: 0.35)
+                }
+                .warmReveal(isVisible: cardsAppeared, delay: 0.22)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var greetingText: String {
+    // MARK: - Greeting Helpers
+
+    private var firstName: String? {
+        authViewModel.currentUser?.fullName?.components(separatedBy: " ").first
+    }
+
+    private var personalGreeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        let base: String
+        switch hour {
+        case 5..<12:  base = "Good morning"
+        case 12..<17: base = "Good afternoon"
+        default:      base = "Good evening"
+        }
+        return firstName != nil ? "\(base)," : base
+    }
+
+    private var greetingIcon: String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
-        case 5..<12: return "Good morning"
-        case 12..<17: return "Good afternoon"
-        default: return "Good evening"
+        case 5..<12:  return "sun.max.fill"
+        case 12..<17: return "sun.horizon.fill"
+        default:      return "moon.stars.fill"
+        }
+    }
+
+    private var greetingIconGradient: LinearGradient {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<12:
+            return LinearGradient(colors: [.orange, .yellow], startPoint: .top, endPoint: .bottom)
+        case 12..<17:
+            return LinearGradient(colors: [.orange, .pink], startPoint: .top, endPoint: .bottom)
+        default:
+            return LinearGradient(colors: [.indigo, .purple], startPoint: .top, endPoint: .bottom)
         }
     }
 
@@ -135,7 +183,6 @@ struct HomeView: View {
             LazyVStack(spacing: OuestTheme.Spacing.lg) {
                 // Greeting + title header
                 greetingHeader
-                    .fadeSlideIn(isVisible: cardsAppeared, delay: 0)
 
                 // Featured upcoming trip
                 if let upcoming = viewModel.upcomingTrip {
@@ -255,12 +302,10 @@ struct HomeView: View {
 
     @ViewBuilder
     private func tripContextMenu(for trip: Trip) -> some View {
-        // Share
-        ShareLink(
-            item: shareText(for: trip),
-            subject: Text(trip.title),
-            message: Text("Check out my trip!")
-        ) {
+        // Share — opens full share sheet with invite link + QR code
+        Button {
+            tripToShare = trip
+        } label: {
             Label("Share Trip", systemImage: "square.and.arrow.up")
         }
 
@@ -302,15 +347,6 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Share Text
-
-    private func shareText(for trip: Trip) -> String {
-        var text = "Check out my trip: \(trip.title) — \(trip.destination)"
-        if let dates = trip.dateRangeText {
-            text += ", \(dates)"
-        }
-        return text
-    }
 
     private func sectionHeader(_ title: String, icon: String) -> some View {
         HStack(spacing: 6) {
@@ -331,7 +367,6 @@ struct HomeView: View {
             greetingHeader
                 .padding(.horizontal, OuestTheme.Spacing.lg)
                 .padding(.top, OuestTheme.Spacing.sm)
-                .fadeSlideIn(isVisible: cardsAppeared, delay: 0)
 
             Spacer()
 
@@ -368,8 +403,13 @@ struct HomeView: View {
     private var skeletonLoadingView: some View {
         ScrollView {
             VStack(spacing: OuestTheme.Spacing.lg) {
-                // Greeting header
-                greetingHeader
+                // Greeting skeleton
+                VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
+                    SkeletonView(width: 70, height: 14)
+                    SkeletonView(width: 200, height: 30)
+                    SkeletonView(width: 90, height: 24)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 // Skeleton featured card
                 SkeletonView(height: 220)
