@@ -1,3 +1,4 @@
+import AuthenticationServices
 import Foundation
 import Observation
 
@@ -8,6 +9,7 @@ final class AuthViewModel {
     var currentUser: Profile?
     var errorMessage: String?
     var needsEmailConfirmation = false
+    var needsOnboarding = false
 
     func restoreSession() async {
         isLoading = true
@@ -55,9 +57,56 @@ final class AuthViewModel {
                 // Logged in immediately (email confirmation disabled)
                 isAuthenticated = true
                 await loadProfile(userId: session.user.id)
+                needsOnboarding = true
             } else {
                 // Email confirmation required
                 needsEmailConfirmation = true
+            }
+        } catch let error as AuthError {
+            errorMessage = error.errorDescription
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: - Apple Sign In
+
+    private let appleSignInCoordinator = AppleSignInCoordinator()
+
+    func signInWithApple() async {
+        errorMessage = nil
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            // 1. Present native Apple Sign In sheet and get credentials
+            let appleResult = try await appleSignInCoordinator.signIn()
+
+            // 2. Exchange Apple identity token with Supabase
+            let session = try await AuthService.signInWithApple(
+                idToken: appleResult.identityToken,
+                nonce: appleResult.nonce
+            )
+
+            isAuthenticated = true
+            await loadProfile(userId: session.user.id)
+
+            // 3. Update profile with Apple-provided name if available and profile name is empty
+            if let fullName = appleResult.fullName,
+               currentUser?.fullName == nil || currentUser?.fullName?.isEmpty == true
+            {
+                let payload = UpdateProfilePayload(fullName: fullName)
+                try? await updateProfile(payload)
+            }
+
+            // 4. Show onboarding for first-time Apple sign-in users
+            if currentUser?.handle == nil && currentUser?.travelInterests == nil {
+                needsOnboarding = true
+            }
+        } catch let error as AppleSignInError {
+            // .cancelled has nil errorDescription — only show real errors
+            if let message = error.errorDescription {
+                errorMessage = message
             }
         } catch let error as AuthError {
             errorMessage = error.errorDescription
@@ -84,6 +133,12 @@ final class AuthViewModel {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    // MARK: - Onboarding
+
+    func completeOnboarding() {
+        needsOnboarding = false
     }
 
     // MARK: - Profile Management

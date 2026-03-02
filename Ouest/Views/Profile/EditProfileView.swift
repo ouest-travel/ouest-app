@@ -18,6 +18,7 @@ struct EditProfileView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var avatarPreview: Image?
     @State private var avatarData: Data?
+    @State private var removeAvatar = false
 
     // MARK: - UI State
 
@@ -84,6 +85,10 @@ struct EditProfileView: View {
 
     // MARK: - Avatar Section
 
+    private var hasAvatar: Bool {
+        avatarPreview != nil || (!removeAvatar && authViewModel.currentUser?.avatarUrl != nil)
+    }
+
     private var avatarSection: some View {
         VStack(spacing: OuestTheme.Spacing.md) {
             sectionHeader(icon: "camera.fill", title: "Profile Photo")
@@ -97,7 +102,7 @@ struct EditProfileView: View {
                             .frame(width: 100, height: 100)
                             .clipShape(Circle())
                     } else {
-                        AvatarView(url: authViewModel.currentUser?.avatarUrl, size: 100)
+                        AvatarView(url: removeAvatar ? nil : authViewModel.currentUser?.avatarUrl, size: 100)
                     }
 
                     // Camera badge
@@ -110,6 +115,21 @@ struct EditProfileView: View {
                                 .foregroundStyle(.white)
                         }
                         .offset(x: 4, y: 4)
+                }
+            }
+
+            if hasAvatar {
+                Button(role: .destructive) {
+                    HapticFeedback.selection()
+                    withAnimation(OuestTheme.Anim.quick) {
+                        avatarPreview = nil
+                        avatarData = nil
+                        selectedPhoto = nil
+                        removeAvatar = true
+                    }
+                } label: {
+                    Label("Remove Photo", systemImage: "trash")
+                        .font(OuestTheme.Typography.caption)
                 }
             }
         }
@@ -286,9 +306,12 @@ struct EditProfileView: View {
         errorMessage = nil
 
         do {
-            // Upload avatar if changed
+            // Handle avatar changes
             var avatarUrl = authViewModel.currentUser?.avatarUrl
-            if let data = avatarData, let userId = authViewModel.currentUser?.id {
+            if removeAvatar, let userId = authViewModel.currentUser?.id {
+                try? await StorageService.deleteProfileAvatar(userId: userId)
+                avatarUrl = nil
+            } else if let data = avatarData, let userId = authViewModel.currentUser?.id {
                 avatarUrl = try await StorageService.uploadProfileAvatar(data: data, userId: userId)
             }
 

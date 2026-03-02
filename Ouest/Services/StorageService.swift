@@ -43,7 +43,7 @@ enum StorageService {
     ///   - tripId: Trip ID (used in filename)
     /// - Returns: Public URL for the uploaded cover image
     static func uploadTripCover(data: Data, userId: UUID, tripId: UUID) async throws -> String {
-        let path = "\(userId.uuidString)/\(tripId.uuidString).jpg"
+        let path = "\(userId.uuidString.lowercased())/\(tripId.uuidString.lowercased()).jpg"
         return try await uploadImage(data: data, bucket: "trip-covers", path: path)
     }
 
@@ -53,8 +53,14 @@ enum StorageService {
     ///   - userId: Current user's ID (used as folder + filename)
     /// - Returns: Public URL for the uploaded avatar
     static func uploadProfileAvatar(data: Data, userId: UUID) async throws -> String {
-        let path = "\(userId.uuidString)/avatar.jpg"
+        let path = "\(userId.uuidString.lowercased())/avatar.jpg"
         return try await uploadImage(data: data, bucket: "profile-avatars", path: path)
+    }
+
+    /// Delete a profile avatar from storage
+    static func deleteProfileAvatar(userId: UUID) async throws {
+        let path = "\(userId.uuidString.lowercased())/avatar.jpg"
+        try await deleteFile(bucket: "profile-avatars", paths: [path])
     }
 
     /// Upload a journal entry photo
@@ -64,7 +70,7 @@ enum StorageService {
     ///   - entryId: Entry ID (used in filename)
     /// - Returns: Public URL for the uploaded journal photo
     static func uploadJournalPhoto(data: Data, tripId: UUID, entryId: UUID) async throws -> String {
-        let path = "\(tripId.uuidString)/\(entryId.uuidString).jpg"
+        let path = "\(tripId.uuidString.lowercased())/\(entryId.uuidString.lowercased()).jpg"
         return try await uploadImage(data: data, bucket: "trip-journal", path: path)
     }
 }

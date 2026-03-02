@@ -60,6 +60,21 @@ enum AuthService {
         }
     }
 
+    /// Sign in with Apple using the identity token from ASAuthorization
+    static func signInWithApple(idToken: String, nonce: String) async throws -> Session {
+        do {
+            return try await SupabaseManager.client.auth.signInWithIdToken(
+                credentials: .init(
+                    provider: .apple,
+                    idToken: idToken,
+                    nonce: nonce
+                )
+            )
+        } catch {
+            throw mapError(error)
+        }
+    }
+
     /// Sign out the current user
     static func signOut() async throws {
         try await SupabaseManager.client.auth.signOut()

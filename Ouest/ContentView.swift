@@ -12,8 +12,13 @@ struct ContentView: View {
                 SplashView()
                     .transition(.opacity)
             } else if authViewModel.isAuthenticated {
-                MainTabView()
-                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                if authViewModel.needsOnboarding {
+                    OnboardingView()
+                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                } else {
+                    MainTabView()
+                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                }
             } else {
                 LoginView()
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
@@ -21,6 +26,7 @@ struct ContentView: View {
         }
         .animation(OuestTheme.Anim.smooth, value: authViewModel.isLoading)
         .animation(OuestTheme.Anim.smooth, value: authViewModel.isAuthenticated)
+        .animation(OuestTheme.Anim.smooth, value: authViewModel.needsOnboarding)
         .task {
             await authViewModel.restoreSession()
         }

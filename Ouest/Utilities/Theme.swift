@@ -10,8 +10,10 @@ enum OuestTheme {
         // Brand
         static let brand = Color.teal
         static let brandLight = Color.teal.opacity(0.15)
+        static let brandCyan = Color(red: 75 / 255, green: 206 / 255, blue: 236 / 255)   // #4BCEEC
+        static let brandBlue = Color(red: 67 / 255, green: 105 / 255, blue: 219 / 255)   // #4369DB
         static let brandGradient = LinearGradient(
-            colors: [.teal, .blue],
+            colors: [brandCyan, brandBlue],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )

@@ -28,7 +28,7 @@ struct OuestButton: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 50)
-            .background(backgroundColor)
+            .background(backgroundStyle)
             .foregroundStyle(foregroundColor)
             .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
         }
@@ -37,11 +37,11 @@ struct OuestButton: View {
         .animation(OuestTheme.Anim.quick, value: isLoading)
     }
 
-    private var backgroundColor: Color {
+    private var backgroundStyle: AnyShapeStyle {
         switch style {
-        case .primary: OuestTheme.Colors.brand
-        case .secondary: OuestTheme.Colors.surfaceTertiary
-        case .destructive: OuestTheme.Colors.error
+        case .primary: AnyShapeStyle(OuestTheme.Colors.brandGradient)
+        case .secondary: AnyShapeStyle(OuestTheme.Colors.surfaceTertiary)
+        case .destructive: AnyShapeStyle(OuestTheme.Colors.error)
         }
     }
 
