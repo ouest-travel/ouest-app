@@ -139,12 +139,14 @@ enum TripService {
             .value
     }
 
-    /// Fetch public/discover trips for the Explore feed
+    /// Fetch public/discover trips for the Explore feed (only completed trips)
     static func fetchPublicTrips(limit: Int = 20, offset: Int = 0) async throws -> [Trip] {
-        try await SupabaseManager.client
+        let now = ISO8601DateFormatter().string(from: Date())
+        return try await SupabaseManager.client
             .from("trips")
             .select()
             .eq("is_public", value: true)
+            .lte("end_date", value: now)
             .order("created_at", ascending: false)
             .range(from: offset, to: offset + limit - 1)
             .execute()

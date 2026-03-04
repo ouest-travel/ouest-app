@@ -2,11 +2,14 @@ import SwiftUI
 
 struct ExpensesView: View {
     let trip: Trip
+    let canEdit: Bool
     @State private var viewModel: ExpensesViewModel
     @State private var contentAppeared = false
+    @State private var importedCount: Int?
 
-    init(trip: Trip) {
+    init(trip: Trip, canEdit: Bool = true) {
         self.trip = trip
+        self.canEdit = canEdit
         self._viewModel = State(initialValue: ExpensesViewModel(trip: trip))
     }
 
@@ -40,16 +43,34 @@ struct ExpensesView: View {
                         }
                     }
 
-                    // Add expense button
-                    Button {
-                        HapticFeedback.light()
-                        viewModel.resetForm()
-                        viewModel.preselectAllMembers()
-                        viewModel.showAddExpense = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .fontWeight(.semibold)
-                            .foregroundStyle(OuestTheme.Colors.brand)
+                    if canEdit {
+                        // Add expense / import menu
+                        Menu {
+                            Button {
+                                viewModel.resetForm()
+                                viewModel.preselectAllMembers()
+                                viewModel.showAddExpense = true
+                            } label: {
+                                Label("Add Expense", systemImage: "plus")
+                            }
+
+                            Button {
+                                Task {
+                                    let count = await viewModel.importEstimatesFromItinerary()
+                                    if count > 0 {
+                                        importedCount = count
+                                        try? await Task.sleep(for: .seconds(2.5))
+                                        importedCount = nil
+                                    }
+                                }
+                            } label: {
+                                Label("Import from Itinerary", systemImage: "square.and.arrow.down")
+                            }
+                        } label: {
+                            Image(systemName: "plus")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(OuestTheme.Colors.brand)
+                        }
                     }
                 }
             }
@@ -73,6 +94,20 @@ struct ExpensesView: View {
         .sheet(isPresented: $viewModel.showBalanceSummary) {
             BalanceSummaryView(viewModel: viewModel)
         }
+        .overlay(alignment: .bottom) {
+            if let count = importedCount {
+                Text("Imported \(count) estimate\(count == 1 ? "" : "s") from itinerary")
+                    .font(OuestTheme.Typography.caption)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, OuestTheme.Spacing.lg)
+                    .padding(.vertical, OuestTheme.Spacing.sm)
+                    .background(OuestTheme.Colors.success.opacity(0.9))
+                    .clipShape(Capsule())
+                    .padding(.bottom, OuestTheme.Spacing.xxxl)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .animation(OuestTheme.Anim.smooth, value: importedCount)
+            }
+        }
     }
 
     // MARK: - Expense List
@@ -95,16 +130,18 @@ struct ExpensesView: View {
                     ExpenseCardView(expense: expense, viewModel: viewModel)
                         .fadeSlideIn(isVisible: contentAppeared, delay: Double(index) * 0.06 + 0.1)
                         .contextMenu {
-                            Button {
-                                viewModel.populateFormFromExpense(expense)
-                                viewModel.showAddExpense = true
-                            } label: {
-                                Label("Edit", systemImage: "pencil")
-                            }
-                            Button(role: .destructive) {
-                                Task { await viewModel.deleteExpense(expense) }
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+                            if canEdit {
+                                Button {
+                                    viewModel.populateFormFromExpense(expense)
+                                    viewModel.showAddExpense = true
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                Button(role: .destructive) {
+                                    Task { await viewModel.deleteExpense(expense) }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
                             }
                         }
                 }
@@ -191,24 +228,45 @@ struct ExpensesView: View {
                     .foregroundStyle(OuestTheme.Colors.brandGradient)
                     .bouncyAppear(isVisible: contentAppeared, delay: 0)
 
-                Text("Track expenses")
+                Text(canEdit ? "Track expenses" : "No expenses yet")
                     .font(OuestTheme.Typography.screenTitle)
                     .fadeSlideIn(isVisible: contentAppeared, delay: 0.15)
 
-                Text("Add shared expenses and split\ncosts with your travel group")
+                Text(canEdit
+                     ? "Add shared expenses and split\ncosts with your travel group"
+                     : "The trip owner hasn't added\nany expenses yet")
                     .font(.subheadline)
                     .foregroundStyle(OuestTheme.Colors.textSecondary)
                     .multilineTextAlignment(.center)
                     .fadeSlideIn(isVisible: contentAppeared, delay: 0.25)
             }
 
-            OuestButton(title: "Add First Expense") {
-                viewModel.resetForm()
-                viewModel.preselectAllMembers()
-                viewModel.showAddExpense = true
+            if canEdit {
+                VStack(spacing: OuestTheme.Spacing.md) {
+                    OuestButton(title: "Add First Expense") {
+                        viewModel.resetForm()
+                        viewModel.preselectAllMembers()
+                        viewModel.showAddExpense = true
+                    }
+                    .frame(width: 220)
+
+                    Button {
+                        Task {
+                            let count = await viewModel.importEstimatesFromItinerary()
+                            if count > 0 {
+                                importedCount = count
+                                try? await Task.sleep(for: .seconds(2.5))
+                                importedCount = nil
+                            }
+                        }
+                    } label: {
+                        Label("Import from Itinerary", systemImage: "square.and.arrow.down")
+                            .font(.subheadline)
+                            .foregroundStyle(OuestTheme.Colors.brand)
+                    }
+                }
+                .fadeSlideIn(isVisible: contentAppeared, delay: 0.35)
             }
-            .frame(width: 220)
-            .fadeSlideIn(isVisible: contentAppeared, delay: 0.35)
 
             Spacer()
         }

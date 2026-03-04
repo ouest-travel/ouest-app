@@ -9,6 +9,9 @@ struct SettingsView: View {
     @State private var preferences: NotificationPreference?
     @State private var preferencesLoaded = false
 
+    // Privacy
+    @State private var isPrivateProfile = false
+
     var body: some View {
         List {
             // MARK: - Account Section
@@ -53,6 +56,25 @@ struct SettingsView: View {
                 } footer: {
                     Text("Choose which notifications you'd like to receive.")
                 }
+            }
+
+            // MARK: - Privacy Section
+
+            Section {
+                Toggle(isOn: Binding(
+                    get: { isPrivateProfile },
+                    set: { newValue in
+                        isPrivateProfile = newValue
+                        Task { await togglePrivacy(newValue) }
+                    }
+                )) {
+                    Label("Private Profile", systemImage: "lock.fill")
+                }
+                .tint(OuestTheme.Colors.brand)
+            } header: {
+                Text("Privacy")
+            } footer: {
+                Text("When enabled, only followers can see your trips, interests, and bio.")
             }
 
             // MARK: - Actions Section
@@ -134,6 +156,10 @@ struct SettingsView: View {
 
     private func loadPreferences() async {
         guard let userId = authViewModel.currentUser?.id else { return }
+
+        // Load privacy state from profile
+        isPrivateProfile = authViewModel.currentUser?.isPrivate ?? false
+
         do {
             if let existing = try await NotificationService.fetchPreferences(userId: userId) {
                 preferences = existing
@@ -145,6 +171,16 @@ struct SettingsView: View {
             // Default to all enabled if fetch fails
             preferences = .defaults(userId: userId)
             preferencesLoaded = true
+        }
+    }
+
+    private func togglePrivacy(_ isPrivate: Bool) async {
+        do {
+            try await authViewModel.updateProfile(UpdateProfilePayload(isPrivate: isPrivate))
+        } catch {
+            // Revert on failure
+            isPrivateProfile = !isPrivate
+            print("[Settings] Failed to update privacy: \(error.localizedDescription)")
         }
     }
 

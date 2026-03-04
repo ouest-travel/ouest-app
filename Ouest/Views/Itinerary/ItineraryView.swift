@@ -2,11 +2,13 @@ import SwiftUI
 
 struct ItineraryView: View {
     let trip: Trip
+    let canEdit: Bool
     @State private var viewModel: ItineraryViewModel
     @State private var contentAppeared = false
 
-    init(trip: Trip) {
+    init(trip: Trip, canEdit: Bool = true) {
         self.trip = trip
+        self.canEdit = canEdit
         self._viewModel = State(initialValue: ItineraryViewModel(trip: trip))
     }
 
@@ -38,14 +40,16 @@ struct ItineraryView: View {
                             .foregroundStyle(OuestTheme.Colors.brand)
                     }
 
-                    // Add day button
-                    Button {
-                        HapticFeedback.light()
-                        Task { await viewModel.addDay() }
-                    } label: {
-                        Image(systemName: "plus")
-                            .fontWeight(.semibold)
-                            .foregroundStyle(OuestTheme.Colors.brand)
+                    if canEdit {
+                        // Add day button
+                        Button {
+                            HapticFeedback.light()
+                            Task { await viewModel.addDay() }
+                        } label: {
+                            Image(systemName: "plus")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(OuestTheme.Colors.brand)
+                        }
                     }
                 }
             }
@@ -85,13 +89,15 @@ struct ItineraryView: View {
                 }
 
                 ForEach(Array(viewModel.days.enumerated()), id: \.element.id) { index, day in
-                    DayCardView(day: day, viewModel: viewModel)
+                    DayCardView(day: day, viewModel: viewModel, canEdit: canEdit)
                         .fadeSlideIn(isVisible: contentAppeared, delay: Double(index) * 0.06 + 0.05)
                         .contextMenu {
-                            Button(role: .destructive) {
-                                Task { await viewModel.deleteDay(day) }
-                            } label: {
-                                Label("Delete Day", systemImage: "trash")
+                            if canEdit {
+                                Button(role: .destructive) {
+                                    Task { await viewModel.deleteDay(day) }
+                                } label: {
+                                    Label("Delete Day", systemImage: "trash")
+                                }
                             }
                         }
                 }
@@ -141,33 +147,37 @@ struct ItineraryView: View {
                     .foregroundStyle(OuestTheme.Colors.brandGradient)
                     .bouncyAppear(isVisible: contentAppeared, delay: 0)
 
-                Text("Plan your days")
+                Text(canEdit ? "Plan your days" : "No itinerary yet")
                     .font(OuestTheme.Typography.screenTitle)
                     .fadeSlideIn(isVisible: contentAppeared, delay: 0.15)
 
-                Text(tripHasDates
-                     ? "Generate days from your trip dates\nor add them one by one"
-                     : "Add days and fill them with\nactivities, places, and times")
+                Text(canEdit
+                     ? (tripHasDates
+                        ? "Generate days from your trip dates\nor add them one by one"
+                        : "Add days and fill them with\nactivities, places, and times")
+                     : "The trip owner hasn't added\nan itinerary yet")
                     .font(.subheadline)
                     .foregroundStyle(OuestTheme.Colors.textSecondary)
                     .multilineTextAlignment(.center)
                     .fadeSlideIn(isVisible: contentAppeared, delay: 0.25)
             }
 
-            VStack(spacing: OuestTheme.Spacing.md) {
-                if tripHasDates {
-                    OuestButton(title: "Generate from Trip Dates") {
-                        Task { await viewModel.generateDaysFromTripDates() }
+            if canEdit {
+                VStack(spacing: OuestTheme.Spacing.md) {
+                    if tripHasDates {
+                        OuestButton(title: "Generate from Trip Dates") {
+                            Task { await viewModel.generateDaysFromTripDates() }
+                        }
+                        .frame(width: 240)
+                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.35)
                     }
-                    .frame(width: 240)
-                    .fadeSlideIn(isVisible: contentAppeared, delay: 0.35)
-                }
 
-                OuestButton(title: "Add First Day") {
-                    Task { await viewModel.addDay() }
+                    OuestButton(title: "Add First Day") {
+                        Task { await viewModel.addDay() }
+                    }
+                    .frame(width: 200)
+                    .fadeSlideIn(isVisible: contentAppeared, delay: tripHasDates ? 0.42 : 0.35)
                 }
-                .frame(width: 200)
-                .fadeSlideIn(isVisible: contentAppeared, delay: tripHasDates ? 0.42 : 0.35)
             }
 
             Spacer()

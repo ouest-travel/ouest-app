@@ -89,7 +89,7 @@ struct TripDetailView: View {
                 quickInfoBar(trip)
                     .fadeSlideIn(isVisible: contentAppeared, delay: 0.05)
 
-                // Action Buttons
+                // Action Buttons (always visible; child views handle read-only)
                 actionButtons(trip)
                     .fadeSlideIn(isVisible: contentAppeared, delay: 0.1)
 
@@ -268,23 +268,23 @@ struct TripDetailView: View {
     private func actionButtons(_ trip: Trip) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: OuestTheme.Spacing.md) {
-                // Itinerary — live NavigationLink
+                // Itinerary
                 NavigationLink {
-                    ItineraryView(trip: trip)
+                    ItineraryView(trip: trip, canEdit: viewModel.isMember)
                 } label: {
                     actionButtonLabel("Itinerary", icon: "list.bullet.clipboard", color: .blue, index: 0)
                 }
                 .buttonStyle(ScaledButtonStyle(scale: 0.92))
 
-                // Expenses — live NavigationLink
+                // Expenses
                 NavigationLink {
-                    ExpensesView(trip: trip)
+                    ExpensesView(trip: trip, canEdit: viewModel.isMember)
                 } label: {
                     actionButtonLabel("Expenses", icon: "creditcard", color: .green, index: 1)
                 }
                 .buttonStyle(ScaledButtonStyle(scale: 0.92))
 
-                // Entry Requirements — live NavigationLink
+                // Entry Requirements (already read-only)
                 NavigationLink {
                     EntryRequirementsView(trip: trip)
                         .environment(authViewModel)
@@ -293,17 +293,17 @@ struct TripDetailView: View {
                 }
                 .buttonStyle(ScaledButtonStyle(scale: 0.92))
 
-                // Journal — live NavigationLink
+                // Journal
                 NavigationLink {
-                    JournalView(trip: trip)
+                    JournalView(trip: trip, canEdit: viewModel.isMember)
                 } label: {
                     actionButtonLabel("Journal", icon: "book", color: .purple, index: 3)
                 }
                 .buttonStyle(ScaledButtonStyle(scale: 0.92))
 
-                // Polls — live NavigationLink
+                // Polls
                 NavigationLink {
-                    PollsView(trip: trip)
+                    PollsView(trip: trip, canEdit: viewModel.isMember)
                 } label: {
                     actionButtonLabel("Polls", icon: "chart.bar", color: .orange, index: 4)
                 }
@@ -368,13 +368,15 @@ struct TripDetailView: View {
                         .font(OuestTheme.Typography.sectionTitle)
                 }
                 Spacer()
-                Button {
-                    HapticFeedback.light()
-                    showMembers = true
-                } label: {
-                    Text("See All")
-                        .font(.subheadline)
-                        .foregroundStyle(OuestTheme.Colors.brand)
+                if viewModel.isMember {
+                    Button {
+                        HapticFeedback.light()
+                        showMembers = true
+                    } label: {
+                        Text("See All")
+                            .font(.subheadline)
+                            .foregroundStyle(OuestTheme.Colors.brand)
+                    }
                 }
             }
 

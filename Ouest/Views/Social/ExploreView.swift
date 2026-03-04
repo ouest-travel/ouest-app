@@ -37,15 +37,31 @@ struct ExploreView: View {
             .navigationDestination(for: UUID.self) { tripId in
                 TripDetailView(tripId: tripId)
             }
+            .navigationDestination(for: ProfileDestination.self) { destination in
+                UserProfileView(userId: destination.userId)
+            }
             .sheet(isPresented: $viewModel.showComments) {
                 if let tripId = viewModel.selectedCommentTripId {
                     CommentsView(tripId: tripId)
                         .presentationDetents([.medium, .large])
                 }
             }
-            .overlay {
+            .overlay(alignment: .bottom) {
                 if viewModel.isCloning {
                     cloningOverlay
+                }
+
+                if let error = viewModel.interactionError {
+                    Text(error)
+                        .font(OuestTheme.Typography.caption)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, OuestTheme.Spacing.lg)
+                        .padding(.vertical, OuestTheme.Spacing.sm)
+                        .background(.red.opacity(0.85))
+                        .clipShape(Capsule())
+                        .padding(.bottom, OuestTheme.Spacing.xxxl)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .animation(OuestTheme.Anim.smooth, value: error)
                 }
             }
             .task {

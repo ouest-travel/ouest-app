@@ -2,8 +2,10 @@ import SwiftUI
 
 struct ActivityCardView: View {
     let activity: Activity
-    let onEdit: () -> Void
-    let onDelete: () -> Void
+    var onEdit: (() -> Void)? = nil
+    var onDelete: (() -> Void)? = nil
+
+    private var hasActions: Bool { onEdit != nil || onDelete != nil }
 
     var body: some View {
         HStack(spacing: OuestTheme.Spacing.md) {
@@ -44,25 +46,31 @@ struct ActivityCardView: View {
 
             Spacer(minLength: 0)
 
-            // Drag handle hint
-            Image(systemName: "line.3.horizontal")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            // Drag handle hint (only when editable)
+            if hasActions {
+                Image(systemName: "line.3.horizontal")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
         }
         .padding(OuestTheme.Spacing.md)
         .background(OuestTheme.Colors.surfaceSecondary)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
         .contextMenu {
-            Button {
-                onEdit()
-            } label: {
-                Label("Edit", systemImage: "pencil")
+            if let onEdit {
+                Button {
+                    onEdit()
+                } label: {
+                    Label("Edit", systemImage: "pencil")
+                }
             }
 
-            Button(role: .destructive) {
-                onDelete()
-            } label: {
-                Label("Delete", systemImage: "trash")
+            if let onDelete {
+                Button(role: .destructive) {
+                    onDelete()
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
             }
         }
     }

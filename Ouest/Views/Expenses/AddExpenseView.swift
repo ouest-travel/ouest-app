@@ -1,9 +1,11 @@
 import SwiftUI
+import PhotosUI
 
 struct AddExpenseView: View {
     @Bindable var viewModel: ExpensesViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var contentAppeared = false
+    @State private var selectedPhoto: PhotosPickerItem?
 
     private var isEditing: Bool { viewModel.editingExpense != nil }
 
@@ -22,6 +24,10 @@ struct AddExpenseView: View {
                     // Date section
                     dateSection
                         .fadeSlideIn(isVisible: contentAppeared, delay: 0.15)
+
+                    // Receipt photo section
+                    receiptSection
+                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.18)
 
                     // Split section
                     splitSection
@@ -318,6 +324,107 @@ struct AddExpenseView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Receipt Section
+
+    private var receiptSection: some View {
+        VStack(alignment: .leading, spacing: OuestTheme.Spacing.md) {
+            Text("Receipt")
+                .font(OuestTheme.Typography.sectionTitle)
+
+            if let data = viewModel.receiptImageData, let uiImage = UIImage(data: data) {
+                // Show selected receipt
+                ZStack(alignment: .topTrailing) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 200)
+                        .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+
+                    Button {
+                        withAnimation {
+                            viewModel.receiptImageData = nil
+                            selectedPhoto = nil
+                        }
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(.white)
+                            .shadow(radius: 2)
+                    }
+                    .padding(OuestTheme.Spacing.sm)
+                }
+            } else if let existingUrl = viewModel.editingExpense?.receiptUrl,
+                      let url = URL(string: existingUrl) {
+                // Show existing receipt from server
+                ZStack(alignment: .topTrailing) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxHeight: 200)
+                                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+                        case .failure:
+                            receiptPlaceholder(text: "Failed to load receipt")
+                        case .empty:
+                            receiptPlaceholder(text: "Loading…")
+                                .shimmerEffect()
+                        @unknown default:
+                            receiptPlaceholder(text: "Receipt")
+                        }
+                    }
+                }
+            }
+
+            PhotosPicker(
+                selection: $selectedPhoto,
+                matching: .images,
+                photoLibrary: .shared()
+            ) {
+                HStack(spacing: OuestTheme.Spacing.sm) {
+                    Image(systemName: "camera.fill")
+                        .font(.body)
+                    Text(viewModel.receiptImageData != nil ? "Change Photo" : "Add Receipt Photo")
+                        .font(.body)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(OuestTheme.Spacing.md)
+                .background(OuestTheme.Colors.surfaceSecondary)
+                .foregroundStyle(OuestTheme.Colors.brand)
+                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+            }
+            .onChange(of: selectedPhoto) { _, newItem in
+                Task {
+                    if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                        // Compress to JPEG
+                        if let uiImage = UIImage(data: data),
+                           let jpeg = uiImage.jpegData(compressionQuality: 0.7) {
+                            withAnimation {
+                                viewModel.receiptImageData = jpeg
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func receiptPlaceholder(text: String) -> some View {
+        VStack(spacing: OuestTheme.Spacing.sm) {
+            Image(systemName: "doc.text.image")
+                .font(.title2)
+                .foregroundStyle(OuestTheme.Colors.textSecondary)
+            Text(text)
+                .font(OuestTheme.Typography.caption)
+                .foregroundStyle(OuestTheme.Colors.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 120)
+        .background(OuestTheme.Colors.surfaceSecondary)
+        .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
     }
 
     // MARK: - Helpers

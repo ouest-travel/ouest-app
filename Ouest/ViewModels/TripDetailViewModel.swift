@@ -47,6 +47,11 @@ final class TripDetailViewModel {
         myRole?.canEdit ?? false
     }
 
+    /// Whether the current user is a member of this trip
+    var isMember: Bool {
+        myRole != nil
+    }
+
     private var currentUserId: UUID?
 
     /// Lightweight init for standalone sharing (e.g., from HomeView context menu).

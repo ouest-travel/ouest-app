@@ -35,9 +35,17 @@ struct ExpenseCardView: View {
                     }
                 }
 
-                Text(expense.splitDescription)
-                    .font(OuestTheme.Typography.micro)
-                    .foregroundStyle(expense.category.color)
+                HStack(spacing: OuestTheme.Spacing.xs) {
+                    Text(expense.splitDescription)
+                        .font(OuestTheme.Typography.micro)
+                        .foregroundStyle(expense.category.color)
+
+                    if expense.receiptUrl != nil {
+                        Image(systemName: "paperclip")
+                            .font(.caption2)
+                            .foregroundStyle(OuestTheme.Colors.textSecondary)
+                    }
+                }
             }
 
             Spacer()

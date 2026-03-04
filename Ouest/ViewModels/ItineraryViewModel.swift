@@ -126,7 +126,9 @@ final class ItineraryViewModel {
         // If trip has dates, calculate the date for this new day
         var dayDate: Date?
         if let start = trip.startDate {
-            dayDate = Calendar.current.date(byAdding: .day, value: nextNumber - 1, to: start)
+            var cal = Calendar.current
+            cal.timeZone = TimeZone(identifier: "UTC")!
+            dayDate = cal.date(byAdding: .day, value: nextNumber - 1, to: start)
         }
 
         do {

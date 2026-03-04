@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -31,9 +31,11 @@
 		377778618A83938EE8AF10E1 /* StorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D688AA98F368FFA33C1F73A0 /* StorageService.swift */; };
 		384D808477C5458F55A60719 /* UserProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D6AB9755262B27C5327E8B3 /* UserProfileView.swift */; };
 		38A3022AD7154CDCC0B33E40 /* ItineraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 151D77F0CBB243608425D71C /* ItineraryView.swift */; };
+		39A0E3A385DFC486E3B0F432 /* TripDateRangePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB697F8C1D520EA34A1BD94 /* TripDateRangePicker.swift */; };
 		3E1A0CAF8A0975BE85D5D012 /* ItineraryMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8321E58626DD54970C40CDCD /* ItineraryMapView.swift */; };
 		4455C306F6B353902EE9F213 /* OuestCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 404D729B581F8B721C76679F /* OuestCard.swift */; };
 		45F635ACD00D4774CDF7EDA8 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 863416E959E9B98060F6A2A2 /* SplashView.swift */; };
+		4745CCAA6C85C36DD1FAB061 /* FollowListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 808BF1C0E300F017C9613F81 /* FollowListView.swift */; };
 		47D625EA1EF09F167B6C9158 /* Validators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4225F980CD876EF1F5D9A4 /* Validators.swift */; };
 		4869FE0A1A9AE632CF785731 /* OuestUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 441D81C05C14347E28C0914C /* OuestUITests.swift */; };
 		48F997AF438CA5C3EC2F81CB /* ItineraryDay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 847682C29B893B63DFE5C09F /* ItineraryDay.swift */; };
@@ -53,6 +55,7 @@
 		5D27C95F302C213398BECF62 /* TripMembersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F57CCA83CF7B5CC00E1BE2F /* TripMembersView.swift */; };
 		5EB65A2DE0954DC2C6A499F7 /* CreateTripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 555E3504804406B935D1700B /* CreateTripView.swift */; };
 		5F1983C4699B6BC6DC524C11 /* TripCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B62311A51390EED6568912E /* TripCardView.swift */; };
+		64F6B7166855B87019602A38 /* NationalityPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4E5DDCBDA105B7DE84A8B9 /* NationalityPickerView.swift */; };
 		71164D59ACD51861FE707B2D /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D270DBC3ABDC10C6B17BFB3 /* Theme.swift */; };
 		7186BC4842F4F3359224E9ED /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2503CCBB38708B06F75CEAC /* AuthService.swift */; };
 		723DD61C9C389F441D5E6FA4 /* OuestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA8C3DDECF1C8A020FA707E1 /* OuestTests.swift */; };
@@ -72,6 +75,7 @@
 		8C09AB25F698869BA1D9C803 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80A6FE65E2EF16888306AEB7 /* ExploreView.swift */; };
 		8D3679DD26E0E31C48C259C3 /* View+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AFDA635CF662A4CB4B27143 /* View+Extensions.swift */; };
 		8FFFDB3862B9BF8EDA476511 /* EntryRequirementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D57406D4CDD5CE2F41A5721 /* EntryRequirementTests.swift */; };
+		923ECD339D48E7462C119779 /* CountryHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A294D6E5C84446C230C9DC3 /* CountryHelper.swift */; };
 		95946970FDC22D8CB51FC8AC /* PollService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF7B08BFC90941A3FA7D68B2 /* PollService.swift */; };
 		9601162B43DEC03AC5D6BAE8 /* EntryRequirementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57B44B064E8B2EC6B6CC7156 /* EntryRequirementsView.swift */; };
 		999111DE82C099D1F92EBA92 /* TripDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49A0A2ECB22EF24A7BDA414C /* TripDetailView.swift */; };
@@ -84,6 +88,7 @@
 		A9ECFD759750E74784B9AC53 /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 397854801594D36C025C2BDA /* LoadingView.swift */; };
 		AB905DA25B43915F4D495983 /* Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD3B364293BB2ABF0739899 /* Profile.swift */; };
 		AC8AC0C72DB597A5D24BD5E7 /* ForgotPasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80F152390B340DA30C3C3A44 /* ForgotPasswordView.swift */; };
+		AD41F4A878D56FCFAD1A52C8 /* JournalEntryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3678A63F971B4089EA2721D1 /* JournalEntryDetailView.swift */; };
 		AF0DF72172E147A87546D38E /* PollsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B37458E52248758375345D /* PollsViewModel.swift */; };
 		AF2620CD9C307D05DBF5A0C3 /* CommunityFeedViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C5035B6D8F882FE9176759A /* CommunityFeedViewModelTests.swift */; };
 		B267D7B8D349EF967680E5BA /* AvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DD881F42F0C2A0924F7314E /* AvatarView.swift */; };
@@ -163,6 +168,7 @@
 		2E54A48B8BDF64E5A792EC03 /* ExpensesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpensesService.swift; sourceTree = "<group>"; };
 		31849C9F45EECCF3DBB25945 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		31CF6B1C3ECF35ABB9A53CC7 /* BalanceSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceSummaryView.swift; sourceTree = "<group>"; };
+		3678A63F971B4089EA2721D1 /* JournalEntryDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalEntryDetailView.swift; sourceTree = "<group>"; };
 		39536D2843EB9AAF3DEB5380 /* QRCodeGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeGenerator.swift; sourceTree = "<group>"; };
 		396C949CC555685A9D120F62 /* EntryRequirementsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryRequirementsViewModel.swift; sourceTree = "<group>"; };
 		397854801594D36C025C2BDA /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
@@ -192,10 +198,11 @@
 		6551B92B98EB9C5DA8E49114 /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
 		678FF525A38BDE858B780A52 /* JoinTripViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoinTripViewModel.swift; sourceTree = "<group>"; };
 		68DD9C2905FDB9F85236A677 /* JournalService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalService.swift; sourceTree = "<group>"; };
+		6A294D6E5C84446C230C9DC3 /* CountryHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountryHelper.swift; sourceTree = "<group>"; };
 		6AAB52CD63F3D8601C1A4258 /* ExpenseModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpenseModelTests.swift; sourceTree = "<group>"; };
 		6BAF75CAEC61290664DC5D99 /* ExpensesViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpensesViewModelTests.swift; sourceTree = "<group>"; };
 		70B7BDC723C294712E1A4233 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
-		748084841F7F82623081CD48 /* Ouest.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Ouest.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		748084841F7F82623081CD48 /* Ouest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ouest.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		750916AED18AA4DAEA04C952 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		76FD61D0FFD5A1A72F01E6A5 /* NotificationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationTests.swift; sourceTree = "<group>"; };
 		77AE0754D05E053779AEA16A /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
@@ -209,6 +216,7 @@
 		7D890038FEE1E7EB64D7D246 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		7DD881F42F0C2A0924F7314E /* AvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
 		8021C5EC7F2823084CAE6505 /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
+		808BF1C0E300F017C9613F81 /* FollowListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FollowListView.swift; sourceTree = "<group>"; };
 		80A6FE65E2EF16888306AEB7 /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
 		80F152390B340DA30C3C3A44 /* ForgotPasswordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgotPasswordView.swift; sourceTree = "<group>"; };
 		8321E58626DD54970C40CDCD /* ItineraryMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItineraryMapView.swift; sourceTree = "<group>"; };
@@ -229,6 +237,7 @@
 		9F57CCA83CF7B5CC00E1BE2F /* TripMembersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripMembersView.swift; sourceTree = "<group>"; };
 		A2076A15544CFB733C0C1862 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
 		AA5E7AEA70D028BD2B07D180 /* View+Animations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+Animations.swift"; sourceTree = "<group>"; };
+		AAB697F8C1D520EA34A1BD94 /* TripDateRangePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripDateRangePicker.swift; sourceTree = "<group>"; };
 		AD93F1D37ECABDA821674BDF /* ExpensesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpensesView.swift; sourceTree = "<group>"; };
 		ADBCC1F228528A9CC8906E53 /* TripModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripModelTests.swift; sourceTree = "<group>"; };
 		AF7B08BFC90941A3FA7D68B2 /* PollService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollService.swift; sourceTree = "<group>"; };
@@ -237,6 +246,7 @@
 		B659CCBE58BC10DB726B40F1 /* TripInviteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripInviteTests.swift; sourceTree = "<group>"; };
 		B972FA425B1C88476C0A4D16 /* JoinTripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoinTripView.swift; sourceTree = "<group>"; };
 		BE350C121F1953893BFE0373 /* EditProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
+		BF4E5DDCBDA105B7DE84A8B9 /* NationalityPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NationalityPickerView.swift; sourceTree = "<group>"; };
 		C2503CCBB38708B06F75CEAC /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		C2B37458E52248758375345D /* PollsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollsViewModel.swift; sourceTree = "<group>"; };
 		C7632576DB97B7B51BD4DABE /* AuthServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthServiceTests.swift; sourceTree = "<group>"; };
@@ -363,9 +373,11 @@
 				77AE0754D05E053779AEA16A /* EmptyStateView.swift */,
 				E6A0B3F20A09687C202B8D50 /* ErrorView.swift */,
 				397854801594D36C025C2BDA /* LoadingView.swift */,
+				BF4E5DDCBDA105B7DE84A8B9 /* NationalityPickerView.swift */,
 				EB906B1EA5BAB038D8EE16FB /* OuestButton.swift */,
 				404D729B581F8B721C76679F /* OuestCard.swift */,
 				7BB7BB942DEEF21FF3A8E41A /* OuestTextField.swift */,
+				AAB697F8C1D520EA34A1BD94 /* TripDateRangePicker.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -452,6 +464,7 @@
 			isa = PBXGroup;
 			children = (
 				31849C9F45EECCF3DBB25945 /* Constants.swift */,
+				6A294D6E5C84446C230C9DC3 /* CountryHelper.swift */,
 				2DC2976C312342C3BC671696 /* DeepLinkRouter.swift */,
 				39536D2843EB9AAF3DEB5380 /* QRCodeGenerator.swift */,
 				0D270DBC3ABDC10C6B17BFB3 /* Theme.swift */,
@@ -505,6 +518,7 @@
 				E93DE51B3BD9D49DA2751472 /* CommentsView.swift */,
 				80A6FE65E2EF16888306AEB7 /* ExploreView.swift */,
 				78D087D69BC4DEA66B32E0C5 /* FeedTripCardView.swift */,
+				808BF1C0E300F017C9613F81 /* FollowListView.swift */,
 				3D6AB9755262B27C5327E8B3 /* UserProfileView.swift */,
 			);
 			path = Social;
@@ -525,6 +539,7 @@
 			children = (
 				CD080E128CB13386A24D83ED /* AddJournalEntryView.swift */,
 				0CC13C95B7924DFE3D9A6039 /* JournalEntryCard.swift */,
+				3678A63F971B4089EA2721D1 /* JournalEntryDetailView.swift */,
 				8021C5EC7F2823084CAE6505 /* JournalView.swift */,
 			);
 			path = Journal;
@@ -726,7 +741,16 @@
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					3AD16A4CBA8FE5D9062B05B1 = {
+						DevelopmentTeam = 764FLZ7S8Z;
+						ProvisioningStyle = Automatic;
 						TestTargetID = CA9FFEB31A9B77306F255B56;
+					};
+					6D5DF82F0138555C8387FF49 = {
+						DevelopmentTeam = 764FLZ7S8Z;
+						ProvisioningStyle = Automatic;
+					};
+					CA9FFEB31A9B77306F255B56 = {
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -743,7 +767,6 @@
 			packageReferences = (
 				EEB06C2C71492EE27D0E7E9B /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -788,6 +811,7 @@
 				79C9D1871AB9F0FBCBC3CFE1 /* CommunityService.swift in Sources */,
 				542E96006380DB66BD2C1199 /* Constants.swift in Sources */,
 				1DB3824A8551B9905C8D2A05 /* ContentView.swift in Sources */,
+				923ECD339D48E7462C119779 /* CountryHelper.swift in Sources */,
 				4D8BC8A41C01FA118A5D1574 /* CountryPickerView.swift in Sources */,
 				F23F0F1532FF0A3132F2CF7B /* CreatePollView.swift in Sources */,
 				5EB65A2DE0954DC2C6A499F7 /* CreateTripView.swift in Sources */,
@@ -810,6 +834,7 @@
 				FA503A13120DAF574F2EC471 /* ExpensesViewModel.swift in Sources */,
 				8C09AB25F698869BA1D9C803 /* ExploreView.swift in Sources */,
 				CB4872829CCB16BAC26CF722 /* FeedTripCardView.swift in Sources */,
+				4745CCAA6C85C36DD1FAB061 /* FollowListView.swift in Sources */,
 				AC8AC0C72DB597A5D24BD5E7 /* ForgotPasswordView.swift in Sources */,
 				E37D216B540A8C27054C64C5 /* HomeView.swift in Sources */,
 				48F997AF438CA5C3EC2F81CB /* ItineraryDay.swift in Sources */,
@@ -821,12 +846,14 @@
 				2BEE1CBB6B604CFB6205477D /* JoinTripViewModel.swift in Sources */,
 				DB49F1EEBFCFB4A3BF2FE8BB /* JournalEntry.swift in Sources */,
 				F7DA5DA979698ADB828406A7 /* JournalEntryCard.swift in Sources */,
+				AD41F4A878D56FCFAD1A52C8 /* JournalEntryDetailView.swift in Sources */,
 				0AE03E7A2FC7F4E108782507 /* JournalService.swift in Sources */,
 				EC4F0F5061D7A41CF82784CA /* JournalView.swift in Sources */,
 				A0A539B51888AE8B38A21D87 /* JournalViewModel.swift in Sources */,
 				A9ECFD759750E74784B9AC53 /* LoadingView.swift in Sources */,
 				BD64BF6C99BBA6F9C8D9084A /* LoginView.swift in Sources */,
 				136C2931919D81BA4737E0E9 /* MainTabView.swift in Sources */,
+				64F6B7166855B87019602A38 /* NationalityPickerView.swift in Sources */,
 				DD006A19DB893A0E18683239 /* NotificationService.swift in Sources */,
 				2EB97875E4112D2237AD6D21 /* NotificationsView.swift in Sources */,
 				F66BC62E47ADCB5CECDC75C1 /* NotificationsViewModel.swift in Sources */,
@@ -853,6 +880,7 @@
 				71164D59ACD51861FE707B2D /* Theme.swift in Sources */,
 				5B09F111871A3E1BBF69A741 /* Trip.swift in Sources */,
 				5F1983C4699B6BC6DC524C11 /* TripCardView.swift in Sources */,
+				39A0E3A385DFC486E3B0F432 /* TripDateRangePicker.swift in Sources */,
 				999111DE82C099D1F92EBA92 /* TripDetailView.swift in Sources */,
 				C206049227B3AF257EF4872E /* TripDetailViewModel.swift in Sources */,
 				DDB8B0B97A1B00BEBFA3A244 /* TripInvite.swift in Sources */,
@@ -938,6 +966,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Ouest/Ouest.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 764FLZ7S8Z;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Ouest/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Ouest;
@@ -960,6 +989,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Ouest/Ouest.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 764FLZ7S8Z;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Ouest/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Ouest;
@@ -1024,9 +1054,11 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 764FLZ7S8Z;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -1106,9 +1138,11 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 764FLZ7S8Z;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;

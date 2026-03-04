@@ -29,6 +29,7 @@ final class ExpensesViewModel {
     var splitType: SplitType = .equal
     var selectedMembers: Set<UUID> = []
     var customSplits: [UUID: String] = [:]
+    var receiptImageData: Data?
 
     // MARK: - Trip Reference
 
@@ -171,6 +172,14 @@ final class ExpensesViewModel {
 
         do {
             if let editing = editingExpense {
+                // Upload receipt if provided
+                var receiptUrl = editing.receiptUrl
+                if let imageData = receiptImageData {
+                    receiptUrl = try await StorageService.uploadReceipt(
+                        data: imageData, tripId: trip.id, expenseId: editing.id
+                    )
+                }
+
                 // Update existing expense
                 let payload = UpdateExpensePayload(
                     title: trimmedTitle,
@@ -179,7 +188,8 @@ final class ExpensesViewModel {
                     currency: currency,
                     category: expenseCategory,
                     date: expenseDate,
-                    splitType: splitType
+                    splitType: splitType,
+                    receiptUrl: receiptUrl
                 )
                 let updated = try await ExpensesService.updateExpense(id: editing.id, payload)
 
@@ -195,7 +205,7 @@ final class ExpensesViewModel {
                     expenses[index] = refreshed
                 }
             } else {
-                // Create new expense
+                // Create new expense (no receipt yet — upload after we have the ID)
                 let payload = CreateExpensePayload(
                     tripId: trip.id,
                     paidBy: userId,
@@ -205,9 +215,21 @@ final class ExpensesViewModel {
                     currency: currency,
                     category: expenseCategory,
                     date: expenseDate,
-                    splitType: splitType
+                    splitType: splitType,
+                    receiptUrl: nil
                 )
                 let created = try await ExpensesService.createExpense(payload)
+
+                // Upload receipt if provided
+                if let imageData = receiptImageData {
+                    let receiptUrl = try await StorageService.uploadReceipt(
+                        data: imageData, tripId: trip.id, expenseId: created.id
+                    )
+                    _ = try await ExpensesService.updateExpense(
+                        id: created.id,
+                        UpdateExpensePayload(receiptUrl: receiptUrl)
+                    )
+                }
 
                 // Create splits
                 let splitPayloads = buildSplitPayloads(expenseId: created.id, totalAmount: amount)
@@ -264,6 +286,69 @@ final class ExpensesViewModel {
         }
     }
 
+    // MARK: - Import Estimates from Itinerary
+
+    /// Import estimated costs from itinerary activities as expenses.
+    /// Only imports activities with costEstimate > 0. Skips duplicates by title.
+    func importEstimatesFromItinerary() async -> Int {
+        guard let userId = currentUserId else { return 0 }
+        isSaving = true
+        errorMessage = nil
+
+        do {
+            let days = try await ItineraryService.fetchDays(tripId: trip.id)
+            let currency = trip.currency ?? "USD"
+            var importedCount = 0
+
+            let activitiesWithCosts = days.flatMap { day in
+                (day.activities ?? []).filter { ($0.costEstimate ?? 0) > 0 }
+            }
+
+            let existingTitles = Set(expenses.map(\.title))
+
+            for activity in activitiesWithCosts {
+                guard !existingTitles.contains(activity.title) else { continue }
+
+                let category: ExpenseCategory = switch activity.category {
+                case .food: .food
+                case .transport: .transport
+                case .accommodation: .accommodation
+                case .activity: .activity
+                case .other: .other
+                }
+
+                let payload = CreateExpensePayload(
+                    tripId: trip.id,
+                    paidBy: userId,
+                    title: activity.title,
+                    description: "Estimated from itinerary",
+                    amount: activity.costEstimate!,
+                    currency: activity.currency ?? currency,
+                    category: category,
+                    date: nil,
+                    splitType: .full,
+                    receiptUrl: nil
+                )
+
+                _ = try await ExpensesService.createExpense(payload)
+                importedCount += 1
+            }
+
+            if importedCount > 0 {
+                expenses = try await ExpensesService.fetchExpenses(tripId: trip.id)
+                HapticFeedback.success()
+            }
+
+            isSaving = false
+            return importedCount
+        } catch {
+            errorMessage = error.localizedDescription
+            HapticFeedback.error()
+            isSaving = false
+            return 0
+        }
+    }
+
     // MARK: - Form Lifecycle
 
     func resetForm() {
@@ -275,6 +360,7 @@ final class ExpensesViewModel {
         splitType = .equal
         selectedMembers = []
         customSplits = [:]
+        receiptImageData = nil
         editingExpense = nil
     }
 

@@ -28,6 +28,9 @@ final class CommunityFeedViewModel {
         }
     }
 
+    /// Brief error shown as a toast for interaction failures (like/save)
+    var interactionError: String?
+
     // MARK: - Navigation
 
     var selectedCommentTripId: UUID?
@@ -89,7 +92,12 @@ final class CommunityFeedViewModel {
 
     func toggleLike(_ feedTrip: FeedTrip) {
         guard let userId = currentUserId,
-              let index = feedTrips.firstIndex(where: { $0.id == feedTrip.id }) else { return }
+              let index = feedTrips.firstIndex(where: { $0.id == feedTrip.id }) else {
+            #if DEBUG
+            print("[CommunityFeed] toggleLike guard failed — userId: \(currentUserId?.uuidString ?? "nil"), trip found: \(feedTrips.contains { $0.id == feedTrip.id })")
+            #endif
+            return
+        }
 
         let wasLiked = feedTrips[index].isLiked
         feedTrips[index].isLiked = !wasLiked
@@ -109,6 +117,10 @@ final class CommunityFeedViewModel {
                     feedTrips[idx].isLiked = wasLiked
                     feedTrips[idx].likeCount += wasLiked ? 1 : -1
                 }
+                showInteractionError("Couldn't update like")
+                #if DEBUG
+                print("[CommunityFeed] toggleLike failed: \(error)")
+                #endif
             }
         }
     }
@@ -117,7 +129,12 @@ final class CommunityFeedViewModel {
 
     func toggleSave(_ feedTrip: FeedTrip) {
         guard let userId = currentUserId,
-              let index = feedTrips.firstIndex(where: { $0.id == feedTrip.id }) else { return }
+              let index = feedTrips.firstIndex(where: { $0.id == feedTrip.id }) else {
+            #if DEBUG
+            print("[CommunityFeed] toggleSave guard failed — userId: \(currentUserId?.uuidString ?? "nil")")
+            #endif
+            return
+        }
 
         let wasSaved = feedTrips[index].isSaved
         feedTrips[index].isSaved = !wasSaved
@@ -135,6 +152,10 @@ final class CommunityFeedViewModel {
                 if let idx = feedTrips.firstIndex(where: { $0.id == feedTrip.id }) {
                     feedTrips[idx].isSaved = wasSaved
                 }
+                showInteractionError("Couldn't save trip")
+                #if DEBUG
+                print("[CommunityFeed] toggleSave failed: \(error)")
+                #endif
             }
         }
     }
@@ -220,6 +241,24 @@ final class CommunityFeedViewModel {
         _ type: T.Type,
         _ block: @Sendable () async throws -> T
     ) async -> T? {
-        try? await block()
+        do {
+            return try await block()
+        } catch {
+            #if DEBUG
+            print("[CommunityFeed] safeFetch(\(T.self)) failed: \(error)")
+            #endif
+            return nil
+        }
+    }
+
+    private func showInteractionError(_ message: String) {
+        HapticFeedback.error()
+        interactionError = message
+        Task {
+            try? await Task.sleep(for: .seconds(2.5))
+            if interactionError == message {
+                interactionError = nil
+            }
+        }
     }
 }

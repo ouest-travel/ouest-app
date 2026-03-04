@@ -2,12 +2,14 @@ import SwiftUI
 
 struct PollsView: View {
     let trip: Trip
+    let canEdit: Bool
     @State private var viewModel: PollsViewModel
     @State private var showCreatePoll = false
     @State private var contentAppeared = false
 
-    init(trip: Trip) {
+    init(trip: Trip, canEdit: Bool = true) {
         self.trip = trip
+        self.canEdit = canEdit
         _viewModel = State(initialValue: PollsViewModel(trip: trip))
     }
 
@@ -24,15 +26,17 @@ struct PollsView: View {
         .navigationTitle("Polls")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    HapticFeedback.light()
-                    viewModel.resetForm()
-                    showCreatePoll = true
-                } label: {
-                    Image(systemName: "plus")
-                        .fontWeight(.semibold)
-                        .foregroundStyle(OuestTheme.Colors.brand)
+            if canEdit {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        HapticFeedback.light()
+                        viewModel.resetForm()
+                        showCreatePoll = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .fontWeight(.semibold)
+                            .foregroundStyle(OuestTheme.Colors.brand)
+                    }
                 }
             }
         }
@@ -87,7 +91,9 @@ struct PollsView: View {
         EmptyStateView(
             icon: "chart.bar",
             title: "No Polls Yet",
-            message: "Create a poll to help your group decide together."
+            message: canEdit
+                ? "Create a poll to help your group decide together."
+                : "The trip owner hasn't created any polls yet."
         )
     }
 
@@ -97,7 +103,7 @@ struct PollsView: View {
         ScrollView {
             LazyVStack(spacing: OuestTheme.Spacing.lg) {
                 ForEach(Array(viewModel.polls.enumerated()), id: \.element.id) { index, poll in
-                    PollCardView(poll: poll, viewModel: viewModel)
+                    PollCardView(poll: poll, viewModel: viewModel, canEdit: canEdit)
                         .fadeSlideIn(isVisible: contentAppeared, delay: Double(index) * 0.06)
                 }
             }

@@ -86,6 +86,7 @@ struct Expense: Codable, Identifiable, Sendable {
     var category: ExpenseCategory
     var date: Date?
     var splitType: SplitType
+    var receiptUrl: String?
     let createdAt: Date?
     var updatedAt: Date?
 
@@ -99,6 +100,7 @@ struct Expense: Codable, Identifiable, Sendable {
         case tripId = "trip_id"
         case paidBy = "paid_by"
         case splitType = "split_type"
+        case receiptUrl = "receipt_url"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case paidByProfile = "paid_by_profile"
@@ -110,16 +112,17 @@ struct Expense: Codable, Identifiable, Sendable {
         id: UUID = UUID(), tripId: UUID, paidBy: UUID, title: String,
         description: String? = nil, amount: Double, currency: String? = nil,
         category: ExpenseCategory = .other, date: Date? = nil,
-        splitType: SplitType = .equal, createdAt: Date? = nil, updatedAt: Date? = nil,
+        splitType: SplitType = .equal, receiptUrl: String? = nil,
+        createdAt: Date? = nil, updatedAt: Date? = nil,
         splits: [ExpenseSplit]? = nil, paidByProfile: Profile? = nil
     ) {
         self.id = id; self.tripId = tripId; self.paidBy = paidBy
         self.title = title; self.description = description
         self.amount = amount; self.currency = currency
         self.category = category; self.date = date
-        self.splitType = splitType; self.createdAt = createdAt
-        self.updatedAt = updatedAt; self.splits = splits
-        self.paidByProfile = paidByProfile
+        self.splitType = splitType; self.receiptUrl = receiptUrl
+        self.createdAt = createdAt; self.updatedAt = updatedAt
+        self.splits = splits; self.paidByProfile = paidByProfile
     }
 
     // MARK: - Custom decoder for optional nested arrays
@@ -136,6 +139,7 @@ struct Expense: Codable, Identifiable, Sendable {
         category = try container.decode(ExpenseCategory.self, forKey: .category)
         date = try container.decodeIfPresent(Date.self, forKey: .date)
         splitType = try container.decode(SplitType.self, forKey: .splitType)
+        receiptUrl = try container.decodeIfPresent(String.self, forKey: .receiptUrl)
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt)
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt)
         splits = try? container.decode([ExpenseSplit].self, forKey: .splits)
@@ -292,12 +296,14 @@ struct CreateExpensePayload: Codable, Sendable {
     let category: ExpenseCategory
     let date: Date?
     let splitType: SplitType
+    var receiptUrl: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case title, description, amount, currency, category, date
         case tripId = "trip_id"
         case paidBy = "paid_by"
         case splitType = "split_type"
+        case receiptUrl = "receipt_url"
     }
 }
 
@@ -311,10 +317,12 @@ struct UpdateExpensePayload: Codable, Sendable {
     var category: ExpenseCategory?
     var date: Date?
     var splitType: SplitType?
+    var receiptUrl: String?
 
     enum CodingKeys: String, CodingKey {
         case title, description, amount, currency, category, date
         case splitType = "split_type"
+        case receiptUrl = "receipt_url"
     }
 }
 

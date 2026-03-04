@@ -3,6 +3,7 @@ import SwiftUI
 struct PollCardView: View {
     let poll: Poll
     let viewModel: PollsViewModel
+    var canEdit: Bool = true
     @State private var isVoting = false
 
     private var currentUserId: UUID? { viewModel.currentUserId }
@@ -165,8 +166,8 @@ struct PollCardView: View {
             )
         }
         .buttonStyle(.plain)
-        .disabled(!poll.isOpen || isVoting)
-        .opacity(poll.isOpen ? 1.0 : 0.7)
+        .disabled(!poll.isOpen || isVoting || !canEdit)
+        .opacity((poll.isOpen && canEdit) ? 1.0 : 0.7)
     }
 
     // MARK: - Footer

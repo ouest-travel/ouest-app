@@ -70,7 +70,8 @@ enum ItineraryService {
         startDate: Date,
         endDate: Date
     ) async throws -> [ItineraryDay] {
-        let calendar = Calendar.current
+        var calendar = Calendar.current
+        calendar.timeZone = TimeZone(identifier: "UTC")!
         var payloads: [CreateDayPayload] = []
         var current = calendar.startOfDay(for: startDate)
         let end = calendar.startOfDay(for: endDate)

@@ -1,5 +1,11 @@
 import SwiftUI
 
+/// Navigation destination for follow lists
+struct FollowListDestination: Hashable {
+    let userId: UUID
+    let listType: FollowListView.ListType
+}
+
 struct UserProfileView: View {
     let userId: UUID
     @State private var viewModel: UserProfileViewModel
@@ -23,6 +29,9 @@ struct UserProfileView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(for: FollowListDestination.self) { dest in
+            FollowListView(userId: dest.userId, listType: dest.listType)
+        }
         .task {
             await viewModel.loadProfile()
             withAnimation(OuestTheme.Anim.smooth) {
@@ -33,36 +42,67 @@ struct UserProfileView: View {
 
     // MARK: - Profile Content
 
+    /// Whether this profile's details are hidden (private + not following + not own profile)
+    private var isProfileLocked: Bool {
+        guard let profile = viewModel.profile else { return false }
+        return profile.isPrivate && !viewModel.isFollowing && !viewModel.isOwnProfile
+    }
+
     private func profileContent(_ profile: Profile) -> some View {
         ScrollView {
             VStack(spacing: OuestTheme.Spacing.xl) {
-                // Profile header
+                // Profile header (always visible)
                 profileHeader(profile)
                     .fadeSlideIn(isVisible: contentAppeared, delay: 0)
 
-                // Travel interests
-                if let interests = profile.travelInterests, !interests.isEmpty {
-                    interestTags(interests)
-                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.1)
-                }
-
-                // Stats + Follow button
+                // Stats + Follow button (always visible)
                 statsSection
-                    .fadeSlideIn(isVisible: contentAppeared, delay: 0.15)
+                    .fadeSlideIn(isVisible: contentAppeared, delay: 0.1)
 
-                // Public trips
-                if !viewModel.publicTrips.isEmpty {
-                    tripsSection
-                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.2)
+                if isProfileLocked {
+                    // Private profile — show lock message
+                    privateProfileNotice
+                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.15)
                 } else {
-                    noTripsSection
-                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.2)
+                    // Travel interests
+                    if let interests = profile.travelInterests, !interests.isEmpty {
+                        interestTags(interests)
+                            .fadeSlideIn(isVisible: contentAppeared, delay: 0.15)
+                    }
+
+                    // Public trips
+                    if !viewModel.publicTrips.isEmpty {
+                        tripsSection
+                            .fadeSlideIn(isVisible: contentAppeared, delay: 0.2)
+                    } else {
+                        noTripsSection
+                            .fadeSlideIn(isVisible: contentAppeared, delay: 0.2)
+                    }
                 }
             }
             .padding(.horizontal, OuestTheme.Spacing.lg)
             .padding(.top, OuestTheme.Spacing.lg)
             .padding(.bottom, OuestTheme.Spacing.xxxl)
         }
+    }
+
+    // MARK: - Private Profile Notice
+
+    private var privateProfileNotice: some View {
+        VStack(spacing: OuestTheme.Spacing.md) {
+            Image(systemName: "lock.fill")
+                .font(.title)
+                .foregroundStyle(OuestTheme.Colors.textSecondary)
+            Text("This profile is private")
+                .font(OuestTheme.Typography.cardTitle)
+                .foregroundStyle(OuestTheme.Colors.textPrimary)
+            Text("Follow this traveler to see their trips and interests.")
+                .font(.subheadline)
+                .foregroundStyle(OuestTheme.Colors.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(OuestTheme.Spacing.xxxl)
     }
 
     // MARK: - Profile Header
@@ -83,20 +123,22 @@ struct UserProfileView: View {
                 }
             }
 
-            if let bio = profile.bio, !bio.isEmpty {
-                Text(bio)
-                    .font(.subheadline)
-                    .foregroundStyle(OuestTheme.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(2)
-            }
-
-            if let nationality = profile.nationality, !nationality.isEmpty {
-                HStack(spacing: OuestTheme.Spacing.xs) {
-                    Text(flag(for: nationality))
-                    Text(nationality)
-                        .font(OuestTheme.Typography.caption)
+            if !isProfileLocked {
+                if let bio = profile.bio, !bio.isEmpty {
+                    Text(bio)
+                        .font(.subheadline)
                         .foregroundStyle(OuestTheme.Colors.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(2)
+                }
+
+                if let nationality = profile.nationality, !nationality.isEmpty {
+                    HStack(spacing: OuestTheme.Spacing.xs) {
+                        Text(CountryHelper.flag(for: nationality))
+                        Text(CountryHelper.displayName(for: nationality) ?? nationality)
+                            .font(OuestTheme.Typography.caption)
+                            .foregroundStyle(OuestTheme.Colors.textSecondary)
+                    }
                 }
             }
         }
@@ -134,8 +176,16 @@ struct UserProfileView: View {
         VStack(spacing: OuestTheme.Spacing.md) {
             HStack(spacing: OuestTheme.Spacing.xxl) {
                 statItem(value: viewModel.publicTrips.count, label: "Trips")
-                statItem(value: viewModel.followerCount, label: "Followers")
-                statItem(value: viewModel.followingCount, label: "Following")
+
+                NavigationLink(value: FollowListDestination(userId: userId, listType: .followers)) {
+                    statItemContent(value: viewModel.followerCount, label: "Followers")
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink(value: FollowListDestination(userId: userId, listType: .following)) {
+                    statItemContent(value: viewModel.followingCount, label: "Following")
+                }
+                .buttonStyle(.plain)
             }
 
             if !viewModel.isOwnProfile {
@@ -154,6 +204,10 @@ struct UserProfileView: View {
     }
 
     private func statItem(value: Int, label: String) -> some View {
+        statItemContent(value: value, label: label)
+    }
+
+    private func statItemContent(value: Int, label: String) -> some View {
         VStack(spacing: 2) {
             Text("\(value)")
                 .font(OuestTheme.Typography.cardTitle)
@@ -214,16 +268,6 @@ struct UserProfileView: View {
         }
     }
 
-    // MARK: - Helpers
-
-    /// Convert a country code to flag emoji
-    private func flag(for countryCode: String) -> String {
-        let code = countryCode.uppercased()
-        guard code.count == 2 else { return "" }
-        return code.unicodeScalars.reduce("") { result, scalar in
-            result + String(UnicodeScalar(scalar.value + 0x1F1A5)!)
-        }
-    }
 }
 
 #Preview {

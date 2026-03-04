@@ -2,6 +2,7 @@ import SwiftUI
 
 struct JournalView: View {
     let trip: Trip
+    var canEdit: Bool = true
     @State private var viewModel = JournalViewModel()
     @State private var showAddEntry = false
     @State private var editingEntry: JournalEntry?
@@ -20,15 +21,17 @@ struct JournalView: View {
         .navigationTitle("Journal")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    HapticFeedback.light()
-                    viewModel.resetForm()
-                    showAddEntry = true
-                } label: {
-                    Image(systemName: "plus")
-                        .fontWeight(.semibold)
-                        .foregroundStyle(OuestTheme.Colors.brand)
+            if canEdit {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        HapticFeedback.light()
+                        viewModel.resetForm()
+                        showAddEntry = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .fontWeight(.semibold)
+                            .foregroundStyle(OuestTheme.Colors.brand)
+                    }
                 }
             }
         }
@@ -70,21 +73,34 @@ struct JournalView: View {
 
                     // Entries for this date
                     ForEach(Array(group.entries.enumerated()), id: \.element.id) { entryIndex, entry in
-                        Button {
-                            viewModel.populateFromEntry(entry)
-                            editingEntry = entry
-                        } label: {
-                            JournalEntryCard(entry: entry)
-                        }
-                        .buttonStyle(.plain)
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                Task {
-                                    await viewModel.deleteEntry(entry)
-                                    HapticFeedback.success()
+                        Group {
+                            if canEdit {
+                                Button {
+                                    viewModel.populateFromEntry(entry)
+                                    editingEntry = entry
+                                } label: {
+                                    JournalEntryCard(entry: entry)
                                 }
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+                                .buttonStyle(.plain)
+                            } else {
+                                NavigationLink {
+                                    JournalEntryDetailView(entry: entry)
+                                } label: {
+                                    JournalEntryCard(entry: entry)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .contextMenu {
+                            if canEdit {
+                                Button(role: .destructive) {
+                                    Task {
+                                        await viewModel.deleteEntry(entry)
+                                        HapticFeedback.success()
+                                    }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
                             }
                         }
                         .padding(.horizontal, OuestTheme.Spacing.xl)
@@ -120,7 +136,9 @@ struct JournalView: View {
         EmptyStateView(
             icon: "book",
             title: "No Entries Yet",
-            message: "Start capturing your travel memories — photos, thoughts, and moments from your trip."
+            message: canEdit
+                ? "Start capturing your travel memories — photos, thoughts, and moments from your trip."
+                : "The trip owner hasn't added any journal entries yet."
         )
     }
 }

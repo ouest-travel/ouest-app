@@ -73,4 +73,15 @@ enum StorageService {
         let path = "\(tripId.uuidString.lowercased())/\(entryId.uuidString.lowercased()).jpg"
         return try await uploadImage(data: data, bucket: "trip-journal", path: path)
     }
+
+    /// Upload an expense receipt photo
+    /// - Parameters:
+    ///   - data: JPEG image data
+    ///   - tripId: Trip ID (used as folder prefix)
+    ///   - expenseId: Expense ID (used in filename)
+    /// - Returns: Public URL for the uploaded receipt image
+    static func uploadReceipt(data: Data, tripId: UUID, expenseId: UUID) async throws -> String {
+        let path = "\(tripId.uuidString.lowercased())/\(expenseId.uuidString.lowercased()).jpg"
+        return try await uploadImage(data: data, bucket: "expense-receipts", path: path)
+    }
 }

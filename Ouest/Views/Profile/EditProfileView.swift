@@ -160,21 +160,7 @@ struct EditProfileView: View {
                 .background(OuestTheme.Colors.surfaceSecondary)
                 .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.sm))
 
-                HStack(spacing: OuestTheme.Spacing.xs) {
-                    Image(systemName: "flag.fill")
-                        .font(.body)
-                        .foregroundStyle(OuestTheme.Colors.textSecondary)
-                        .frame(width: 24)
-
-                    TextField("Country code (e.g. US, GB, FR)", text: $nationality)
-                        .textInputAutocapitalization(.characters)
-                        .autocorrectionDisabled()
-                        .font(.body)
-                }
-                .padding(.horizontal, OuestTheme.Spacing.md)
-                .frame(height: 50)
-                .background(OuestTheme.Colors.surfaceSecondary)
-                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.sm))
+                NationalityPickerField(selectedCode: $nationality)
             }
         }
     }

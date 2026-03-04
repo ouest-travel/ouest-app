@@ -220,35 +220,10 @@ struct CreateTripView: View {
             }
 
             if viewModel.hasDates {
-                HStack(spacing: OuestTheme.Spacing.md) {
-                    VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
-                        Text("Start")
-                            .font(OuestTheme.Typography.caption)
-                            .foregroundStyle(OuestTheme.Colors.textSecondary)
-                        DatePicker("", selection: $viewModel.startDate, displayedComponents: .date)
-                            .labelsHidden()
-                    }
-
-                    Image(systemName: "arrow.right")
-                        .foregroundStyle(OuestTheme.Colors.textSecondary)
-                        .font(.caption)
-
-                    VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
-                        Text("End")
-                            .font(OuestTheme.Typography.caption)
-                            .foregroundStyle(OuestTheme.Colors.textSecondary)
-                        DatePicker(
-                            "",
-                            selection: $viewModel.endDate,
-                            in: viewModel.startDate...,
-                            displayedComponents: .date
-                        )
-                        .labelsHidden()
-                    }
-                }
-                .padding(OuestTheme.Spacing.md)
-                .background(OuestTheme.Colors.surfaceSecondary)
-                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+                TripDateRangePicker(
+                    startDate: $viewModel.startDate,
+                    endDate: $viewModel.endDate
+                )
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }

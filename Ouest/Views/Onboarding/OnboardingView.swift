@@ -10,6 +10,7 @@ struct OnboardingView: View {
 
     // MARK: - Profile State
 
+    @State private var fullName = ""
     @State private var handle = ""
     @State private var nationality = ""
     @State private var selectedPhoto: PhotosPickerItem?
@@ -108,7 +109,7 @@ struct OnboardingView: View {
                     Text("Your Profile")
                         .font(OuestTheme.Typography.screenTitle)
 
-                    Text("Add a photo and pick a handle")
+                    Text("Tell us about yourself")
                         .font(.subheadline)
                         .foregroundStyle(OuestTheme.Colors.textSecondary)
                 }
@@ -154,6 +155,9 @@ struct OnboardingView: View {
                 }
 
                 VStack(spacing: OuestTheme.Spacing.md) {
+                    // Full name field
+                    OuestTextField(text: $fullName, placeholder: "Full name")
+
                     // Handle field
                     HStack(spacing: OuestTheme.Spacing.xs) {
                         Text("@")
@@ -172,21 +176,7 @@ struct OnboardingView: View {
                     .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.sm))
 
                     // Nationality field
-                    HStack(spacing: OuestTheme.Spacing.xs) {
-                        Image(systemName: "flag.fill")
-                            .font(.body)
-                            .foregroundStyle(OuestTheme.Colors.textSecondary)
-                            .frame(width: 24)
-
-                        TextField("Country code (e.g. US, GB, FR)", text: $nationality)
-                            .textInputAutocapitalization(.characters)
-                            .autocorrectionDisabled()
-                            .font(.body)
-                    }
-                    .padding(.horizontal, OuestTheme.Spacing.md)
-                    .frame(height: 50)
-                    .background(OuestTheme.Colors.surfaceSecondary)
-                    .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.sm))
+                    NationalityPickerField(selectedCode: $nationality)
                 }
 
                 Spacer(minLength: OuestTheme.Spacing.xxxl)
@@ -347,6 +337,9 @@ struct OnboardingView: View {
             }
 
             let payload = UpdateProfilePayload(
+                fullName: fullName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ? nil
+                    : fullName.trimmingCharacters(in: .whitespacesAndNewlines),
                 handle: handle.trimmingCharacters(in: .whitespacesAndNewlines)
                     .lowercased().isEmpty
                     ? nil

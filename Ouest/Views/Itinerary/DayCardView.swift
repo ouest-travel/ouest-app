@@ -4,6 +4,7 @@ import MapKit
 struct DayCardView: View {
     let day: ItineraryDay
     @Bindable var viewModel: ItineraryViewModel
+    var canEdit: Bool = true
     @State private var isExpanded = true
 
     var body: some View {
@@ -61,16 +62,18 @@ struct DayCardView: View {
 
             Spacer()
 
-            // Add activity button
-            Button {
-                HapticFeedback.light()
-                viewModel.resetActivityForm()
-                viewModel.selectedDay = day
-                viewModel.showAddActivity = true
-            } label: {
-                Image(systemName: "plus.circle.fill")
-                    .font(.title3)
-                    .foregroundStyle(OuestTheme.Colors.brand)
+            if canEdit {
+                // Add activity button
+                Button {
+                    HapticFeedback.light()
+                    viewModel.resetActivityForm()
+                    viewModel.selectedDay = day
+                    viewModel.showAddActivity = true
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(OuestTheme.Colors.brand)
+                }
             }
 
             // Expand/collapse
@@ -93,45 +96,58 @@ struct DayCardView: View {
     private var activitiesList: some View {
         VStack(spacing: OuestTheme.Spacing.sm) {
             ForEach(day.sortedActivities) { activity in
-                ActivityCardView(
-                    activity: activity,
-                    onEdit: {
-                        viewModel.populateFormFromActivity(activity)
-                        viewModel.selectedDay = day
-                        viewModel.showAddActivity = true
-                    },
-                    onDelete: {
-                        Task {
-                            await viewModel.deleteActivity(activity, fromDay: day.id)
-                        }
-                    }
-                )
+                activityCard(for: activity)
             }
         }
     }
 
-    // MARK: - Empty Hint
-
-    private var emptyActivitiesHint: some View {
-        Button {
-            HapticFeedback.light()
-            viewModel.resetActivityForm()
+    private func activityCard(for activity: Activity) -> some View {
+        let editAction: (() -> Void)? = canEdit ? {
+            viewModel.populateFormFromActivity(activity)
             viewModel.selectedDay = day
             viewModel.showAddActivity = true
-        } label: {
+        } : nil
+        let deleteAction: (() -> Void)? = canEdit ? {
+            Task {
+                await viewModel.deleteActivity(activity, fromDay: day.id)
+            }
+        } : nil
+        return ActivityCardView(activity: activity, onEdit: editAction, onDelete: deleteAction)
+    }
+
+    // MARK: - Empty Hint
+
+    @ViewBuilder
+    private var emptyActivitiesHint: some View {
+        if canEdit {
+            Button {
+                HapticFeedback.light()
+                viewModel.resetActivityForm()
+                viewModel.selectedDay = day
+                viewModel.showAddActivity = true
+            } label: {
+                HStack(spacing: OuestTheme.Spacing.sm) {
+                    Image(systemName: "plus.circle")
+                        .foregroundStyle(OuestTheme.Colors.brand)
+                    Text("Add your first activity")
+                        .font(OuestTheme.Typography.caption)
+                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(OuestTheme.Spacing.lg)
+                .background(OuestTheme.Colors.surfaceSecondary.opacity(0.5))
+                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+            }
+            .buttonStyle(.plain)
+        } else {
             HStack(spacing: OuestTheme.Spacing.sm) {
-                Image(systemName: "plus.circle")
-                    .foregroundStyle(OuestTheme.Colors.brand)
-                Text("Add your first activity")
+                Text("No activities planned")
                     .font(OuestTheme.Typography.caption)
                     .foregroundStyle(OuestTheme.Colors.textSecondary)
             }
             .frame(maxWidth: .infinity)
             .padding(OuestTheme.Spacing.lg)
-            .background(OuestTheme.Colors.surfaceSecondary.opacity(0.5))
-            .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
         }
-        .buttonStyle(.plain)
     }
 
     // MARK: - Mini Map Preview

@@ -1,5 +1,10 @@
 import SwiftUI
 
+/// Navigation destination for user profiles from the feed
+struct ProfileDestination: Hashable {
+    let userId: UUID
+}
+
 struct FeedTripCardView: View {
     let feedTrip: FeedTrip
     let onLike: () -> Void
@@ -35,9 +40,7 @@ struct FeedTripCardView: View {
     // MARK: - Author Header
 
     private var authorHeader: some View {
-        NavigationLink {
-            UserProfileView(userId: feedTrip.creatorProfile.id)
-        } label: {
+        NavigationLink(value: ProfileDestination(userId: feedTrip.creatorProfile.id)) {
             HStack(spacing: OuestTheme.Spacing.sm) {
                 AvatarView(url: feedTrip.creatorProfile.avatarUrl, size: 36)
 
