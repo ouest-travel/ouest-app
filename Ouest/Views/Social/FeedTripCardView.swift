@@ -7,6 +7,8 @@ struct ProfileDestination: Hashable {
 
 struct FeedTripCardView: View {
     let feedTrip: FeedTrip
+    let onProfileTap: () -> Void
+    let onTripTap: () -> Void
     let onLike: () -> Void
     let onSave: () -> Void
     let onComment: () -> Void
@@ -20,17 +22,20 @@ struct FeedTripCardView: View {
             authorHeader
                 .padding(.horizontal, OuestTheme.Spacing.md)
                 .padding(.vertical, OuestTheme.Spacing.sm)
+                .contentShape(Rectangle())
 
             // Trip Cover
-            NavigationLink(value: feedTrip.trip.id) {
+            Button { onTripTap() } label: {
                 tripCover
             }
             .buttonStyle(ScaledButtonStyle(scale: 0.98))
+            .contentShape(Rectangle())
 
             // Action Bar
             actionBar
                 .padding(.horizontal, OuestTheme.Spacing.md)
                 .padding(.vertical, OuestTheme.Spacing.sm)
+                .contentShape(Rectangle())
         }
         .background(OuestTheme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.xl))
@@ -40,7 +45,7 @@ struct FeedTripCardView: View {
     // MARK: - Author Header
 
     private var authorHeader: some View {
-        NavigationLink(value: ProfileDestination(userId: feedTrip.creatorProfile.id)) {
+        Button { onProfileTap() } label: {
             HStack(spacing: OuestTheme.Spacing.sm) {
                 AvatarView(url: feedTrip.creatorProfile.avatarUrl, size: 36)
 
@@ -93,6 +98,7 @@ struct FeedTripCardView: View {
             }
             .frame(height: 200)
             .clipped()
+            .contentShape(Rectangle())
 
             // Gradient overlay
             LinearGradient(
@@ -100,6 +106,7 @@ struct FeedTripCardView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
+            .allowsHitTesting(false)
 
             // Trip info
             VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
@@ -118,7 +125,11 @@ struct FeedTripCardView: View {
                 .foregroundStyle(.white.opacity(0.9))
             }
             .padding(OuestTheme.Spacing.md)
+            .allowsHitTesting(false)
         }
+        .frame(height: 200)
+        .clipped()
+        .contentShape(Rectangle())
     }
 
     private var placeholderGradient: some View {
@@ -158,6 +169,8 @@ struct FeedTripCardView: View {
                             .foregroundStyle(OuestTheme.Colors.textSecondary)
                     }
                 }
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
@@ -174,6 +187,8 @@ struct FeedTripCardView: View {
                             .foregroundStyle(OuestTheme.Colors.textSecondary)
                     }
                 }
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
@@ -185,6 +200,8 @@ struct FeedTripCardView: View {
             } label: {
                 Image(systemName: feedTrip.isSaved ? "bookmark.fill" : "bookmark")
                     .foregroundStyle(feedTrip.isSaved ? OuestTheme.Colors.brand : OuestTheme.Colors.textSecondary)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
@@ -202,6 +219,8 @@ struct FeedTripCardView: View {
             } label: {
                 Image(systemName: "ellipsis")
                     .foregroundStyle(OuestTheme.Colors.textSecondary)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
             }
         }
         .font(.body)
@@ -230,6 +249,8 @@ struct FeedTripCardView: View {
                 isLiked: false,
                 isSaved: false
             ),
+            onProfileTap: {},
+            onTripTap: {},
             onLike: {},
             onSave: {},
             onComment: {},

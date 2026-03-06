@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -202,7 +202,7 @@
 		6AAB52CD63F3D8601C1A4258 /* ExpenseModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpenseModelTests.swift; sourceTree = "<group>"; };
 		6BAF75CAEC61290664DC5D99 /* ExpensesViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpensesViewModelTests.swift; sourceTree = "<group>"; };
 		70B7BDC723C294712E1A4233 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
-		748084841F7F82623081CD48 /* Ouest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ouest.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		748084841F7F82623081CD48 /* Ouest.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Ouest.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		750916AED18AA4DAEA04C952 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		76FD61D0FFD5A1A72F01E6A5 /* NotificationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationTests.swift; sourceTree = "<group>"; };
 		77AE0754D05E053779AEA16A /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
@@ -750,6 +750,7 @@
 						ProvisioningStyle = Automatic;
 					};
 					CA9FFEB31A9B77306F255B56 = {
+						DevelopmentTeam = 764FLZ7S8Z;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -767,6 +768,7 @@
 			packageReferences = (
 				EEB06C2C71492EE27D0E7E9B /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -966,7 +968,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Ouest/Ouest.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = 764FLZ7S8Z;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Ouest/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Ouest;
@@ -989,7 +990,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Ouest/Ouest.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = 764FLZ7S8Z;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Ouest/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Ouest;

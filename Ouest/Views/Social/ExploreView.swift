@@ -2,10 +2,11 @@ import SwiftUI
 
 struct ExploreView: View {
     @State private var viewModel = CommunityFeedViewModel()
+    @State private var path = NavigationPath()
     @State private var contentAppeared = false
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
                 if viewModel.isLoading {
                     loadingView
@@ -83,6 +84,8 @@ struct ExploreView: View {
                 ForEach(Array(viewModel.filteredTrips.enumerated()), id: \.element.id) { index, feedTrip in
                     FeedTripCardView(
                         feedTrip: feedTrip,
+                        onProfileTap: { path.append(ProfileDestination(userId: feedTrip.creatorProfile.id)) },
+                        onTripTap: { path.append(feedTrip.trip.id) },
                         onLike: { viewModel.toggleLike(feedTrip) },
                         onSave: { viewModel.toggleSave(feedTrip) },
                         onComment: { viewModel.openComments(for: feedTrip.id) },
