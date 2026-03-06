@@ -14,7 +14,7 @@ struct ExploreView: View {
                     ErrorView(message: error) {
                         Task { await viewModel.loadFeed() }
                     }
-                } else if viewModel.filteredTrips.isEmpty && !viewModel.searchQuery.isEmpty {
+                } else if viewModel.filteredTrips.isEmpty && viewModel.searchedUsers.isEmpty && !viewModel.searchQuery.isEmpty && !viewModel.isSearchingUsers {
                     searchEmptyState
                 } else if viewModel.feedTrips.isEmpty {
                     EmptyStateView(
@@ -32,6 +32,9 @@ struct ExploreView: View {
                 placement: .navigationBarDrawer(displayMode: .always),
                 prompt: "Search trips, destinations, travelers…"
             )
+            .onChange(of: viewModel.searchQuery) {
+                viewModel.searchUsers()
+            }
             .refreshable {
                 await viewModel.refreshFeed()
             }
@@ -81,6 +84,24 @@ struct ExploreView: View {
     private var feedList: some View {
         ScrollView {
             LazyVStack(spacing: OuestTheme.Spacing.lg) {
+
+                // MARK: People Results
+                if !viewModel.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    peopleSection
+                }
+
+                // MARK: Trip Results
+                if !viewModel.filteredTrips.isEmpty && !viewModel.searchedUsers.isEmpty && !viewModel.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    HStack {
+                        Text("Trips")
+                            .font(OuestTheme.Typography.caption)
+                            .foregroundStyle(OuestTheme.Colors.textSecondary)
+                            .textCase(.uppercase)
+                        Spacer()
+                    }
+                    .padding(.top, OuestTheme.Spacing.xs)
+                }
+
                 ForEach(Array(viewModel.filteredTrips.enumerated()), id: \.element.id) { index, feedTrip in
                     FeedTripCardView(
                         feedTrip: feedTrip,
@@ -110,6 +131,58 @@ struct ExploreView: View {
             .padding(.horizontal, OuestTheme.Spacing.lg)
             .padding(.top, OuestTheme.Spacing.sm)
             .padding(.bottom, OuestTheme.Spacing.xxxl)
+        }
+    }
+
+    // MARK: - People Section
+
+    private var peopleSection: some View {
+        VStack(alignment: .leading, spacing: OuestTheme.Spacing.sm) {
+            if !viewModel.searchedUsers.isEmpty || viewModel.isSearchingUsers {
+                HStack {
+                    Text("People")
+                        .font(OuestTheme.Typography.caption)
+                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+                        .textCase(.uppercase)
+                    Spacer()
+                    if viewModel.isSearchingUsers {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                }
+            }
+
+            ForEach(viewModel.searchedUsers) { profile in
+                Button {
+                    path.append(ProfileDestination(userId: profile.id))
+                } label: {
+                    HStack(spacing: OuestTheme.Spacing.md) {
+                        AvatarView(url: profile.avatarUrl, size: 44)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(profile.fullName ?? "Traveler")
+                                .font(OuestTheme.Typography.cardTitle)
+                                .foregroundStyle(OuestTheme.Colors.textPrimary)
+
+                            if let handle = profile.handle {
+                                Text("@\(handle)")
+                                    .font(OuestTheme.Typography.caption)
+                                    .foregroundStyle(OuestTheme.Colors.textSecondary)
+                            }
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(OuestTheme.Colors.textSecondary)
+                    }
+                    .padding(OuestTheme.Spacing.md)
+                    .background(OuestTheme.Colors.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 

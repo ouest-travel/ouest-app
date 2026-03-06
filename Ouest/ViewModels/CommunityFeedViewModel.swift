@@ -16,6 +16,9 @@ final class CommunityFeedViewModel {
     // MARK: - Search
 
     var searchQuery = ""
+    var searchedUsers: [Profile] = []
+    var isSearchingUsers = false
+    private var searchTask: Task<Void, Never>?
 
     var filteredTrips: [FeedTrip] {
         let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -182,6 +185,50 @@ final class CommunityFeedViewModel {
     func openComments(for tripId: UUID) {
         selectedCommentTripId = tripId
         showComments = true
+    }
+
+    // MARK: - User Search
+
+    func searchUsers() {
+        searchTask?.cancel()
+
+        let raw = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else {
+            searchedUsers = []
+            isSearchingUsers = false
+            return
+        }
+
+        // Strip leading "@" so "@mya" searches for "mya"
+        let query = raw.hasPrefix("@") ? String(raw.dropFirst()) : raw
+        guard !query.isEmpty else {
+            searchedUsers = []
+            isSearchingUsers = false
+            return
+        }
+
+        isSearchingUsers = true
+
+        searchTask = Task {
+            // Debounce 300ms
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+
+            do {
+                let results = try await TripService.searchProfiles(query: query)
+                guard !Task.isCancelled else { return }
+                // Filter out the current user
+                searchedUsers = results.filter { $0.id != currentUserId }
+            } catch {
+                guard !Task.isCancelled else { return }
+                searchedUsers = []
+                #if DEBUG
+                print("[CommunityFeed] searchUsers failed: \(error)")
+                #endif
+            }
+
+            isSearchingUsers = false
+        }
     }
 
     // MARK: - Private: Build Feed
