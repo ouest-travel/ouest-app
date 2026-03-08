@@ -48,6 +48,20 @@ extension View {
             .scaleEffect(isVisible ? 1 : 0.96, anchor: .leading)
             .animation(OuestTheme.Anim.gentle.delay(delay), value: isVisible)
     }
+
+    /// Card entrance — slide up 30pt + slight rotation for a dynamic reveal
+    func cardEntrance(isVisible: Bool, delay: Double = 0) -> some View {
+        self
+            .opacity(isVisible ? 1 : 0)
+            .offset(y: isVisible ? 0 : 30)
+            .rotationEffect(.degrees(isVisible ? 0 : -2), anchor: .bottom)
+            .animation(OuestTheme.Anim.smooth.delay(delay), value: isVisible)
+    }
+
+    /// Like burst — particle explosion overlay for social interactions
+    func likeBurst(trigger: Bool) -> some View {
+        modifier(LikeBurstModifier(trigger: trigger))
+    }
 }
 
 // MARK: - Shimmer Modifier
@@ -93,6 +107,7 @@ private struct PressEffectModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .scaleEffect(isPressed ? pressedScale : 1.0)
+            .brightness(isPressed ? 0.03 : 0)
             .animation(OuestTheme.Anim.quick, value: isPressed)
             .simultaneousGesture(
                 DragGesture(minimumDistance: 0)
@@ -112,6 +127,7 @@ struct ScaledButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? scale : 1.0)
+            .brightness(configuration.isPressed ? 0.03 : 0)
             .animation(OuestTheme.Anim.quick, value: configuration.isPressed)
     }
 }
@@ -192,7 +208,7 @@ struct SkeletonView: View {
 
     var body: some View {
         RoundedRectangle(cornerRadius: radius)
-            .fill(Color(.systemGray5))
+            .fill(OuestTheme.Colors.surfaceTertiary)
             .frame(width: width, height: height)
             .shimmerEffect()
     }
@@ -219,6 +235,82 @@ struct SkeletonTripCard: View {
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
         .shadow(OuestTheme.Shadow.md)
     }
+}
+
+// MARK: - Like Burst Modifier
+
+private struct LikeBurstModifier: ViewModifier {
+    let trigger: Bool
+    @State private var particles: [BurstParticle] = []
+
+    func body(content: Content) -> some View {
+        content
+            .overlay {
+                GeometryReader { geo in
+                    let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
+                    ForEach(particles) { particle in
+                        Circle()
+                            .fill(particle.color)
+                            .frame(width: particle.size, height: particle.size)
+                            .scaleEffect(particle.isActive ? 0 : 1)
+                            .opacity(particle.isActive ? 0 : 1)
+                            .offset(
+                                x: center.x + (particle.isActive ? particle.endX : 0) - particle.size / 2,
+                                y: center.y + (particle.isActive ? particle.endY : 0) - particle.size / 2
+                            )
+                    }
+                }
+                .allowsHitTesting(false)
+            }
+            .onChange(of: trigger) { _, isActive in
+                guard isActive else { return }
+                burst()
+            }
+    }
+
+    private func burst() {
+        let count = Int.random(in: 6...8)
+        var newParticles: [BurstParticle] = []
+        let colors: [Color] = [
+            Color(hex: 0x2563EB),
+            Color(hex: 0x38BDF8),
+            Color(hex: 0x3B82F6),
+            Color(hex: 0x60A5FA),
+        ]
+
+        for i in 0..<count {
+            let angle = (Double(i) / Double(count)) * 2 * .pi + Double.random(in: -0.3...0.3)
+            let distance = CGFloat.random(in: 20...40)
+            newParticles.append(BurstParticle(
+                color: colors[i % colors.count],
+                size: CGFloat.random(in: 4...8),
+                endX: cos(angle) * distance,
+                endY: sin(angle) * distance
+            ))
+        }
+
+        particles = newParticles
+
+        withAnimation(.spring(duration: 0.5, bounce: 0.2)) {
+            for i in particles.indices {
+                particles[i].isActive = true
+            }
+        }
+
+        // Clean up after animation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            particles = []
+        }
+    }
+}
+
+private struct BurstParticle: Identifiable {
+    let id = UUID()
+    let color: Color
+    let size: CGFloat
+    let endX: CGFloat
+    let endY: CGFloat
+    var isActive = false
 }
 
 // MARK: - Haptic feedback helpers

@@ -94,9 +94,8 @@ struct ExploreView: View {
                 if !viewModel.filteredTrips.isEmpty && !viewModel.searchedUsers.isEmpty && !viewModel.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     HStack {
                         Text("Trips")
-                            .font(OuestTheme.Typography.caption)
+                            .font(OuestTheme.Typography.sectionTitle)
                             .foregroundStyle(OuestTheme.Colors.textSecondary)
-                            .textCase(.uppercase)
                         Spacer()
                     }
                     .padding(.top, OuestTheme.Spacing.xs)
@@ -141,9 +140,8 @@ struct ExploreView: View {
             if !viewModel.searchedUsers.isEmpty || viewModel.isSearchingUsers {
                 HStack {
                     Text("People")
-                        .font(OuestTheme.Typography.caption)
+                        .font(OuestTheme.Typography.sectionTitle)
                         .foregroundStyle(OuestTheme.Colors.textSecondary)
-                        .textCase(.uppercase)
                     Spacer()
                     if viewModel.isSearchingUsers {
                         ProgressView()
@@ -202,30 +200,18 @@ struct ExploreView: View {
 
     private var feedCardSkeleton: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Author header skeleton
-            HStack(spacing: OuestTheme.Spacing.sm) {
-                Circle()
+            // Cover skeleton (with pill placeholder at top-left)
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: 0)
                     .fill(OuestTheme.Colors.surfaceSecondary)
-                    .frame(width: 36, height: 36)
+                    .frame(height: 200)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(OuestTheme.Colors.surfaceSecondary)
-                        .frame(width: 120, height: 14)
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(OuestTheme.Colors.surfaceSecondary)
-                        .frame(width: 80, height: 10)
-                }
-
-                Spacer()
+                // Author pill skeleton
+                Capsule()
+                    .fill(OuestTheme.Colors.surfaceTertiary)
+                    .frame(width: 120, height: 30)
+                    .padding(OuestTheme.Spacing.md)
             }
-            .padding(.horizontal, OuestTheme.Spacing.md)
-            .padding(.vertical, OuestTheme.Spacing.sm)
-
-            // Cover skeleton
-            RoundedRectangle(cornerRadius: 0)
-                .fill(OuestTheme.Colors.surfaceSecondary)
-                .frame(height: 200)
 
             // Action bar skeleton
             HStack(spacing: OuestTheme.Spacing.xl) {

@@ -7,6 +7,20 @@ enum DeepLinkRouter {
     /// Represents a parsed deep link destination.
     enum Destination: Equatable {
         case joinTrip(code: String)
+        case tripDetail(id: UUID)
+        case userProfile(id: UUID)
+    }
+
+    /// Creates a navigation destination from an in-app notification.
+    static func destination(from notification: AppNotification) -> Destination? {
+        switch notification.type {
+        case .newFollower:
+            guard let id = notification.followerId else { return nil }
+            return .userProfile(id: id)
+        default:
+            guard let tripId = notification.tripId else { return nil }
+            return .tripDetail(id: tripId)
+        }
     }
 
     /// Parses a URL into a navigation destination.

@@ -84,4 +84,21 @@ enum StorageService {
         let path = "\(tripId.uuidString.lowercased())/\(expenseId.uuidString.lowercased()).jpg"
         return try await uploadImage(data: data, bucket: "expense-receipts", path: path)
     }
+
+    /// Upload a gallery photo for a trip
+    /// - Parameters:
+    ///   - data: JPEG image data
+    ///   - tripId: Trip ID (used as folder prefix)
+    ///   - photoId: Photo ID (used in filename)
+    /// - Returns: Public URL for the uploaded gallery photo
+    static func uploadGalleryPhoto(data: Data, tripId: UUID, photoId: UUID) async throws -> String {
+        let path = "\(tripId.uuidString.lowercased())/\(photoId.uuidString.lowercased()).jpg"
+        return try await uploadImage(data: data, bucket: "trip-gallery", path: path)
+    }
+
+    /// Delete a gallery photo from storage
+    static func deleteGalleryPhoto(tripId: UUID, photoId: UUID) async throws {
+        let path = "\(tripId.uuidString.lowercased())/\(photoId.uuidString.lowercased()).jpg"
+        try await deleteFile(bucket: "trip-gallery", paths: [path])
+    }
 }

@@ -125,7 +125,7 @@ struct HomeView: View {
                 HStack(spacing: OuestTheme.Spacing.sm) {
                     Text(firstName)
                         .font(OuestTheme.Typography.screenTitle)
-                        .foregroundStyle(OuestTheme.Colors.brand)
+                        .foregroundStyle(OuestTheme.Colors.brandGradient)
 
                     Image(systemName: greetingIcon)
                         .font(.system(size: 20))
@@ -221,6 +221,14 @@ struct HomeView: View {
             .padding(.top, OuestTheme.Spacing.sm)
             .padding(.bottom, OuestTheme.Spacing.xxxl)
         }
+        .background(
+            LinearGradient(
+                colors: [OuestTheme.Colors.surface, OuestTheme.Colors.surfaceSecondary],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+        )
         .navigationDestination(for: UUID.self) { tripId in
             TripDetailView(tripId: tripId)
                 .environment(authViewModel)

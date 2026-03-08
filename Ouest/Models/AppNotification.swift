@@ -117,6 +117,11 @@ struct AppNotification: Codable, Identifiable, Sendable {
         guard let str = data["trip_id"] else { return nil }
         return UUID(uuidString: str)
     }
+
+    var followerId: UUID? {
+        guard let str = data["follower_id"] else { return nil }
+        return UUID(uuidString: str)
+    }
 }
 
 // MARK: - AnyCodable Helper (for JSONB decoding)

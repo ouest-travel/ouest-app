@@ -31,6 +31,7 @@ struct OuestButton: View {
             .background(backgroundStyle)
             .foregroundStyle(foregroundColor)
             .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+            .shadow(style == .primary ? OuestTheme.Shadow.md : OuestTheme.Shadow.sm)
         }
         .disabled(isLoading)
         .pressEffect(scale: 0.97)

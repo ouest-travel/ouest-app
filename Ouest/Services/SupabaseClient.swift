@@ -5,7 +5,8 @@ enum SupabaseManager {
     /// Custom JSON decoder that handles both PostgreSQL `timestamptz` ("2026-02-26T18:25:00+00:00")
     /// and `date` ("2026-02-26") column types. The default supabase-swift decoder only handles
     /// timestamps, causing decode failures on date-only columns like `start_date` and `end_date`.
-    private static let postgrestDecoder: JSONDecoder = {
+    /// Shared decoder, also used by Realtime record decoding.
+    static let postgrestDecoder: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()

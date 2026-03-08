@@ -195,7 +195,7 @@ struct TripDetailView: View {
 
             // Gradient overlay
             LinearGradient(
-                colors: [.clear, .clear, .black.opacity(0.6)],
+                colors: [.clear, OuestTheme.Colors.deepNavy.opacity(0.75)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -234,33 +234,38 @@ struct TripDetailView: View {
     // MARK: - Quick Info Bar
 
     private func quickInfoBar(_ trip: Trip) -> some View {
-        HStack(spacing: 0) {
-            if let dates = trip.dateRangeText {
-                infoChip(icon: "calendar", value: dates)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: OuestTheme.Spacing.sm) {
+                if let dates = trip.dateRangeText {
+                    infoChip(icon: "calendar", value: dates)
+                }
+                if let days = trip.durationDays {
+                    infoChip(icon: "clock", value: "\(days) day\(days == 1 ? "" : "s")")
+                }
+                if let formatted = trip.formattedBudget {
+                    infoChip(icon: "dollarsign.circle", value: formatted)
+                }
+                infoChip(icon: "person.2", value: "\(viewModel.members.count)")
+                infoChip(icon: trip.status.icon, value: trip.status.label)
             }
-            if let days = trip.durationDays {
-                infoChip(icon: "clock", value: "\(days) day\(days == 1 ? "" : "s")")
-            }
-            if let formatted = trip.formattedBudget {
-                infoChip(icon: "dollarsign.circle", value: formatted)
-            }
-            infoChip(icon: "person.2", value: "\(viewModel.members.count)")
-            infoChip(icon: trip.status.icon, value: trip.status.label)
+            .padding(.horizontal, OuestTheme.Spacing.lg)
         }
         .padding(.vertical, OuestTheme.Spacing.md)
-        .background(OuestTheme.Colors.surfaceSecondary)
     }
 
     private func infoChip(icon: String, value: String) -> some View {
         HStack(spacing: OuestTheme.Spacing.xs) {
             Image(systemName: icon)
                 .font(.caption2)
-                .foregroundStyle(OuestTheme.Colors.textSecondary)
             Text(value)
                 .font(OuestTheme.Typography.caption)
                 .fontWeight(.medium)
         }
-        .frame(maxWidth: .infinity)
+        .foregroundStyle(.white)
+        .padding(.horizontal, OuestTheme.Spacing.md)
+        .padding(.vertical, OuestTheme.Spacing.xs)
+        .background(OuestTheme.Colors.brand.opacity(0.85))
+        .clipShape(Capsule())
     }
 
     // MARK: - Action Buttons
@@ -308,7 +313,17 @@ struct TripDetailView: View {
                     actionButtonLabel("Polls", icon: "chart.bar", color: .orange, index: 4)
                 }
                 .buttonStyle(ScaledButtonStyle(scale: 0.92))
-                actionButtonLabel("Chat", icon: "bubble.left.and.bubble.right", color: .teal, index: 5)
+
+                // Gallery
+                NavigationLink {
+                    TripGalleryView(trip: trip, canEdit: viewModel.isMember)
+                        .environment(authViewModel)
+                } label: {
+                    actionButtonLabel("Gallery", icon: "photo.on.rectangle.angled", color: .pink, index: 5)
+                }
+                .buttonStyle(ScaledButtonStyle(scale: 0.92))
+
+                actionButtonLabel("Chat", icon: "bubble.left.and.bubble.right", color: .teal, index: 6)
             }
             .padding(.horizontal, OuestTheme.Spacing.xl)
             .padding(.vertical, OuestTheme.Spacing.lg)

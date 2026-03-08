@@ -25,9 +25,9 @@ struct TripCardView: View {
         ZStack(alignment: .bottomLeading) {
             coverImage(height: 220)
 
-            // Gradient overlay
+            // Gradient overlay (75% deep navy)
             LinearGradient(
-                colors: [.clear, .black.opacity(0.7)],
+                colors: [.clear, OuestTheme.Colors.deepNavy.opacity(0.75)],
                 startPoint: .top,
                 endPoint: .bottom
             )

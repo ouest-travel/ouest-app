@@ -66,7 +66,19 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate, @u
         let userInfo = response.notification.request.content.userInfo
         print("[Push] Notification tapped: \(userInfo)")
 
-        // Future: Deep-link navigation based on notification data
+        // Post Foundation notification so SwiftUI can pick up the destination
+        NotificationCenter.default.post(
+            name: .notificationTapped,
+            object: nil,
+            userInfo: userInfo
+        )
+
         completionHandler()
     }
+}
+
+// MARK: - Notification Name
+
+extension Notification.Name {
+    static let notificationTapped = Notification.Name("OuestNotificationTapped")
 }

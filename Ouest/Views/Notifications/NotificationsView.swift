@@ -1,11 +1,20 @@
 import SwiftUI
 
+// MARK: - Navigation Destination
+
+/// Lightweight Hashable wrapper for notification-driven navigation.
+enum NotificationNav: Hashable {
+    case trip(id: UUID)
+    case profile(id: UUID)
+}
+
 struct NotificationsView: View {
     @Bindable var viewModel: NotificationsViewModel
     @State private var contentAppeared = false
+    @State private var path = NavigationPath()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
                 if viewModel.isLoading {
                     loadingView
@@ -17,6 +26,14 @@ struct NotificationsView: View {
             }
             .navigationTitle("Activity")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: NotificationNav.self) { nav in
+                switch nav {
+                case .trip(let id):
+                    TripDetailView(tripId: id)
+                case .profile(let id):
+                    UserProfileView(userId: id)
+                }
+            }
             .toolbar {
                 if !viewModel.notifications.isEmpty && viewModel.unreadCount > 0 {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -86,13 +103,22 @@ struct NotificationsView: View {
     // MARK: - Notifications List
 
     private var notificationsList: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(Array(viewModel.notifications.enumerated()), id: \.element.id) { index, notification in
-                    notificationRow(notification, index: index)
-                }
+        List {
+            ForEach(Array(viewModel.notifications.enumerated()), id: \.element.id) { index, notification in
+                notificationRow(notification, index: index)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            HapticFeedback.light()
+                            Task { await viewModel.deleteNotification(notification) }
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
             }
         }
+        .listStyle(.plain)
     }
 
     // MARK: - Notification Row
@@ -101,6 +127,11 @@ struct NotificationsView: View {
         Button {
             HapticFeedback.light()
             Task { await viewModel.markAsRead(notification) }
+
+            // Navigate to the relevant screen
+            if let nav = notificationNav(for: notification) {
+                path.append(nav)
+            }
         } label: {
             HStack(alignment: .top, spacing: OuestTheme.Spacing.md) {
                 // Type icon
@@ -144,5 +175,19 @@ struct NotificationsView: View {
         }
         .buttonStyle(.plain)
         .fadeSlideIn(isVisible: contentAppeared, delay: Double(index) * 0.03)
+    }
+
+    // MARK: - Helpers
+
+    /// Map a notification to a navigation destination.
+    private func notificationNav(for notification: AppNotification) -> NotificationNav? {
+        switch notification.type {
+        case .newFollower:
+            guard let id = notification.followerId else { return nil }
+            return .profile(id: id)
+        default:
+            guard let tripId = notification.tripId else { return nil }
+            return .trip(id: tripId)
+        }
     }
 }

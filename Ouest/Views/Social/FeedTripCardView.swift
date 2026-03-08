@@ -18,18 +18,21 @@ struct FeedTripCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Author Header
-            authorHeader
-                .padding(.horizontal, OuestTheme.Spacing.md)
-                .padding(.vertical, OuestTheme.Spacing.sm)
+            // Trip Cover (with author blur pill overlay)
+            ZStack(alignment: .topLeading) {
+                Button { onTripTap() } label: {
+                    tripCover
+                }
+                .buttonStyle(ScaledButtonStyle(scale: 0.98))
                 .contentShape(Rectangle())
 
-            // Trip Cover
-            Button { onTripTap() } label: {
-                tripCover
+                // Author blur pill (top-left)
+                Button { onProfileTap() } label: {
+                    authorPill
+                }
+                .buttonStyle(.plain)
+                .padding(OuestTheme.Spacing.md)
             }
-            .buttonStyle(ScaledButtonStyle(scale: 0.98))
-            .contentShape(Rectangle())
 
             // Action Bar
             actionBar
@@ -42,35 +45,29 @@ struct FeedTripCardView: View {
         .shadow(OuestTheme.Shadow.md)
     }
 
-    // MARK: - Author Header
+    // MARK: - Author Blur Pill
 
-    private var authorHeader: some View {
-        Button { onProfileTap() } label: {
-            HStack(spacing: OuestTheme.Spacing.sm) {
-                AvatarView(url: feedTrip.creatorProfile.avatarUrl, size: 36)
+    private var authorPill: some View {
+        HStack(spacing: OuestTheme.Spacing.sm) {
+            AvatarView(url: feedTrip.creatorProfile.avatarUrl, size: 26)
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(feedTrip.creatorProfile.fullName ?? "Traveler")
-                        .font(OuestTheme.Typography.cardTitle)
-                        .foregroundStyle(OuestTheme.Colors.textPrimary)
-
-                    if let handle = feedTrip.creatorProfile.handle {
-                        Text("@\(handle)")
-                            .font(OuestTheme.Typography.micro)
-                            .foregroundStyle(OuestTheme.Colors.textSecondary)
-                    }
-                }
-
-                Spacer()
+            VStack(alignment: .leading, spacing: 0) {
+                Text(feedTrip.creatorProfile.fullName ?? "Traveler")
+                    .font(OuestTheme.Typography.micro)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
 
                 if let created = feedTrip.trip.createdAt {
                     Text(created.relativeText)
-                        .font(OuestTheme.Typography.caption)
-                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+                        .font(.system(size: 9))
+                        .foregroundStyle(.white.opacity(0.7))
                 }
             }
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, OuestTheme.Spacing.sm)
+        .padding(.vertical, OuestTheme.Spacing.xs)
+        .background(.ultraThinMaterial)
+        .clipShape(Capsule())
     }
 
     // MARK: - Trip Cover
@@ -102,7 +99,7 @@ struct FeedTripCardView: View {
 
             // Gradient overlay
             LinearGradient(
-                colors: [.clear, .black.opacity(0.65)],
+                colors: [.clear, OuestTheme.Colors.deepNavy.opacity(0.75)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -163,6 +160,7 @@ struct FeedTripCardView: View {
                     Image(systemName: feedTrip.isLiked ? "heart.fill" : "heart")
                         .foregroundStyle(feedTrip.isLiked ? .red : OuestTheme.Colors.textSecondary)
                         .scaleEffect(likeScale)
+                        .likeBurst(trigger: feedTrip.isLiked)
                     if feedTrip.likeCount > 0 {
                         Text("\(feedTrip.likeCount)")
                             .font(OuestTheme.Typography.caption)

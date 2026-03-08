@@ -79,6 +79,15 @@ enum NotificationService {
             .execute()
     }
 
+    /// Delete a single notification.
+    static func deleteNotification(id: UUID) async throws {
+        try await SupabaseManager.client
+            .from("notifications")
+            .delete()
+            .eq("id", value: id)
+            .execute()
+    }
+
     // MARK: - Notification Preferences
 
     /// Fetch notification preferences for a user. Returns nil if none exist.

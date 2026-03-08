@@ -1,4 +1,6 @@
 import Foundation
+import Realtime
+import Supabase
 import UIKit
 import UserNotifications
 
@@ -15,6 +17,8 @@ final class NotificationsViewModel {
     // MARK: - Internal
 
     private var currentUserId: UUID?
+    private var realtimeChannel: RealtimeChannelV2?
+    private var listeningTask: Task<Void, Never>?
 
     // MARK: - Load
 
@@ -46,6 +50,56 @@ final class NotificationsViewModel {
         } catch {
             // Silent failure — badge is non-critical
         }
+    }
+
+    // MARK: - Realtime
+
+    /// Subscribe to new notifications via Supabase Realtime.
+    func startListening(userId: UUID) async {
+        currentUserId = userId
+
+        // Avoid duplicate subscriptions
+        guard realtimeChannel == nil else { return }
+
+        let channel = SupabaseManager.client.realtimeV2.channel(
+            "user-notifications-\(userId.uuidString.prefix(8))"
+        )
+
+        let insertions = channel.postgresChange(
+            InsertAction.self,
+            schema: "public",
+            table: "notifications",
+            filter: .eq("user_id", value: userId)
+        )
+
+        self.realtimeChannel = channel
+
+        try? await channel.subscribeWithError()
+
+        listeningTask = Task { [weak self] in
+            for await insertion in insertions {
+                guard let self, !Task.isCancelled else { break }
+                // Try to decode the full notification
+                if let notification = try? insertion.decodeRecord(
+                    as: AppNotification.self,
+                    decoder: SupabaseManager.postgrestDecoder
+                ) {
+                    self.notifications.insert(notification, at: 0)
+                    self.unreadCount += 1
+                } else {
+                    // Fallback: just bump the count — full list refreshes on view appear
+                    self.unreadCount += 1
+                }
+            }
+        }
+    }
+
+    /// Unsubscribe from realtime updates.
+    func stopListening() async {
+        listeningTask?.cancel()
+        listeningTask = nil
+        await realtimeChannel?.unsubscribe()
+        realtimeChannel = nil
     }
 
     // MARK: - Actions
@@ -87,6 +141,20 @@ final class NotificationsViewModel {
             // Revert on failure
             notifications = previousNotifications
             unreadCount = previousCount
+        }
+    }
+
+    /// Optimistically delete a notification.
+    func deleteNotification(_ notification: AppNotification) async {
+        let wasUnread = !notification.isRead
+        notifications.removeAll { $0.id == notification.id }
+        if wasUnread { unreadCount = max(0, unreadCount - 1) }
+
+        do {
+            try await NotificationService.deleteNotification(id: notification.id)
+        } catch {
+            // Revert: reload the full list
+            await loadNotifications()
         }
     }
 
