@@ -1,5 +1,11 @@
 import SwiftUI
 
+import SwiftUI
+
+#if canImport(UIKit)
+import UIKit
+#endif
+
 // MARK: - Animation Modifiers
 
 extension View {
@@ -143,20 +149,19 @@ private struct ShakeModifier: ViewModifier {
             .offset(x: shakeOffset)
             .onChange(of: shaking) { _, isShaking in
                 guard isShaking else { return }
-                withAnimation(.spring(duration: 0.08, bounce: 0)) {
-                    shakeOffset = -8
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                Task { @MainActor in
+                    withAnimation(.spring(duration: 0.08, bounce: 0)) {
+                        shakeOffset = -8
+                    }
+                    try? await Task.sleep(nanoseconds: 80_000_000)
                     withAnimation(.spring(duration: 0.08, bounce: 0)) {
                         shakeOffset = 8
                     }
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
+                    try? await Task.sleep(nanoseconds: 80_000_000)
                     withAnimation(.spring(duration: 0.08, bounce: 0)) {
                         shakeOffset = -4
                     }
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) {
+                    try? await Task.sleep(nanoseconds: 80_000_000)
                     withAnimation(.spring(duration: 0.12, bounce: 0.2)) {
                         shakeOffset = 0
                     }
@@ -298,7 +303,8 @@ private struct LikeBurstModifier: ViewModifier {
         }
 
         // Clean up after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 600_000_000)
             particles = []
         }
     }
@@ -316,23 +322,38 @@ private struct BurstParticle: Identifiable {
 // MARK: - Haptic feedback helpers
 
 enum HapticFeedback {
+    @MainActor
     static func light() {
+        #if canImport(UIKit)
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        #endif
     }
 
+    @MainActor
     static func medium() {
+        #if canImport(UIKit)
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        #endif
     }
 
+    @MainActor
     static func success() {
+        #if canImport(UIKit)
         UINotificationFeedbackGenerator().notificationOccurred(.success)
+        #endif
     }
 
+    @MainActor
     static func error() {
+        #if canImport(UIKit)
         UINotificationFeedbackGenerator().notificationOccurred(.error)
+        #endif
     }
 
+    @MainActor
     static func selection() {
+        #if canImport(UIKit)
         UISelectionFeedbackGenerator().selectionChanged()
+        #endif
     }
 }

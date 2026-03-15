@@ -379,6 +379,8 @@ struct AddExpenseView: View {
                 }
             }
 
+            let hasReceiptImage = viewModel.receiptImageData != nil
+            
             PhotosPicker(
                 selection: $selectedPhoto,
                 matching: .images,
@@ -387,7 +389,7 @@ struct AddExpenseView: View {
                 HStack(spacing: OuestTheme.Spacing.sm) {
                     Image(systemName: "camera.fill")
                         .font(.body)
-                    Text(viewModel.receiptImageData != nil ? "Change Photo" : "Add Receipt Photo")
+                    Text(hasReceiptImage ? "Change Photo" : "Add Receipt Photo")
                         .font(.body)
                 }
                 .frame(maxWidth: .infinity)

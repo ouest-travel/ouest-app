@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import Supabase
 
 struct OnboardingView: View {
     @Environment(AuthViewModel.self) private var authViewModel
@@ -328,9 +329,13 @@ struct OnboardingView: View {
         defer { isSaving = false }
 
         do {
+            // Use session user ID directly — currentUser may be nil for new signups
+            // because the DB trigger that creates the profile row hasn't fired yet.
+            let userId = try await SupabaseManager.client.auth.session.user.id
+
             // Upload avatar if selected
             var avatarUrl: String?
-            if let data = avatarData, let userId = authViewModel.currentUser?.id {
+            if let data = avatarData {
                 avatarUrl = try await StorageService.uploadProfileAvatar(
                     data: data, userId: userId
                 )
@@ -354,7 +359,17 @@ struct OnboardingView: View {
                     : selectedInterests.map(\.rawValue)
             )
 
-            try await authViewModel.updateProfile(payload)
+            // Update profile directly — don't go through authViewModel.updateProfile()
+            // which guards on currentUser?.id and would silently fail.
+            let updated: Profile = try await SupabaseManager.client
+                .from("profiles")
+                .update(payload)
+                .eq("id", value: userId)
+                .select()
+                .single()
+                .execute()
+                .value
+            authViewModel.currentUser = updated
             HapticFeedback.success()
         } catch {
             // On error, still advance — user can edit profile later

@@ -47,7 +47,8 @@ enum SupabaseManager {
         supabaseURL: URL(string: Secrets.supabaseURL)!,
         supabaseKey: Secrets.supabaseAnonKey,
         options: .init(
-            db: .init(decoder: postgrestDecoder)
+            db: .init(decoder: postgrestDecoder),
+            auth: .init(emitLocalSessionAsInitialSession: true)
         )
     )
 }

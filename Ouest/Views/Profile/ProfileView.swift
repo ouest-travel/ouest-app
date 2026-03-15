@@ -93,7 +93,7 @@ struct ProfileView: View {
                 }
 
                 // Edit button
-                OuestButton(title: "Edit Profile", style: .secondary) {
+                OuestButton(title: "Edit Profile") {
                     showEditProfile = true
                 }
                 .frame(width: 200)

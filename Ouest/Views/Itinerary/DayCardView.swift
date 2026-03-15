@@ -154,10 +154,6 @@ struct DayCardView: View {
 
     private var miniMapPreview: some View {
         let activities = day.sortedActivities.filter(\.hasCoordinates)
-        let coordinates = activities.compactMap { act -> CLLocationCoordinate2D? in
-            guard let lat = act.latitude, let lng = act.longitude else { return nil }
-            return CLLocationCoordinate2D(latitude: lat, longitude: lng)
-        }
 
         return Map {
             ForEach(activities) { activity in

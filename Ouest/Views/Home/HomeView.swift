@@ -70,7 +70,7 @@ struct HomeView: View {
                     if let trip = tripToDelete {
                         Task {
                             HapticFeedback.success()
-                            await viewModel.deleteTrip(trip)
+                            _ = await viewModel.deleteTrip(trip)
                         }
                     }
                     tripToDelete = nil

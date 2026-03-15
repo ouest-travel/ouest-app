@@ -18,8 +18,8 @@ enum EntryRequirementService {
         request.addValue("visa-requirement.p.rapidapi.com", forHTTPHeaderField: "X-RapidAPI-Host")
 
         let body: [String: String] = [
-            "passport": passport.uppercased(),
-            "destination": destination.uppercased()
+            "passport": normalizeToAlpha2(passport),
+            "destination": normalizeToAlpha2(destination)
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
@@ -70,15 +70,27 @@ enum EntryRequirementService {
 
     // MARK: - Country Helpers
 
-    /// Localized country name from ISO 3166-1 alpha-2 code.
-    static func countryName(for code: String) -> String {
-        Locale.current.localizedString(forRegionCode: code.uppercased()) ?? code
+    /// Normalize a country code to ISO alpha-2 (handles alpha-3 from NationalityPickerView).
+    static func normalizeToAlpha2(_ code: String) -> String {
+        let upper = code.uppercased()
+        if upper.count == 2 { return upper }
+        if let country = CountryHelper.country(for: upper) {
+            return country.alpha2
+        }
+        return upper
     }
 
-    /// Emoji flag from ISO 3166-1 alpha-2 code (e.g. "US" → "🇺🇸").
+    /// Localized country name from an ISO country code (alpha-2 or alpha-3).
+    static func countryName(for code: String) -> String {
+        let alpha2 = normalizeToAlpha2(code)
+        return Locale.current.localizedString(forRegionCode: alpha2) ?? code
+    }
+
+    /// Emoji flag from an ISO country code (alpha-2 or alpha-3, e.g. "US" → "🇺🇸").
     static func flag(for code: String) -> String {
+        let alpha2 = normalizeToAlpha2(code)
         let base: UInt32 = 127397
-        return code.uppercased().unicodeScalars.compactMap {
+        return alpha2.unicodeScalars.compactMap {
             UnicodeScalar(base + $0.value).map(String.init)
         }.joined()
     }

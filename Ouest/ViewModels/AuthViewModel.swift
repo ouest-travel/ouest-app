@@ -164,12 +164,19 @@ final class AuthViewModel {
     }
 
     private func loadProfile(userId: UUID) async {
-        do {
-            currentUser = try await AuthService.fetchProfile(userId: userId)
-        } catch {
-            // Profile may not exist yet if trigger hasn't fired
-            currentUser = nil
+        // Retry a few times — the DB trigger that creates the profile row
+        // may not have fired yet for brand-new signups.
+        for attempt in 0..<4 {
+            do {
+                currentUser = try await AuthService.fetchProfile(userId: userId)
+                return
+            } catch {
+                if attempt < 3 {
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                }
+            }
         }
+        currentUser = nil
     }
 
     // MARK: - Dev Sign-In (DEBUG only)

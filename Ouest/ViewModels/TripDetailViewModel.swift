@@ -131,7 +131,7 @@ final class TripDetailViewModel {
 
             // Auto-generate itinerary days if trip has dates
             if hasDates {
-                try? await ItineraryService.generateDaysForTrip(
+                _ = try? await ItineraryService.generateDaysForTrip(
                     tripId: newTrip.id,
                     startDate: startDate,
                     endDate: endDate
@@ -188,7 +188,7 @@ final class TripDetailViewModel {
             if hasDates && (oldTrip?.startDate == nil || oldTrip?.endDate == nil) {
                 let existingDays = try await ItineraryService.fetchDays(tripId: tripId)
                 if existingDays.isEmpty {
-                    try? await ItineraryService.generateDaysForTrip(
+                    _ = try? await ItineraryService.generateDaysForTrip(
                         tripId: tripId,
                         startDate: startDate,
                         endDate: endDate

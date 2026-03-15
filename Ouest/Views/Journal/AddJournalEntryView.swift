@@ -14,6 +14,7 @@ struct AddJournalEntryView: View {
     private var isEditing: Bool { entry != nil }
     private let contentMaxLength = 5000
 
+    @MainActor
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -235,6 +236,7 @@ struct AddJournalEntryView: View {
 
     // MARK: - Actions
 
+    @MainActor
     private func save() async {
         if let entry {
             if await viewModel.updateEntry(id: entry.id, tripId: trip.id) {
@@ -253,6 +255,7 @@ struct AddJournalEntryView: View {
         }
     }
 
+    @MainActor
     private func loadPhoto(_ item: PhotosPickerItem?) async {
         guard let item else { return }
         do {
@@ -270,6 +273,7 @@ struct AddJournalEntryView: View {
         }
     }
 
+    @MainActor
     private func loadRemotePhoto(_ url: URL) {
         Task {
             if let (data, _) = try? await URLSession.shared.data(from: url),
