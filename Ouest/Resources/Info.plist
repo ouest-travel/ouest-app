@@ -24,8 +24,6 @@
 	<string>$(RAPIDAPI_KEY)</string>
 	<key>SUPABASE_ANON_KEY</key>
 	<string>$(SUPABASE_ANON_KEY)</string>
-	<key>SUPABASE_SERVICE_ROLE_KEY</key>
-	<string>$(SUPABASE_SERVICE_ROLE_KEY)</string>
 	<key>SUPABASE_URL</key>
 	<string>$(SUPABASE_URL)</string>
 	<key>CFBundleURLTypes</key>
@@ -43,8 +41,15 @@
 	<array>
 		<string>Fraunces.ttf</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Ouest uses your photo library to set profile pictures, trip covers, and travel photos.</string>
 	<key>UILaunchScreen</key>
-	<dict/>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+		<key>UIImageName</key>
+		<string>OuestLogo</string>
+	</dict>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

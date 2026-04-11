@@ -6,7 +6,10 @@ private struct SavedTripsDestination: Hashable {}
 struct ProfileView: View {
     @Environment(AuthViewModel.self) private var authViewModel
     @State private var showEditProfile = false
+    @State private var showStickers = false
+    @State private var showAvatarViewer = false
     @State private var contentAppeared = false
+    @State private var equippedStickers: [UserSticker] = []
 
     // MARK: - Stats (loaded async)
 
@@ -57,16 +60,40 @@ struct ProfileView: View {
                 EditProfileView()
                     .environment(authViewModel)
             }
+            .sheet(isPresented: $showStickers) {
+                if let userId = authViewModel.currentUser?.id {
+                    StickersCollectionView(
+                        viewModel: StickersViewModel(userId: userId),
+                        userName: authViewModel.currentUser?.fullName ?? "Traveler"
+                    )
+                }
+            }
+            .fullScreenCover(isPresented: $showAvatarViewer) {
+                FullScreenAvatarView(
+                    url: authViewModel.currentUser?.avatarUrl,
+                    name: authViewModel.currentUser?.fullName
+                )
+            }
             .task {
                 await loadStats()
+                await loadEquippedStickers()
                 withAnimation(OuestTheme.Anim.smooth) {
                     contentAppeared = true
                 }
             }
             .onChange(of: showEditProfile) { _, isPresented in
                 if !isPresented {
-                    // Refresh stats after edit dismissal
-                    Task { await loadStats() }
+                    // Refresh profile + stats after edit dismissal
+                    Task {
+                        await authViewModel.refreshProfile()
+                        await loadStats()
+                    }
+                }
+            }
+            .onChange(of: showStickers) { _, isPresented in
+                if !isPresented {
+                    // Refresh equipped stickers after collection view dismissal
+                    Task { await loadEquippedStickers() }
                 }
             }
         }
@@ -115,14 +142,41 @@ struct ProfileView: View {
 
     private func profileCard(_ profile: Profile) -> some View {
         VStack(spacing: 0) {
-            // Empty space sitting over the gradient area
-            Spacer()
-                .frame(height: 100)
+            // Empty space sitting over the gradient area — with sticker overlay
+            ZStack(alignment: .topTrailing) {
+                Spacer()
+                    .frame(height: 100)
+                    .frame(maxWidth: .infinity)
 
-            // Avatar straddling the gradient / surface boundary
-            AvatarView(url: profile.avatarUrl, size: 80)
-                .overlay(Circle().stroke(.white, lineWidth: 3))
-                .shadow(OuestTheme.Shadow.lg)
+                // Stickers in top-right of gradient — cluster if equipped, button if not
+                Button {
+                    showStickers = true
+                } label: {
+                    if equippedStickers.isEmpty {
+                        // Empty state — subtle "view stickers" badge
+                        Image(systemName: "star.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(.white.opacity(0.5))
+                    } else {
+                        stickerCluster
+                    }
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 12)
+                .padding(.trailing, 12)
+            }
+
+            // Avatar straddling the gradient / surface boundary — tappable
+            Button {
+                if profile.avatarUrl != nil {
+                    showAvatarViewer = true
+                }
+            } label: {
+                AvatarView(url: profile.avatarUrl, size: 80)
+                    .overlay(Circle().stroke(.white, lineWidth: 3))
+                    .shadow(OuestTheme.Shadow.lg)
+            }
+            .buttonStyle(.plain)
 
             // Profile info on surface
             VStack(spacing: OuestTheme.Spacing.md) {
@@ -190,6 +244,20 @@ struct ProfileView: View {
         }
     }
 
+    // MARK: - Sticker Cluster
+
+    private var stickerCluster: some View {
+        let rotations: [Double] = [-6, 4, -3, 7]
+        return HStack(spacing: -8) {
+            ForEach(Array(equippedStickers.prefix(4).enumerated()), id: \.element.id) { index, sticker in
+                if let type = sticker.type {
+                    StickerBadgeView(stickerType: type, isUnlocked: true, size: .small)
+                        .rotationEffect(.degrees(rotations[index % rotations.count]))
+                }
+            }
+        }
+    }
+
     // MARK: - Interest Tags (Filled)
 
     private func interestTags(_ interests: [String]) -> some View {
@@ -244,6 +312,15 @@ struct ProfileView: View {
         }
 
         isSavedTripsLoading = false
+    }
+
+    // MARK: - Load Equipped Stickers
+
+    private func loadEquippedStickers() async {
+        guard let userId = authViewModel.currentUser?.id else { return }
+        // Check for newly earned stickers, then load equipped
+        try? await StickerService.checkAndGrant(userId: userId)
+        equippedStickers = (try? await StickerService.fetchEquippedStickers(userId: userId)) ?? []
     }
 
     // MARK: - Saved Trips Section

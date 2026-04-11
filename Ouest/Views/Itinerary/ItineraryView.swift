@@ -5,6 +5,17 @@ struct ItineraryView: View {
     let canEdit: Bool
     @State private var viewModel: ItineraryViewModel
     @State private var contentAppeared = false
+    @State private var viewMode: ViewMode = .list
+
+    enum ViewMode: String, CaseIterable {
+        case list = "List"
+        case calendar = "Calendar"
+    }
+
+    /// Show calendar toggle only when trip has dates and days exist
+    private var showViewModeToggle: Bool {
+        trip.startDate != nil && trip.endDate != nil && !viewModel.days.isEmpty
+    }
 
     init(trip: Trip, canEdit: Bool = true) {
         self.trip = trip
@@ -23,7 +34,31 @@ struct ItineraryView: View {
             } else if viewModel.days.isEmpty {
                 emptyStateView
             } else {
-                dayListView
+                VStack(spacing: 0) {
+                    // View mode toggle (List / Calendar)
+                    if showViewModeToggle {
+                        Picker("View", selection: $viewMode) {
+                            ForEach(ViewMode.allCases, id: \.self) { mode in
+                                Text(mode.rawValue).tag(mode)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal, OuestTheme.Spacing.lg)
+                        .padding(.vertical, OuestTheme.Spacing.sm)
+                    }
+
+                    // Content based on view mode
+                    if viewMode == .calendar && showViewModeToggle {
+                        ItineraryCalendarView(
+                            trip: trip,
+                            days: viewModel.days,
+                            viewModel: viewModel,
+                            canEdit: canEdit
+                        )
+                    } else {
+                        dayListView
+                    }
+                }
             }
         }
         .navigationTitle("Itinerary")

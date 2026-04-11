@@ -1,8 +1,12 @@
 import Foundation
 import Supabase
+import UIKit
 
 /// Handles file uploads/downloads to Supabase Storage
 enum StorageService {
+
+    /// Maximum upload size in bytes (matches Supabase bucket config)
+    private static let maxUploadSize = 2_000_000 // ~2 MB
 
     /// Upload image data and return the public URL
     /// - Parameters:
@@ -26,7 +30,44 @@ enum StorageService {
             .from(bucket)
             .getPublicURL(path: path)
 
-        return url.absoluteString
+        // Append cache-buster so AsyncImage reloads fresh after upload
+        let bust = Int(Date().timeIntervalSince1970)
+        return "\(url.absoluteString)?v=\(bust)"
+    }
+
+    // MARK: - Image Compression
+
+    /// Compress and resize raw image data to fit within the upload size limit.
+    /// Returns JPEG data ≤ `maxUploadSize`.
+    static func compressForUpload(_ data: Data, maxDimension: CGFloat = 1200) -> Data? {
+        guard let original = UIImage(data: data) else { return nil }
+
+        // Downscale if either dimension exceeds max
+        let scaled: UIImage
+        let size = original.size
+        if size.width > maxDimension || size.height > maxDimension {
+            let ratio = min(maxDimension / size.width, maxDimension / size.height)
+            let newSize = CGSize(width: size.width * ratio, height: size.height * ratio)
+            let renderer = UIGraphicsImageRenderer(size: newSize)
+            scaled = renderer.image { _ in
+                original.draw(in: CGRect(origin: .zero, size: newSize))
+            }
+        } else {
+            scaled = original
+        }
+
+        // Progressive JPEG compression — start at 0.85 quality and step down
+        var quality: CGFloat = 0.85
+        while quality >= 0.2 {
+            if let jpeg = scaled.jpegData(compressionQuality: quality),
+               jpeg.count <= maxUploadSize {
+                return jpeg
+            }
+            quality -= 0.1
+        }
+
+        // Last resort — lowest quality
+        return scaled.jpegData(compressionQuality: 0.1)
     }
 
     /// Delete a file from storage
@@ -47,20 +88,36 @@ enum StorageService {
         return try await uploadImage(data: data, bucket: "trip-covers", path: path)
     }
 
-    /// Upload a profile avatar image
+    /// Upload a profile avatar image (auto-compresses to fit 2 MB limit)
     /// - Parameters:
-    ///   - data: JPEG image data
+    ///   - data: Raw image data (any format from PhotosPicker)
     ///   - userId: Current user's ID (used as folder + filename)
     /// - Returns: Public URL for the uploaded avatar
     static func uploadProfileAvatar(data: Data, userId: UUID) async throws -> String {
+        guard let compressed = compressForUpload(data, maxDimension: 1200) else {
+            throw StorageError.compressionFailed
+        }
         let path = "\(userId.uuidString.lowercased())/avatar.jpg"
-        return try await uploadImage(data: data, bucket: "profile-avatars", path: path)
+        return try await uploadImage(data: compressed, bucket: "profile-avatars", path: path)
     }
 
     /// Delete a profile avatar from storage
     static func deleteProfileAvatar(userId: UUID) async throws {
         let path = "\(userId.uuidString.lowercased())/avatar.jpg"
         try await deleteFile(bucket: "profile-avatars", paths: [path])
+    }
+
+    // MARK: - Errors
+
+    enum StorageError: LocalizedError {
+        case compressionFailed
+
+        var errorDescription: String? {
+            switch self {
+            case .compressionFailed:
+                return "Unable to process image. Please try a different photo."
+            }
+        }
     }
 
     /// Upload a journal entry photo

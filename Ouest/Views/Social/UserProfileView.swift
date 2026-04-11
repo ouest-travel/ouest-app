@@ -10,6 +10,8 @@ struct UserProfileView: View {
     let userId: UUID
     @State private var viewModel: UserProfileViewModel
     @State private var contentAppeared = false
+    @State private var equippedStickers: [UserSticker] = []
+    @State private var showAvatarViewer = false
 
     init(userId: UUID) {
         self.userId = userId
@@ -32,8 +34,15 @@ struct UserProfileView: View {
         .navigationDestination(for: FollowListDestination.self) { dest in
             FollowListView(userId: dest.userId, listType: dest.listType)
         }
+        .fullScreenCover(isPresented: $showAvatarViewer) {
+            FullScreenAvatarView(
+                url: viewModel.profile?.avatarUrl,
+                name: viewModel.profile?.fullName
+            )
+        }
         .task {
             await viewModel.loadProfile()
+            equippedStickers = (try? await StickerService.fetchEquippedStickers(userId: userId)) ?? []
             withAnimation(OuestTheme.Anim.smooth) {
                 contentAppeared = true
             }
@@ -121,14 +130,31 @@ struct UserProfileView: View {
 
     private func profileCard(_ profile: Profile) -> some View {
         VStack(spacing: 0) {
-            // Empty space sitting over the gradient area
-            Spacer()
-                .frame(height: 100)
+            // Empty space sitting over the gradient area — with sticker overlay
+            ZStack(alignment: .topTrailing) {
+                Spacer()
+                    .frame(height: 100)
+                    .frame(maxWidth: .infinity)
 
-            // Avatar straddling the gradient / surface boundary
-            AvatarView(url: profile.avatarUrl, size: 80)
-                .overlay(Circle().stroke(.white, lineWidth: 3))
-                .shadow(OuestTheme.Shadow.lg)
+                // Equipped stickers (read-only display)
+                if !equippedStickers.isEmpty {
+                    stickerCluster
+                        .padding(.top, 12)
+                        .padding(.trailing, 12)
+                }
+            }
+
+            // Avatar straddling the gradient / surface boundary — tappable
+            Button {
+                if profile.avatarUrl != nil {
+                    showAvatarViewer = true
+                }
+            } label: {
+                AvatarView(url: profile.avatarUrl, size: 80)
+                    .overlay(Circle().stroke(.white, lineWidth: 3))
+                    .shadow(OuestTheme.Shadow.lg)
+            }
+            .buttonStyle(.plain)
 
             // Profile info on surface
             VStack(spacing: OuestTheme.Spacing.md) {
@@ -181,6 +207,20 @@ struct UserProfileView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.xl))
         .shadow(OuestTheme.Shadow.sm)
+    }
+
+    // MARK: - Sticker Cluster
+
+    private var stickerCluster: some View {
+        let rotations: [Double] = [-6, 4, -3, 7]
+        return HStack(spacing: -8) {
+            ForEach(Array(equippedStickers.prefix(4).enumerated()), id: \.element.id) { index, sticker in
+                if let type = sticker.type {
+                    StickerBadgeView(stickerType: type, isUnlocked: true, size: .small)
+                        .rotationEffect(.degrees(rotations[index % rotations.count]))
+                }
+            }
+        }
     }
 
     // MARK: - Interest Tags (Filled)

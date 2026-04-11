@@ -295,7 +295,7 @@ struct EditProfileView: View {
             // Handle avatar changes
             var avatarUrl = authViewModel.currentUser?.avatarUrl
             if removeAvatar, let userId = authViewModel.currentUser?.id {
-                try? await StorageService.deleteProfileAvatar(userId: userId)
+                try await StorageService.deleteProfileAvatar(userId: userId)
                 avatarUrl = nil
             } else if let data = avatarData, let userId = authViewModel.currentUser?.id {
                 avatarUrl = try await StorageService.uploadProfileAvatar(data: data, userId: userId)
