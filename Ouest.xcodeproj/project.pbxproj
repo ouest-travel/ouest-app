@@ -43,6 +43,7 @@
 		384D808477C5458F55A60719 /* UserProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D6AB9755262B27C5327E8B3 /* UserProfileView.swift */; };
 		38A3022AD7154CDCC0B33E40 /* ItineraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 151D77F0CBB243608425D71C /* ItineraryView.swift */; };
 		D5E6F7081920A3B4C5D6E7F8 /* ItineraryCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* ItineraryCalendarView.swift */; };
+		2B2C1440C54B747EED2B4C34 /* QuickAddActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0460985269C5B30C27ED8BC5 /* QuickAddActivityView.swift */; };
 		39A0E3A385DFC486E3B0F432 /* TripDateRangePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB697F8C1D520EA34A1BD94 /* TripDateRangePicker.swift */; };
 		3E1A0CAF8A0975BE85D5D012 /* ItineraryMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8321E58626DD54970C40CDCD /* ItineraryMapView.swift */; };
 		4455C306F6B353902EE9F213 /* OuestCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 404D729B581F8B721C76679F /* OuestCard.swift */; };
@@ -186,6 +187,7 @@
 		1471B5493D5E72E118435843 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		151D77F0CBB243608425D71C /* ItineraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItineraryView.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718293A4B5C /* ItineraryCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItineraryCalendarView.swift; sourceTree = "<group>"; };
+		0460985269C5B30C27ED8BC5 /* QuickAddActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAddActivityView.swift; sourceTree = "<group>"; };
 		15D2561FDBAF19DC839A7EF7 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
 		16749E99FA021BA81CD02BAA /* DayCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayCardView.swift; sourceTree = "<group>"; };
 		1D57406D4CDD5CE2F41A5721 /* EntryRequirementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryRequirementTests.swift; sourceTree = "<group>"; };
@@ -609,6 +611,7 @@
 				16749E99FA021BA81CD02BAA /* DayCardView.swift */,
 				A1B2C3D4E5F60718293A4B5C /* ItineraryCalendarView.swift */,
 				8321E58626DD54970C40CDCD /* ItineraryMapView.swift */,
+				0460985269C5B30C27ED8BC5 /* QuickAddActivityView.swift */,
 				151D77F0CBB243608425D71C /* ItineraryView.swift */,
 			);
 			path = Itinerary;
@@ -931,6 +934,7 @@
 				D5E6F7081920A3B4C5D6E7F8 /* ItineraryCalendarView.swift in Sources */,
 				9FB34B6DE8C128C64B0A6819 /* ItineraryService.swift in Sources */,
 				38A3022AD7154CDCC0B33E40 /* ItineraryView.swift in Sources */,
+				2B2C1440C54B747EED2B4C34 /* QuickAddActivityView.swift in Sources */,
 				FDEEFCFDB456743F6D72E65E /* ItineraryViewModel.swift in Sources */,
 				EB8C5DE372C5977AED43642E /* JoinTripView.swift in Sources */,
 				2BEE1CBB6B604CFB6205477D /* JoinTripViewModel.swift in Sources */,

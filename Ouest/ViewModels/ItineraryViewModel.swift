@@ -19,6 +19,8 @@ final class ItineraryViewModel {
     var showAddActivity = false
     var editingActivity: Activity?
     var showMap = false
+    var showQuickAdd = false
+    var quickAddTargetDay: ItineraryDay?
 
     // MARK: - Activity Form Fields
 
@@ -306,6 +308,68 @@ final class ItineraryViewModel {
         }
         Task {
             try? await ItineraryService.reorderActivities(updates)
+        }
+
+        HapticFeedback.selection()
+    }
+
+    // MARK: - Quick-Add from Search
+
+    /// Instantly create an activity from a map search result — no full form needed.
+    func quickAddActivity(from mapItem: MKMapItem, toDay day: ItineraryDay) async -> Bool {
+        guard let userId = currentUserId else { return false }
+        let name = mapItem.name ?? "Unnamed Place"
+        let coord = mapItem.placemark.coordinate
+        let category = ActivityCategory.from(pointOfInterest: mapItem.pointOfInterestCategory)
+        let existingCount = days.first(where: { $0.id == day.id })?.activities?.count ?? 0
+
+        do {
+            let payload = CreateActivityPayload(
+                dayId: day.id,
+                title: name,
+                description: nil,
+                locationName: mapItem.placemark.formattedAddress,
+                latitude: coord.latitude,
+                longitude: coord.longitude,
+                startTime: nil,
+                endTime: nil,
+                category: category,
+                costEstimate: nil,
+                currency: nil,
+                sortOrder: existingCount,
+                createdBy: userId
+            )
+            let created = try await ItineraryService.createActivity(payload)
+            appendActivityToDay(day.id, activity: created)
+            HapticFeedback.success()
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            HapticFeedback.error()
+            return false
+        }
+    }
+
+    // MARK: - Reorder Days
+
+    func moveDays(from source: IndexSet, to destination: Int) {
+        days.move(fromOffsets: source, toOffset: destination)
+
+        // Reassign dayNumber (1-indexed) and recalculate dates
+        var calendar = Calendar.current
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+
+        for i in days.indices {
+            days[i].dayNumber = i + 1
+            if let start = trip.startDate {
+                days[i].date = calendar.date(byAdding: .day, value: i, to: calendar.startOfDay(for: start))
+            }
+        }
+
+        // Persist in background
+        let updates = days.map { (id: $0.id, dayNumber: $0.dayNumber, date: $0.date) }
+        Task {
+            try? await ItineraryService.reorderDays(updates)
         }
 
         HapticFeedback.selection()

@@ -107,6 +107,12 @@ struct ItineraryView: View {
                 AddActivityView(viewModel: viewModel, day: day)
             }
         }
+        .sheet(isPresented: $viewModel.showQuickAdd) {
+            if let day = viewModel.quickAddTargetDay {
+                QuickAddActivityView(viewModel: viewModel, day: day)
+                    .presentationDetents([.medium, .large])
+            }
+        }
         .sheet(isPresented: $viewModel.showMap) {
             ItineraryMapView(viewModel: viewModel)
         }
@@ -114,33 +120,31 @@ struct ItineraryView: View {
 
     // MARK: - Day List
 
+    @ViewBuilder
     private var dayListView: some View {
-        ScrollView {
-            LazyVStack(spacing: OuestTheme.Spacing.lg) {
-                // Total cost summary (if any)
+        List {
+            Section {
+                ForEach(viewModel.days) { day in
+                    DayCardView(day: day, viewModel: viewModel, canEdit: canEdit)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                }
+                .onMove { from, to in
+                    viewModel.moveDays(from: from, to: to)
+                }
+                .deleteDisabled(true)
+            } header: {
                 if viewModel.totalEstimatedCost > 0 {
                     costSummaryBar
-                        .fadeSlideIn(isVisible: contentAppeared, delay: 0)
-                }
-
-                ForEach(Array(viewModel.days.enumerated()), id: \.element.id) { index, day in
-                    DayCardView(day: day, viewModel: viewModel, canEdit: canEdit)
-                        .fadeSlideIn(isVisible: contentAppeared, delay: Double(index) * 0.06 + 0.05)
-                        .contextMenu {
-                            if canEdit {
-                                Button(role: .destructive) {
-                                    Task { await viewModel.deleteDay(day) }
-                                } label: {
-                                    Label("Delete Day", systemImage: "trash")
-                                }
-                            }
-                        }
+                        .textCase(nil)
+                        .padding(.bottom, 8)
                 }
             }
-            .padding(.horizontal, OuestTheme.Spacing.lg)
-            .padding(.top, OuestTheme.Spacing.sm)
-            .padding(.bottom, OuestTheme.Spacing.xxxl)
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .environment(\.editMode, .constant(canEdit ? .active : .inactive))
     }
 
     // MARK: - Cost Summary Bar

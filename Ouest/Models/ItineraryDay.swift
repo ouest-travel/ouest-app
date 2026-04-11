@@ -99,3 +99,15 @@ struct UpdateDayPayload: Codable, Sendable {
     var title: String?
     var notes: String?
 }
+
+// MARK: - Update Day Order Payload (for reordering)
+
+struct UpdateDayOrderPayload: Codable, Sendable {
+    let dayNumber: Int
+    let date: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case dayNumber = "day_number"
+        case date
+    }
+}

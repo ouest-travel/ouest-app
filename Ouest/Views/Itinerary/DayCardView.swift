@@ -63,16 +63,38 @@ struct DayCardView: View {
             Spacer()
 
             if canEdit {
-                // Add activity button
-                Button {
-                    HapticFeedback.light()
-                    viewModel.resetActivityForm()
-                    viewModel.selectedDay = day
-                    viewModel.showAddActivity = true
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title3)
-                        .foregroundStyle(OuestTheme.Colors.brand)
+                HStack(spacing: OuestTheme.Spacing.xs) {
+                    // Quick-add search button
+                    Button {
+                        HapticFeedback.light()
+                        viewModel.searchQuery = ""
+                        viewModel.searchResults = []
+                        viewModel.quickAddTargetDay = day
+                        viewModel.showQuickAdd = true
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(OuestTheme.Colors.brand)
+                            .frame(width: 32, height: 32)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    // Full add activity button
+                    Button {
+                        HapticFeedback.light()
+                        viewModel.resetActivityForm()
+                        viewModel.selectedDay = day
+                        viewModel.showAddActivity = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(OuestTheme.Colors.brand)
+                            .frame(width: 32, height: 32)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
             }
 
@@ -87,7 +109,10 @@ struct DayCardView: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(OuestTheme.Colors.textSecondary)
                     .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
         }
     }
 

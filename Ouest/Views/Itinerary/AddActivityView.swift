@@ -310,7 +310,7 @@ struct AddActivityView: View {
 
 // MARK: - MKPlacemark Address Helper
 
-private extension MKPlacemark {
+extension MKPlacemark {
     var formattedAddress: String? {
         let components = [locality, administrativeArea, country].compactMap { $0 }
         return components.isEmpty ? nil : components.joined(separator: ", ")
