@@ -7,6 +7,7 @@ struct DayCardView: View {
     var canEdit: Bool = true
     @State private var isExpanded = true
     @State private var showReorderSheet = false
+    @State private var activityToDelete: Activity?
 
     var body: some View {
         VStack(alignment: .leading, spacing: OuestTheme.Spacing.md) {
@@ -43,6 +44,28 @@ struct DayCardView: View {
             ReorderActivitiesSheet(day: day, viewModel: viewModel)
                 .presentationDetents([.medium, .large])
         }
+        .alert("Delete activity?", isPresented: deleteAlertBinding, presenting: activityToDelete) { activity in
+            Button("Cancel", role: .cancel) {
+                activityToDelete = nil
+            }
+            Button("Delete", role: .destructive) {
+                Task {
+                    await viewModel.deleteActivity(activity, fromDay: day.id)
+                }
+                activityToDelete = nil
+            }
+        } message: { activity in
+            Text("\"\(activity.title)\" will be permanently removed from this day.")
+        }
+    }
+
+    // MARK: - Delete Alert Binding
+
+    private var deleteAlertBinding: Binding<Bool> {
+        Binding(
+            get: { activityToDelete != nil },
+            set: { if !$0 { activityToDelete = nil } }
+        )
     }
 
     // MARK: - Day Header
@@ -154,9 +177,8 @@ struct DayCardView: View {
             viewModel.showAddActivity = true
         } : nil
         let deleteAction: (() -> Void)? = canEdit ? {
-            Task {
-                await viewModel.deleteActivity(activity, fromDay: day.id)
-            }
+            HapticFeedback.medium()
+            activityToDelete = activity
         } : nil
         return ActivityCardView(activity: activity, onEdit: editAction, onDelete: deleteAction)
     }

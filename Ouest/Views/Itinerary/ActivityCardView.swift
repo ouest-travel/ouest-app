@@ -46,16 +46,39 @@ struct ActivityCardView: View {
 
             Spacer(minLength: 0)
 
-            // Drag handle hint (only when editable)
+            // Visible actions menu (only when editable)
             if hasActions {
-                Image(systemName: "line.3.horizontal")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                Menu {
+                    if let onEdit {
+                        Button {
+                            onEdit()
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                    }
+
+                    if let onDelete {
+                        Button(role: .destructive) {
+                            onDelete()
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.body)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+                        .frame(width: 32, height: 32)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding(OuestTheme.Spacing.md)
         .background(OuestTheme.Colors.surfaceSecondary)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+        // Keep long-press context menu as a backup
         .contextMenu {
             if let onEdit {
                 Button {

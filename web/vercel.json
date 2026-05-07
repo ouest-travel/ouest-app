@@ -9,10 +9,10 @@
     }
   ],
   "rewrites": [
-    { "source": "/join/(.*)", "destination": "/index.html" },
-    { "source": "/join", "destination": "/index.html" },
+    { "source": "/join", "destination": "/" },
+    { "source": "/join/:code", "destination": "/" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/support", "destination": "/support.html" }
   ],
-  "cleanUrls": true
+  "trailingSlash": false
 }

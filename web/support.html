@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Support — Ouest</title>
   <meta name="description" content="Get help with Ouest, the social travel planning app." />
+  <link rel="icon" type="image/png" href="/logo.png" />
+  <link rel="apple-touch-icon" href="/logo.png" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap');
 
@@ -53,14 +55,9 @@
     }
 
     .logo {
-      width: 40px; height: 40px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, var(--brand), var(--brand-cyan));
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Fraunces', serif;
-      font-size: 22px; font-weight: 700;
-      color: white;
-      box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+      width: 44px;
+      height: 44px;
+      filter: drop-shadow(0 4px 12px rgba(37,99,235,0.25));
     }
 
     .brand-name {
@@ -205,7 +202,7 @@
 
 <div class="container">
   <header class="header">
-    <div class="logo">O</div>
+    <img src="/logo.png" alt="Ouest" class="logo" />
     <a href="/" class="brand-name">Ouest</a>
   </header>
 

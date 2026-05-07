@@ -27,7 +27,9 @@ struct ItineraryMapView: View {
                     }
                 }
 
-                if !viewModel.allActivitiesWithCoordinates.isEmpty {
+                // Only show the trail toggle when there's actually a trail to toggle
+                // (at least one day has 2+ stops with coordinates)
+                if hasAnyTrails {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             HapticFeedback.selection()
@@ -35,9 +37,12 @@ struct ItineraryMapView: View {
                                 viewModel.showMapTrails.toggle()
                             }
                         } label: {
-                            Image(systemName: viewModel.showMapTrails ? "point.topleft.down.curvedto.point.bottomright.up.fill" : "point.topleft.down.curvedto.point.bottomright.up")
+                            Image(systemName: viewModel.showMapTrails
+                                ? "point.topleft.down.curvedto.point.bottomright.up.fill"
+                                : "point.topleft.down.curvedto.point.bottomright.up")
                                 .foregroundStyle(viewModel.showMapTrails ? OuestTheme.Colors.brand : OuestTheme.Colors.textSecondary)
                         }
+                        .accessibilityLabel(viewModel.showMapTrails ? "Hide trip trails on map" : "Show trip trails on map")
                     }
                 }
             }
@@ -63,25 +68,27 @@ struct ItineraryMapView: View {
         let visibleDays = visibleDaysForMap
 
         return Map(position: $cameraPosition) {
-            // Draw polylines first (under markers)
-            if viewModel.showMapTrails {
-                ForEach(visibleDays) { day in
-                    let coords = day.sortedActivities
-                        .filter(\.hasCoordinates)
-                        .map { CLLocationCoordinate2D(latitude: $0.latitude!, longitude: $0.longitude!) }
+            // Draw polylines first (under markers).
+            // We always include them in the map content tree (because SwiftUI's
+            // MapContentBuilder doesn't reliably rebuild conditional content), but
+            // when trails are toggled OFF we set both opacity to 0 AND lineWidth to 0
+            // so MapKit definitively skips drawing.
+            ForEach(visibleDays) { day in
+                let coords = day.sortedActivities
+                    .filter(\.hasCoordinates)
+                    .map { CLLocationCoordinate2D(latitude: $0.latitude!, longitude: $0.longitude!) }
 
-                    if coords.count >= 2 {
-                        MapPolyline(coordinates: coords)
-                            .stroke(
-                                day.routeColor.opacity(opacityForDay(day)),
-                                style: StrokeStyle(
-                                    lineWidth: 4,
-                                    lineCap: .round,
-                                    lineJoin: .round,
-                                    dash: [10, 6]
-                                )
+                if coords.count >= 2 {
+                    MapPolyline(coordinates: coords)
+                        .stroke(
+                            day.routeColor.opacity(viewModel.showMapTrails ? opacityForDay(day) : 0),
+                            style: StrokeStyle(
+                                lineWidth: viewModel.showMapTrails ? 4 : 0,
+                                lineCap: .round,
+                                lineJoin: .round,
+                                dash: viewModel.showMapTrails ? [10, 6] : []
                             )
-                    }
+                        )
                 }
             }
 
@@ -109,6 +116,10 @@ struct ItineraryMapView: View {
         .mapStyle(.standard(elevation: .realistic, pointsOfInterest: .including([
             .restaurant, .hotel, .museum, .park, .airport, .publicTransport
         ])))
+        // Force Map to fully rebuild when the trail toggle flips —
+        // MapContentBuilder caches stroke values and won't always pick up
+        // changes otherwise. Camera state is preserved via the external @State.
+        .id("map-trails-\(viewModel.showMapTrails)")
         .onChange(of: viewModel.selectedDayFilter?.id) { _, _ in
             updateCameraPosition()
         }
@@ -250,6 +261,14 @@ struct ItineraryMapView: View {
             return viewModel.daysWithCoordinates.filter { $0.id == filter.id }
         }
         return viewModel.daysWithCoordinates
+    }
+
+    /// True if at least one day has 2+ activities with coordinates (i.e. a drawable trail).
+    /// When false, hiding/showing trails is meaningless so we hide the toolbar toggle.
+    private var hasAnyTrails: Bool {
+        viewModel.daysWithCoordinates.contains { day in
+            day.sortedActivities.filter(\.hasCoordinates).count >= 2
+        }
     }
 
     /// Opacity for a day's polyline + markers based on whether it's filtered
