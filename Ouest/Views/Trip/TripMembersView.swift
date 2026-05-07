@@ -28,6 +28,9 @@ struct TripMembersView: View {
             }
             .navigationTitle("Travelers")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: ProfileDestination.self) { dest in
+                UserProfileView(userId: dest.userId)
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
@@ -40,35 +43,37 @@ struct TripMembersView: View {
     }
 
     private func memberRow(_ member: TripMember) -> some View {
-        HStack(spacing: 12) {
-            AvatarView(url: member.profile?.avatarUrl, size: 44)
+        NavigationLink(value: ProfileDestination(userId: member.userId)) {
+            HStack(spacing: 12) {
+                AvatarView(url: member.profile?.avatarUrl, size: 44)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(member.profile?.fullName ?? "Unknown")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                if let handle = member.profile?.handle {
-                    Text("@\(handle)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(member.profile?.fullName ?? "Unknown")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    if let handle = member.profile?.handle {
+                        Text("@\(handle)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
-            }
 
-            Spacer()
+                Spacer()
 
-            // Role badge
-            HStack(spacing: 4) {
-                Image(systemName: member.role.icon)
-                    .font(.caption2)
-                Text(member.role.label)
-                    .font(.caption)
-                    .fontWeight(.medium)
+                // Role badge
+                HStack(spacing: 4) {
+                    Image(systemName: member.role.icon)
+                        .font(.caption2)
+                    Text(member.role.label)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                }
+                .foregroundStyle(member.role == .owner ? .orange : .secondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(member.role == .owner ? .orange.opacity(0.12) : Color(.systemGray5))
+                .clipShape(Capsule())
             }
-            .foregroundStyle(member.role == .owner ? .orange : .secondary)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(member.role == .owner ? .orange.opacity(0.12) : Color(.systemGray5))
-            .clipShape(Capsule())
         }
         .swipeActions(edge: .trailing) {
             if viewModel.myRole == .owner && member.role != .owner {

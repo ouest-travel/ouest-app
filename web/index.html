@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="apple-itunes-app" content="app-id=PLACEHOLDER_APP_ID" />
+  <title>You're invited — Ouest</title>
+  <meta name="description" content="Join a trip on Ouest, the social travel planning app." />
+  <meta property="og:title" content="You're invited to a trip on Ouest" />
+  <meta property="og:description" content="Plan, share, and adventure together." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%232563EB'/%3E%3Cstop offset='100%25' stop-color='%2338BDF8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='22' fill='url(%23g)'/%3E%3Ctext x='50' y='65' font-family='Georgia,serif' font-size='52' font-weight='700' fill='white' text-anchor='middle'%3EO%3C/text%3E%3C/svg%3E" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --brand: #2563EB;
+      --brand-cyan: #38BDF8;
+      --brand-blue: #1E40AF;
+      --bg: #0E0F11;
+      --surface: #1A1B1E;
+      --text: #FFFFFF;
+      --text-secondary: rgba(255,255,255,0.7);
+      --text-tertiary: rgba(255,255,255,0.45);
+      --border: rgba(255,255,255,0.1);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Animated gradient backdrop */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: -50%;
+      background:
+        radial-gradient(ellipse at 20% 30%, rgba(37,99,235,0.25), transparent 50%),
+        radial-gradient(ellipse at 80% 70%, rgba(56,189,248,0.18), transparent 50%),
+        radial-gradient(ellipse at 50% 100%, rgba(168,85,247,0.15), transparent 50%);
+      animation: drift 20s ease-in-out infinite;
+      z-index: 0;
+    }
+
+    @keyframes drift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      50% { transform: translate(2%, 1%) rotate(0.5deg); }
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      max-width: 420px;
+      width: 100%;
+      background: rgba(26,27,30,0.7);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      border-radius: 24px;
+      padding: 40px 28px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset;
+      animation: rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo {
+      width: 72px;
+      height: 72px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-cyan));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      box-shadow: 0 8px 24px rgba(37,99,235,0.4);
+      font-family: 'Fraunces', serif;
+      font-size: 38px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--brand-cyan);
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-family: 'Fraunces', serif;
+      font-size: 32px;
+      font-weight: 600;
+      line-height: 1.15;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 28px;
+    }
+
+    .code-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-family: 'SF Mono', Menlo, monospace;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 1px;
+      margin-bottom: 28px;
+      color: var(--text);
+    }
+
+    .code-pill::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--brand-cyan);
+      box-shadow: 0 0 8px var(--brand-cyan);
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 16px 24px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-cyan));
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 14px;
+      text-decoration: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 8px 24px rgba(37,99,235,0.35);
+      margin-bottom: 12px;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 32px rgba(37,99,235,0.5);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px 24px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 14px;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      transition: background 0.15s ease;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.04);
+    }
+
+    .footer {
+      position: relative;
+      z-index: 1;
+      margin-top: 32px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      text-align: center;
+    }
+
+    .footer a {
+      color: var(--text-tertiary);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+      padding-bottom: 1px;
+    }
+
+    .footer a:hover { color: var(--text-secondary); }
+
+    .help {
+      margin-top: 20px;
+      font-size: 13px;
+      color: var(--text-tertiary);
+      line-height: 1.5;
+    }
+
+    .help strong {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* Hide everything until JS sets state */
+    .invalid-state, .desktop-state {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo">O</div>
+
+  <div class="label" id="label">You're invited</div>
+
+  <h1 id="heading">Join a trip on Ouest</h1>
+
+  <p class="subtitle" id="subtitle">
+    Open the invite in the app to join, or download Ouest to get started.
+  </p>
+
+  <div class="code-pill" id="codePill" style="display:none;">
+    <span id="codeText"></span>
+  </div>
+
+  <a href="#" class="btn-primary" id="openAppBtn">
+    <span>Open in Ouest</span>
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M3 8h10m0 0L9 4m4 4l-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </a>
+
+  <a href="https://apps.apple.com/app/ouest" class="btn-secondary" id="appStoreBtn">
+    Download on the App Store
+  </a>
+
+  <p class="help" id="help">
+    Already have the app? Tap <strong>Open in Ouest</strong>.<br>
+    Don't have it yet? Download from the App Store, then come back to this link.
+  </p>
+</div>
+
+<div class="footer">
+  Ouest — Plan trips together. <a href="https://ouest.travel">ouest.travel</a>
+</div>
+
+<script>
+  // Extract code from URL path: /join/ABC123
+  function getInviteCode() {
+    const match = window.location.pathname.match(/\/join\/([^/?#]+)/);
+    if (match) return match[1].toUpperCase();
+    const params = new URLSearchParams(window.location.search);
+    return (params.get('code') || '').toUpperCase();
+  }
+
+  // Detect platform
+  function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  }
+
+  function isAndroid() {
+    return /android/i.test(navigator.userAgent);
+  }
+
+  const code = getInviteCode();
+  const codePill = document.getElementById('codePill');
+  const codeText = document.getElementById('codeText');
+  const openBtn = document.getElementById('openAppBtn');
+  const heading = document.getElementById('heading');
+  const subtitle = document.getElementById('subtitle');
+  const help = document.getElementById('help');
+
+  if (code) {
+    codePill.style.display = 'inline-flex';
+    codeText.textContent = `Code: ${code}`;
+    // Custom scheme as backup — works if app installed but Universal Links somehow misfire
+    openBtn.href = `ouest://join/${code}`;
+  } else {
+    heading.textContent = 'Welcome to Ouest';
+    subtitle.textContent = 'A social travel planning app for adventures with friends.';
+    openBtn.style.display = 'none';
+    help.style.display = 'none';
+  }
+
+  // Hide non-iOS-relevant content
+  if (!isIOS() && code) {
+    heading.textContent = 'Open this on your iPhone';
+    subtitle.textContent = 'Ouest is currently available on iOS. Send this link to your iPhone to join the trip.';
+    openBtn.style.display = 'none';
+    document.getElementById('appStoreBtn').textContent = 'View on the App Store';
+    help.innerHTML = `Trip code: <strong>${code}</strong><br>Tap the link from your iPhone to join.`;
+  }
+</script>
+
+</body>
+</html>

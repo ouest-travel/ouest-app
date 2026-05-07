@@ -47,8 +47,6 @@
 	<dict>
 		<key>UIColorName</key>
 		<string>LaunchBackground</string>
-		<key>UIImageName</key>
-		<string>OuestLogo</string>
 	</dict>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>

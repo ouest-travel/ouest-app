@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["764FLZ7S8Z.com.ouest.app"],
+        "components": [
+          {
+            "/": "/join/*",
+            "comment": "Trip invite Universal Links"
+          }
+        ]
+      }
+    ]
+  }
+}

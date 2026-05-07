@@ -24,29 +24,42 @@ enum DeepLinkRouter {
     }
 
     /// Parses a URL into a navigation destination.
-    /// Supports: ouest://join/{code} and ouest://join?code={code}
+    ///
+    /// Supports both formats:
+    /// - Custom scheme (legacy/QR codes): `ouest://join/{code}` or `ouest://join?code={code}`
+    /// - Universal Link (HTTPS): `https://ouest.travel/join/{code}` or `https://ouest.travel/join?code={code}`
     static func parse(url: URL) -> Destination? {
-        guard url.scheme == "ouest" else { return nil }
-
-        let host = url.host()
         let pathComponents = url.pathComponents.filter { $0 != "/" }
+        let queryCode = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?.first(where: { $0.name == "code" })?.value
 
-        switch host {
-        case "join":
-            // ouest://join/{code}
+        // Custom scheme: ouest://join/{code}
+        if url.scheme == "ouest", url.host() == "join" {
             if let code = pathComponents.first, !code.isEmpty {
                 return .joinTrip(code: code)
             }
-            // ouest://join?code={code}
-            if let queryCode = URLComponents(url: url, resolvingAgainstBaseURL: false)?
-                .queryItems?.first(where: { $0.name == "code" })?.value, !queryCode.isEmpty {
+            if let queryCode, !queryCode.isEmpty {
                 return .joinTrip(code: queryCode)
             }
             return nil
+        }
 
-        default:
+        // Universal Link: https://links.ouest.travel/join/{code}
+        if (url.scheme == "https" || url.scheme == "http"),
+           url.host() == "links.ouest.travel" {
+            // pathComponents for /join/ABC123 → ["join", "ABC123"]
+            if pathComponents.count >= 2, pathComponents[0] == "join" {
+                let code = pathComponents[1]
+                if !code.isEmpty { return .joinTrip(code: code) }
+            }
+            // /join?code=ABC123
+            if pathComponents.first == "join", let queryCode, !queryCode.isEmpty {
+                return .joinTrip(code: queryCode)
+            }
             return nil
         }
+
+        return nil
     }
 }
 

@@ -319,7 +319,7 @@ struct ProfileView: View {
     private func loadEquippedStickers() async {
         guard let userId = authViewModel.currentUser?.id else { return }
         // Check for newly earned stickers, then load equipped
-        try? await StickerService.checkAndGrant(userId: userId)
+        _ = try? await StickerService.checkAndGrant(userId: userId)
         equippedStickers = (try? await StickerService.fetchEquippedStickers(userId: userId)) ?? []
     }
 

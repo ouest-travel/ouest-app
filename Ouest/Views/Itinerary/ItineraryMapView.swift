@@ -4,6 +4,7 @@ import MapKit
 struct ItineraryMapView: View {
     @Bindable var viewModel: ItineraryViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var cameraPosition: MapCameraPosition = .automatic
 
     var body: some View {
         NavigationStack {
@@ -25,6 +26,20 @@ struct ItineraryMapView: View {
                             .foregroundStyle(OuestTheme.Colors.textSecondary)
                     }
                 }
+
+                if !viewModel.allActivitiesWithCoordinates.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            HapticFeedback.selection()
+                            withAnimation(OuestTheme.Anim.smooth) {
+                                viewModel.showMapTrails.toggle()
+                            }
+                        } label: {
+                            Image(systemName: viewModel.showMapTrails ? "point.topleft.down.curvedto.point.bottomright.up.fill" : "point.topleft.down.curvedto.point.bottomright.up")
+                                .foregroundStyle(viewModel.showMapTrails ? OuestTheme.Colors.brand : OuestTheme.Colors.textSecondary)
+                        }
+                    }
+                }
             }
         }
     }
@@ -32,33 +47,61 @@ struct ItineraryMapView: View {
     // MARK: - Map Content
 
     private var mapContent: some View {
-        let items = viewModel.allActivitiesWithCoordinates
+        ZStack(alignment: .top) {
+            mapLayer
 
-        return Map {
-            ForEach(items, id: \.activity.id) { item in
-                let coord = CLLocationCoordinate2D(
-                    latitude: item.activity.latitude!,
-                    longitude: item.activity.longitude!
-                )
+            // Floating day filter chips
+            if viewModel.daysWithCoordinates.count > 1 {
+                dayFilterChips
+                    .padding(.horizontal, OuestTheme.Spacing.lg)
+                    .padding(.top, OuestTheme.Spacing.sm)
+            }
+        }
+    }
 
-                Annotation(item.activity.title, coordinate: coord) {
-                    VStack(spacing: 2) {
-                        Image(systemName: item.activity.category.icon)
-                            .font(.caption)
-                            .foregroundStyle(.white)
-                            .frame(width: 28, height: 28)
-                            .background(item.activity.category.color)
-                            .clipShape(Circle())
-                            .shadow(OuestTheme.Shadow.sm)
+    private var mapLayer: some View {
+        let visibleDays = visibleDaysForMap
 
-                        Text(item.activity.title)
-                            .font(OuestTheme.Typography.micro)
-                            .fontWeight(.medium)
-                            .lineLimit(1)
-                            .padding(.horizontal, OuestTheme.Spacing.xs)
-                            .padding(.vertical, 2)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Capsule())
+        return Map(position: $cameraPosition) {
+            // Draw polylines first (under markers)
+            if viewModel.showMapTrails {
+                ForEach(visibleDays) { day in
+                    let coords = day.sortedActivities
+                        .filter(\.hasCoordinates)
+                        .map { CLLocationCoordinate2D(latitude: $0.latitude!, longitude: $0.longitude!) }
+
+                    if coords.count >= 2 {
+                        MapPolyline(coordinates: coords)
+                            .stroke(
+                                day.routeColor.opacity(opacityForDay(day)),
+                                style: StrokeStyle(
+                                    lineWidth: 4,
+                                    lineCap: .round,
+                                    lineJoin: .round,
+                                    dash: [10, 6]
+                                )
+                            )
+                    }
+                }
+            }
+
+            // Markers
+            ForEach(visibleDays) { day in
+                let stops = day.sortedActivities.filter(\.hasCoordinates)
+                ForEach(Array(stops.enumerated()), id: \.element.id) { index, activity in
+                    let coord = CLLocationCoordinate2D(
+                        latitude: activity.latitude!,
+                        longitude: activity.longitude!
+                    )
+
+                    Annotation(activity.title, coordinate: coord) {
+                        numberedMarker(
+                            number: index + 1,
+                            color: day.routeColor,
+                            category: activity.category,
+                            title: activity.title,
+                            opacity: opacityForDay(day)
+                        )
                     }
                 }
             }
@@ -66,6 +109,190 @@ struct ItineraryMapView: View {
         .mapStyle(.standard(elevation: .realistic, pointsOfInterest: .including([
             .restaurant, .hotel, .museum, .park, .airport, .publicTransport
         ])))
+        .onChange(of: viewModel.selectedDayFilter?.id) { _, _ in
+            updateCameraPosition()
+        }
+        .onAppear {
+            updateCameraPosition()
+        }
+    }
+
+    // MARK: - Numbered Marker
+
+    private func numberedMarker(
+        number: Int,
+        color: Color,
+        category: ActivityCategory,
+        title: String,
+        opacity: Double
+    ) -> some View {
+        VStack(spacing: 2) {
+            ZStack(alignment: .bottomTrailing) {
+                // Numbered circle
+                ZStack {
+                    Circle()
+                        .fill(color)
+                        .frame(width: 32, height: 32)
+
+                    Circle()
+                        .stroke(Color.white, lineWidth: 2)
+                        .frame(width: 32, height: 32)
+
+                    Text("\(number)")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+                .shadow(color: .black.opacity(0.4), radius: 3, y: 2)
+
+                // Category icon badge in bottom-right
+                Image(systemName: category.icon)
+                    .font(.system(size: 7, weight: .bold))
+                    .foregroundStyle(color)
+                    .frame(width: 13, height: 13)
+                    .background(Circle().fill(.white))
+                    .offset(x: 2, y: 2)
+            }
+
+            // Title pill
+            Text(title)
+                .font(OuestTheme.Typography.micro)
+                .fontWeight(.medium)
+                .foregroundStyle(OuestTheme.Colors.textPrimary)
+                .lineLimit(1)
+                .padding(.horizontal, OuestTheme.Spacing.xs)
+                .padding(.vertical, 2)
+                .background(.ultraThinMaterial)
+                .clipShape(Capsule())
+        }
+        .opacity(opacity)
+    }
+
+    // MARK: - Day Filter Chips
+
+    private var dayFilterChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: OuestTheme.Spacing.xs) {
+                // "All" chip
+                filterChip(
+                    label: "All",
+                    color: nil,
+                    isActive: viewModel.selectedDayFilter == nil,
+                    action: {
+                        HapticFeedback.selection()
+                        withAnimation(OuestTheme.Anim.smooth) {
+                            viewModel.selectedDayFilter = nil
+                        }
+                    }
+                )
+
+                // Per-day chips
+                ForEach(viewModel.daysWithCoordinates) { day in
+                    filterChip(
+                        label: "Day \(day.dayNumber)",
+                        color: day.routeColor,
+                        isActive: viewModel.selectedDayFilter?.id == day.id,
+                        action: {
+                            HapticFeedback.selection()
+                            withAnimation(OuestTheme.Anim.smooth) {
+                                if viewModel.selectedDayFilter?.id == day.id {
+                                    viewModel.selectedDayFilter = nil
+                                } else {
+                                    viewModel.selectedDayFilter = day
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+            .padding(.horizontal, OuestTheme.Spacing.xs)
+        }
+        .padding(.vertical, OuestTheme.Spacing.sm)
+        .background(
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
+        )
+    }
+
+    private func filterChip(
+        label: String,
+        color: Color?,
+        isActive: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: OuestTheme.Spacing.xs) {
+                if let color {
+                    Circle()
+                        .fill(color)
+                        .frame(width: 8, height: 8)
+                }
+                Text(label)
+                    .font(OuestTheme.Typography.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(isActive ? .white : OuestTheme.Colors.textPrimary)
+            }
+            .padding(.horizontal, OuestTheme.Spacing.md)
+            .padding(.vertical, 6)
+            .background(
+                Capsule()
+                    .fill(isActive ? (color ?? OuestTheme.Colors.brand) : Color.clear)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Helpers
+
+    /// Days currently visible on the map based on the filter
+    private var visibleDaysForMap: [ItineraryDay] {
+        if let filter = viewModel.selectedDayFilter {
+            return viewModel.daysWithCoordinates.filter { $0.id == filter.id }
+        }
+        return viewModel.daysWithCoordinates
+    }
+
+    /// Opacity for a day's polyline + markers based on whether it's filtered
+    private func opacityForDay(_ day: ItineraryDay) -> Double {
+        guard let filter = viewModel.selectedDayFilter else { return 1.0 }
+        return filter.id == day.id ? 1.0 : 0.25
+    }
+
+    /// Update camera to fit visible coordinates
+    private func updateCameraPosition() {
+        let activities: [Activity]
+        if let filter = viewModel.selectedDayFilter {
+            activities = filter.sortedActivities.filter(\.hasCoordinates)
+        } else {
+            activities = viewModel.allActivitiesWithCoordinates.map(\.activity)
+        }
+
+        guard !activities.isEmpty else { return }
+
+        let coords = activities.map {
+            CLLocationCoordinate2D(latitude: $0.latitude!, longitude: $0.longitude!)
+        }
+
+        let lats = coords.map(\.latitude)
+        let lons = coords.map(\.longitude)
+        let minLat = lats.min()!
+        let maxLat = lats.max()!
+        let minLon = lons.min()!
+        let maxLon = lons.max()!
+
+        let center = CLLocationCoordinate2D(
+            latitude: (minLat + maxLat) / 2,
+            longitude: (minLon + maxLon) / 2
+        )
+        // Add padding via 1.5x span
+        let span = MKCoordinateSpan(
+            latitudeDelta: max((maxLat - minLat) * 1.5, 0.005),
+            longitudeDelta: max((maxLon - minLon) * 1.5, 0.005)
+        )
+
+        withAnimation(.easeInOut(duration: 0.6)) {
+            cameraPosition = .region(MKCoordinateRegion(center: center, span: span))
+        }
     }
 
     // MARK: - Empty State

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Support — Ouest</title>
+  <meta name="description" content="Get help with Ouest, the social travel planning app." />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --brand: #2563EB;
+      --brand-cyan: #38BDF8;
+      --bg: #FAFAFA;
+      --surface: #FFFFFF;
+      --text: #0E0F11;
+      --text-secondary: #4B5563;
+      --text-tertiary: #9CA3AF;
+      --border: #E5E7EB;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0E0F11;
+        --surface: #1A1B1E;
+        --text: #FFFFFF;
+        --text-secondary: rgba(255,255,255,0.7);
+        --text-tertiary: rgba(255,255,255,0.45);
+        --border: rgba(255,255,255,0.1);
+      }
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.6;
+      padding: 40px 24px 80px;
+    }
+
+    .container { max-width: 720px; margin: 0 auto; }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 40px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-cyan));
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Fraunces', serif;
+      font-size: 22px; font-weight: 700;
+      color: white;
+      box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+    }
+
+    .brand-name {
+      font-family: 'Fraunces', serif;
+      font-size: 20px; font-weight: 600;
+      color: var(--text); text-decoration: none;
+    }
+
+    h1 {
+      font-family: 'Fraunces', serif;
+      font-size: 38px; font-weight: 700;
+      letter-spacing: -0.5px; line-height: 1.15;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 17px;
+      margin-bottom: 36px;
+    }
+
+    .contact-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 36px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    .contact-card h2 {
+      font-family: 'Fraunces', serif;
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .contact-card p {
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      font-size: 15px;
+    }
+
+    .email-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: var(--brand);
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 12px rgba(37,99,235,0.25);
+    }
+
+    .email-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(37,99,235,0.35);
+    }
+
+    h2.section-title {
+      font-family: 'Fraunces', serif;
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+      margin: 36px 0 16px;
+    }
+
+    .faq {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .faq summary {
+      padding: 18px 20px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 15px;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background 0.15s;
+    }
+
+    .faq summary:hover {
+      background: rgba(37,99,235,0.04);
+    }
+
+    .faq summary::-webkit-details-marker { display: none; }
+
+    .faq summary::after {
+      content: '+';
+      font-size: 22px;
+      font-weight: 300;
+      color: var(--text-tertiary);
+      transition: transform 0.2s;
+    }
+
+    .faq[open] summary::after {
+      transform: rotate(45deg);
+    }
+
+    .faq-body {
+      padding: 0 20px 18px;
+      color: var(--text-secondary);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .faq-body p { margin-bottom: 12px; }
+    .faq-body p:last-child { margin-bottom: 0; }
+    .faq-body strong { color: var(--text); }
+
+    a {
+      color: var(--brand);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(37,99,235,0.3);
+      padding-bottom: 1px;
+    }
+
+    a:hover { border-bottom-color: var(--brand); }
+
+    .footer {
+      margin-top: 60px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
+
+    .footer a { color: var(--text-tertiary); border-bottom-color: rgba(0,0,0,0.15); }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header class="header">
+    <div class="logo">O</div>
+    <a href="/" class="brand-name">Ouest</a>
+  </header>
+
+  <h1>How can we help?</h1>
+  <p class="subtitle">Find answers to common questions, or get in touch directly.</p>
+
+  <div class="contact-card">
+    <h2>Need to reach us?</h2>
+    <p>We try to respond to every email within 1–2 business days. The more detail (device model, iOS version, what you were doing), the faster we can help.</p>
+    <a href="mailto:hello@ouest.travel?subject=Ouest%20Support" class="email-btn">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M2 4l6 5 6-5M2 4v8h12V4M2 4h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      hello@ouest.travel
+    </a>
+  </div>
+
+  <h2 class="section-title">Frequently asked</h2>
+
+  <details class="faq">
+    <summary>I shared a trip link but my friend can't open it</summary>
+    <div class="faq-body">
+      <p>If you're sharing a link from before our Universal Links update, your friend may need to open the app and use the <strong>"Got an invite code?"</strong> field on their home screen, then paste the 8-character code from the share text.</p>
+      <p>New links sent via iMessage, WhatsApp, or any other messenger should open the app directly when tapped (assuming the app is installed). If they don't have the app yet, the link takes them to the App Store.</p>
+    </div>
+  </details>
+
+  <details class="faq">
+    <summary>How do I delete my account?</summary>
+    <div class="faq-body">
+      <p>Open the app → <strong>Profile</strong> tab → <strong>Settings</strong> (gear icon) → <strong>Account</strong> → <strong>Delete Account</strong>.</p>
+      <p>This is permanent and removes your profile, trips, photos, comments, and all other content within 30 days.</p>
+    </div>
+  </details>
+
+  <details class="faq">
+    <summary>How do I make my profile private?</summary>
+    <div class="faq-body">
+      <p>Profile → Settings → Privacy → toggle <strong>Private profile</strong>. Only people you approve as followers will be able to see your trips and travel content.</p>
+    </div>
+  </details>
+
+  <details class="faq">
+    <summary>I uploaded a photo but it's not showing</summary>
+    <div class="faq-body">
+      <p>Photos sometimes take a few seconds to process. Pull down to refresh on the trip or profile screen. If the photo still doesn't appear after a minute:</p>
+      <ul style="padding-left: 22px; margin-top: 8px;">
+        <li>Check that you're connected to the internet</li>
+        <li>Try uploading a smaller image (we cap uploads at ~2MB and auto-compress, but very large originals can fail)</li>
+        <li>Make sure you've granted the app access to your photo library</li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="faq">
+    <summary>How do trip invites work?</summary>
+    <div class="faq-body">
+      <p>From a trip's detail screen, tap the <strong>Share</strong> icon. You can either send a link (which opens the app directly when your friend taps it) or share a QR code for in-person invites.</p>
+      <p>Each invite has a unique 8-character code. Codes can be set to expire or be limited to a fixed number of uses by the trip owner.</p>
+    </div>
+  </details>
+
+  <details class="faq">
+    <summary>How are trip stickers earned?</summary>
+    <div class="faq-body">
+      <p>Stickers unlock automatically as you use the app — for example, creating your first trip, adding 10+ photos, or visiting 5+ destinations. Tap any earned sticker to see its details and equip it on your profile banner.</p>
+      <p>You can equip up to 4 stickers at a time.</p>
+    </div>
+  </details>
+
+  <details class="faq">
+    <summary>Can I use Ouest on Android or web?</summary>
+    <div class="faq-body">
+      <p>Right now we're iOS-only while we focus on getting the core experience right. Android is on the roadmap. Sign up for updates at <a href="https://app.ouest.travel">app.ouest.travel</a>.</p>
+    </div>
+  </details>
+
+  <details class="faq">
+    <summary>Found a bug or have feedback?</summary>
+    <div class="faq-body">
+      <p>Email <a href="mailto:hello@ouest.travel">hello@ouest.travel</a> with a description of what happened and a screenshot if you can. We read every message.</p>
+    </div>
+  </details>
+
+  <h2 class="section-title">Other resources</h2>
+  <p>
+    <a href="/privacy">Privacy Policy</a> ·
+    <a href="https://ouest.travel">ouest.travel</a> ·
+    <a href="mailto:hello@ouest.travel">hello@ouest.travel</a>
+  </p>
+
+  <div class="footer">
+    Ouest — Plan trips together. <a href="https://ouest.travel">ouest.travel</a> · <a href="/support">Support</a> · <a href="/privacy">Privacy</a>
+  </div>
+</div>
+
+</body>
+</html>

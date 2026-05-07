@@ -6,6 +6,7 @@ struct DayCardView: View {
     @Bindable var viewModel: ItineraryViewModel
     var canEdit: Bool = true
     @State private var isExpanded = true
+    @State private var showReorderSheet = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: OuestTheme.Spacing.md) {
@@ -38,6 +39,10 @@ struct DayCardView: View {
         .background(OuestTheme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
         .shadow(OuestTheme.Shadow.md)
+        .sheet(isPresented: $showReorderSheet) {
+            ReorderActivitiesSheet(day: day, viewModel: viewModel)
+                .presentationDetents([.medium, .large])
+        }
     }
 
     // MARK: - Day Header
@@ -64,6 +69,22 @@ struct DayCardView: View {
 
             if canEdit {
                 HStack(spacing: OuestTheme.Spacing.xs) {
+                    // Reorder button (only when 2+ activities)
+                    if day.sortedActivities.count >= 2 {
+                        Button {
+                            HapticFeedback.light()
+                            showReorderSheet = true
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundStyle(OuestTheme.Colors.brand)
+                                .frame(width: 32, height: 32)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+
                     // Quick-add search button
                     Button {
                         HapticFeedback.light()

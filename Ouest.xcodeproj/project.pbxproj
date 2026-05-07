@@ -34,6 +34,7 @@
 		26E2E68B5ABB67145DD2B3E6 /* AppleSignInCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22AD11A1B8686AEE718BA8D /* AppleSignInCoordinator.swift */; };
 		27391E2495C5A7F394D3B105 /* EntryRequirementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9AC9CFD269E3DC0D2CD6013 /* EntryRequirementService.swift */; };
 		2BEE1CBB6B604CFB6205477D /* JoinTripViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 678FF525A38BDE858B780A52 /* JoinTripViewModel.swift */; };
+		FA9C3D71B45E6892A0517DCE /* JoinWithCodeSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E84F6A2D75CB390E4628A1F /* JoinWithCodeSheet.swift */; };
 		2EB97875E4112D2237AD6D21 /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2076A15544CFB733C0C1862 /* NotificationsView.swift */; };
 		2ED41C3B1D906753F1C828C4 /* Community.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF17FD9786CBD73B14770CB /* Community.swift */; };
 		2F19F5D452F5C312C99C86FA /* EntryRequirementsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 396C949CC555685A9D120F62 /* EntryRequirementsViewModel.swift */; };
@@ -42,6 +43,7 @@
 		BF05F8190E34106DF857AB15 /* TripPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFF596C3ECDADA185388FD98 /* TripPhoto.swift */; };
 		384D808477C5458F55A60719 /* UserProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D6AB9755262B27C5327E8B3 /* UserProfileView.swift */; };
 		38A3022AD7154CDCC0B33E40 /* ItineraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 151D77F0CBB243608425D71C /* ItineraryView.swift */; };
+		F1E2D3C4B5A6978877665544 /* ReorderActivitiesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABCDEF0123456789FEDCBA98 /* ReorderActivitiesSheet.swift */; };
 		D5E6F7081920A3B4C5D6E7F8 /* ItineraryCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* ItineraryCalendarView.swift */; };
 		2B2C1440C54B747EED2B4C34 /* QuickAddActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0460985269C5B30C27ED8BC5 /* QuickAddActivityView.swift */; };
 		39A0E3A385DFC486E3B0F432 /* TripDateRangePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB697F8C1D520EA34A1BD94 /* TripDateRangePicker.swift */; };
@@ -186,6 +188,7 @@
 		12FEA5812651E88B9E07B90D /* NotificationsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsViewModel.swift; sourceTree = "<group>"; };
 		1471B5493D5E72E118435843 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		151D77F0CBB243608425D71C /* ItineraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItineraryView.swift; sourceTree = "<group>"; };
+		ABCDEF0123456789FEDCBA98 /* ReorderActivitiesSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReorderActivitiesSheet.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718293A4B5C /* ItineraryCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItineraryCalendarView.swift; sourceTree = "<group>"; };
 		0460985269C5B30C27ED8BC5 /* QuickAddActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAddActivityView.swift; sourceTree = "<group>"; };
 		15D2561FDBAF19DC839A7EF7 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
@@ -227,6 +230,7 @@
 		63B254D3DCA0DE091FF6A1BE /* OuestTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = OuestTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6551B92B98EB9C5DA8E49114 /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
 		678FF525A38BDE858B780A52 /* JoinTripViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoinTripViewModel.swift; sourceTree = "<group>"; };
+		1E84F6A2D75CB390E4628A1F /* JoinWithCodeSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoinWithCodeSheet.swift; sourceTree = "<group>"; };
 		68DD9C2905FDB9F85236A677 /* JournalService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalService.swift; sourceTree = "<group>"; };
 		6A294D6E5C84446C230C9DC3 /* CountryHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountryHelper.swift; sourceTree = "<group>"; };
 		6AAB52CD63F3D8601C1A4258 /* ExpenseModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpenseModelTests.swift; sourceTree = "<group>"; };
@@ -613,6 +617,7 @@
 				8321E58626DD54970C40CDCD /* ItineraryMapView.swift */,
 				0460985269C5B30C27ED8BC5 /* QuickAddActivityView.swift */,
 				151D77F0CBB243608425D71C /* ItineraryView.swift */,
+				ABCDEF0123456789FEDCBA98 /* ReorderActivitiesSheet.swift */,
 			);
 			path = Itinerary;
 			sourceTree = "<group>";
@@ -656,6 +661,7 @@
 			isa = PBXGroup;
 			children = (
 				B972FA425B1C88476C0A4D16 /* JoinTripView.swift */,
+				1E84F6A2D75CB390E4628A1F /* JoinWithCodeSheet.swift */,
 				7950DEBD6E369436C8EF1509 /* ShareTripSheet.swift */,
 			);
 			path = Sharing;
@@ -934,10 +940,12 @@
 				D5E6F7081920A3B4C5D6E7F8 /* ItineraryCalendarView.swift in Sources */,
 				9FB34B6DE8C128C64B0A6819 /* ItineraryService.swift in Sources */,
 				38A3022AD7154CDCC0B33E40 /* ItineraryView.swift in Sources */,
+				F1E2D3C4B5A6978877665544 /* ReorderActivitiesSheet.swift in Sources */,
 				2B2C1440C54B747EED2B4C34 /* QuickAddActivityView.swift in Sources */,
 				FDEEFCFDB456743F6D72E65E /* ItineraryViewModel.swift in Sources */,
 				EB8C5DE372C5977AED43642E /* JoinTripView.swift in Sources */,
 				2BEE1CBB6B604CFB6205477D /* JoinTripViewModel.swift in Sources */,
+				FA9C3D71B45E6892A0517DCE /* JoinWithCodeSheet.swift in Sources */,
 				DB49F1EEBFCFB4A3BF2FE8BB /* JournalEntry.swift in Sources */,
 				F7DA5DA979698ADB828406A7 /* JournalEntryCard.swift in Sources */,
 				AD41F4A878D56FCFAD1A52C8 /* JournalEntryDetailView.swift in Sources */,

@@ -12,7 +12,14 @@ struct OuestApp: App {
                 .environment(authViewModel)
                 .environment(\.pendingDeepLink, $pendingDeepLink)
                 .onOpenURL { url in
+                    // Custom scheme (ouest://) — legacy + QR codes
                     pendingDeepLink = DeepLinkRouter.parse(url: url)
+                }
+                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                    // Universal Links (https://ouest.travel/join/...)
+                    if let url = activity.webpageURL {
+                        pendingDeepLink = DeepLinkRouter.parse(url: url)
+                    }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .notificationTapped)) { output in
                     guard let userInfo = output.userInfo else { return }

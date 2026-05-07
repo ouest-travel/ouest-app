@@ -59,6 +59,9 @@ struct CommentsView: View {
             }
             .navigationTitle("Comments")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: ProfileDestination.self) { dest in
+                UserProfileView(userId: dest.userId)
+            }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
@@ -103,13 +106,31 @@ struct CommentsView: View {
 
     private func commentRow(_ comment: TripComment) -> some View {
         HStack(alignment: .top, spacing: OuestTheme.Spacing.sm) {
-            AvatarView(url: comment.profile?.avatarUrl, size: 32)
+            // Tappable avatar → user profile
+            if let profileId = comment.profile?.id {
+                NavigationLink(value: ProfileDestination(userId: profileId)) {
+                    AvatarView(url: comment.profile?.avatarUrl, size: 32)
+                }
+                .buttonStyle(.plain)
+            } else {
+                AvatarView(url: comment.profile?.avatarUrl, size: 32)
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: OuestTheme.Spacing.sm) {
-                    Text(comment.profile?.fullName ?? "Unknown")
-                        .font(OuestTheme.Typography.cardTitle)
-                        .lineLimit(1)
+                    if let profileId = comment.profile?.id {
+                        NavigationLink(value: ProfileDestination(userId: profileId)) {
+                            Text(comment.profile?.fullName ?? "Unknown")
+                                .font(OuestTheme.Typography.cardTitle)
+                                .foregroundStyle(OuestTheme.Colors.textPrimary)
+                                .lineLimit(1)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Text(comment.profile?.fullName ?? "Unknown")
+                            .font(OuestTheme.Typography.cardTitle)
+                            .lineLimit(1)
+                    }
 
                     if let handle = comment.profile?.handle {
                         Text("@\(handle)")

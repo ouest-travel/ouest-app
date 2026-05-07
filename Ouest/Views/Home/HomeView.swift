@@ -4,6 +4,7 @@ struct HomeView: View {
     @Environment(AuthViewModel.self) private var authViewModel
     @State private var viewModel = TripsViewModel()
     @State private var showCreateTrip = false
+    @State private var showJoinWithCode = false
     @State private var cardsAppeared = false
 
     // Context menu state
@@ -26,9 +27,20 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        HapticFeedback.light()
-                        showCreateTrip = true
+                    Menu {
+                        Button {
+                            HapticFeedback.light()
+                            showCreateTrip = true
+                        } label: {
+                            Label("Create New Trip", systemImage: "plus.circle")
+                        }
+
+                        Button {
+                            HapticFeedback.light()
+                            showJoinWithCode = true
+                        } label: {
+                            Label("Join With Code", systemImage: "ticket")
+                        }
                     } label: {
                         Image(systemName: "plus")
                             .fontWeight(.semibold)
@@ -53,6 +65,14 @@ struct HomeView: View {
                 CreateTripView()
                     .environment(authViewModel)
                     .onDisappear {
+                        Task { await viewModel.fetchTrips() }
+                    }
+            }
+            .sheet(isPresented: $showJoinWithCode) {
+                JoinWithCodeSheet()
+                    .environment(authViewModel)
+                    .onDisappear {
+                        // Refresh trips in case user joined a new one
                         Task { await viewModel.fetchTrips() }
                     }
             }
@@ -395,11 +415,23 @@ struct HomeView: View {
                     .fadeSlideIn(isVisible: cardsAppeared, delay: 0.25)
             }
 
-            OuestButton(title: "Plan a Trip") {
-                showCreateTrip = true
+            VStack(spacing: OuestTheme.Spacing.sm) {
+                OuestButton(title: "Plan a Trip") {
+                    showCreateTrip = true
+                }
+                .frame(width: 200)
+                .fadeSlideIn(isVisible: cardsAppeared, delay: 0.35)
+
+                Button {
+                    HapticFeedback.light()
+                    showJoinWithCode = true
+                } label: {
+                    Label("Got an invite code?", systemImage: "ticket")
+                        .font(OuestTheme.Typography.caption)
+                        .foregroundStyle(OuestTheme.Colors.brand)
+                }
+                .fadeSlideIn(isVisible: cardsAppeared, delay: 0.45)
             }
-            .frame(width: 200)
-            .fadeSlideIn(isVisible: cardsAppeared, delay: 0.35)
 
             Spacer()
         }

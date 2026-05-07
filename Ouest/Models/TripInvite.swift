@@ -25,9 +25,11 @@ struct TripInvite: Codable, Identifiable, Sendable {
         case createdAt = "created_at"
     }
 
-    /// The deep link URL for this invite
+    /// The Universal Link URL for this invite.
+    /// On iOS with the app installed, tapping this opens the app directly to the join screen.
+    /// Without the app, it falls back to the web landing page with App Store download.
     var inviteURL: URL {
-        URL(string: "ouest://join/\(code)")!
+        URL(string: "https://links.ouest.travel/join/\(code)")!
     }
 
     /// Human-readable share text

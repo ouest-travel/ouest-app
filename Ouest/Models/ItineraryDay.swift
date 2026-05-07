@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 // MARK: - Itinerary Day
 
@@ -74,6 +75,22 @@ struct ItineraryDay: Codable, Identifiable, Sendable {
     /// Number of activities with map coordinates
     var activitiesWithCoordinatesCount: Int {
         (activities ?? []).filter(\.hasCoordinates).count
+    }
+
+    /// Color for the day's route on the map (cycles through 8-color palette by dayNumber)
+    var routeColor: Color {
+        let palette: [UInt] = [
+            0x2563EB, // brand blue (Day 1)
+            0xF97316, // orange (Day 2)
+            0xA855F7, // purple (Day 3)
+            0x14B8A6, // teal (Day 4)
+            0xEC4899, // pink (Day 5)
+            0xF59E0B, // amber (Day 6)
+            0x06B6D4, // cyan (Day 7)
+            0x8B5CF6  // violet (Day 8)
+        ]
+        let index = max(0, dayNumber - 1) % palette.count
+        return Color(hex: palette[index])
     }
 }
 

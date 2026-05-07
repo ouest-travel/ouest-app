@@ -24,6 +24,9 @@ struct TripDetailView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(for: ProfileDestination.self) { dest in
+            UserProfileView(userId: dest.userId)
+        }
         .task {
             await viewModel.loadTrip(id: tripId)
             withAnimation(OuestTheme.Anim.smooth) {
@@ -398,19 +401,23 @@ struct TripDetailView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: OuestTheme.Spacing.md) {
                     ForEach(Array(viewModel.members.enumerated()), id: \.element.id) { index, member in
-                        VStack(spacing: OuestTheme.Spacing.xs) {
-                            AvatarView(url: member.profile?.avatarUrl, size: 48)
-                                .shadow(OuestTheme.Shadow.sm)
-                            Text(member.profile?.fullName?.components(separatedBy: " ").first ?? "?")
-                                .font(OuestTheme.Typography.micro)
-                                .lineLimit(1)
-                            if member.role == .owner {
-                                Image(systemName: "crown.fill")
-                                    .font(.system(size: 8))
-                                    .foregroundStyle(.orange)
+                        NavigationLink(value: ProfileDestination(userId: member.userId)) {
+                            VStack(spacing: OuestTheme.Spacing.xs) {
+                                AvatarView(url: member.profile?.avatarUrl, size: 48)
+                                    .shadow(OuestTheme.Shadow.sm)
+                                Text(member.profile?.fullName?.components(separatedBy: " ").first ?? "?")
+                                    .font(OuestTheme.Typography.micro)
+                                    .foregroundStyle(OuestTheme.Colors.textPrimary)
+                                    .lineLimit(1)
+                                if member.role == .owner {
+                                    Image(systemName: "crown.fill")
+                                        .font(.system(size: 8))
+                                        .foregroundStyle(.orange)
+                                }
                             }
+                            .frame(width: 56)
                         }
-                        .frame(width: 56)
+                        .buttonStyle(.plain)
                         .bouncyAppear(isVisible: contentAppeared, delay: 0.25 + Double(index) * 0.06)
                     }
                 }

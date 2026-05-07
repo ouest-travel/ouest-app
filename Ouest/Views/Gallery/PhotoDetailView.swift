@@ -75,22 +75,37 @@ struct PhotoDetailView: View {
 
     private var uploaderSection: some View {
         HStack(spacing: OuestTheme.Spacing.sm) {
-            AvatarView(url: photo.profile?.avatarUrl, size: 32)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(photo.profile?.fullName ?? "Traveler")
-                    .font(OuestTheme.Typography.caption)
-                    .fontWeight(.medium)
-                    .foregroundStyle(OuestTheme.Colors.textPrimary)
-
-                if let date = photo.createdAt {
-                    Text(date.formatted(date: .abbreviated, time: .shortened))
-                        .font(OuestTheme.Typography.micro)
-                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+            if let profileId = photo.profile?.id {
+                NavigationLink {
+                    UserProfileView(userId: profileId)
+                } label: {
+                    HStack(spacing: OuestTheme.Spacing.sm) {
+                        AvatarView(url: photo.profile?.avatarUrl, size: 32)
+                        uploaderInfo
+                    }
                 }
+                .buttonStyle(.plain)
+            } else {
+                AvatarView(url: photo.profile?.avatarUrl, size: 32)
+                uploaderInfo
             }
 
             Spacer()
+        }
+    }
+
+    private var uploaderInfo: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(photo.profile?.fullName ?? "Traveler")
+                .font(OuestTheme.Typography.caption)
+                .fontWeight(.medium)
+                .foregroundStyle(OuestTheme.Colors.textPrimary)
+
+            if let date = photo.createdAt {
+                Text(date.formatted(date: .abbreviated, time: .shortened))
+                    .font(OuestTheme.Typography.micro)
+                    .foregroundStyle(OuestTheme.Colors.textSecondary)
+            }
         }
         .padding(OuestTheme.Spacing.md)
         .background(OuestTheme.Colors.surfaceSecondary)

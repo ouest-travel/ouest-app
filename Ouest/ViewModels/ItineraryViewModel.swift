@@ -22,6 +22,14 @@ final class ItineraryViewModel {
     var showQuickAdd = false
     var quickAddTargetDay: ItineraryDay?
 
+    // MARK: - Map View State
+
+    /// Day filter on the map view. nil = show all days
+    var selectedDayFilter: ItineraryDay?
+
+    /// Whether to draw connecting trail lines between stops on the map
+    var showMapTrails = true
+
     // MARK: - Activity Form Fields
 
     var activityTitle = ""
@@ -65,6 +73,11 @@ final class ItineraryViewModel {
                 .filter(\.hasCoordinates)
                 .map { (day: day, activity: $0) }
         }
+    }
+
+    /// Days that have at least one activity with coordinates — used for filter chips
+    var daysWithCoordinates: [ItineraryDay] {
+        days.filter { $0.activitiesWithCoordinatesCount > 0 }
     }
 
     var totalEstimatedCost: Double {
