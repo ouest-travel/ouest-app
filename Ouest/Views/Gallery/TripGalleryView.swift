@@ -10,7 +10,12 @@ struct TripGalleryView: View {
     @State private var isLoading = true
     @State private var isUploading = false
     @State private var errorMessage: String?
+    @State private var infoMessage: String?            // non-fatal toast (partial success)
+    @State private var uploadProgress: (done: Int, total: Int) = (0, 0)
     @State private var contentAppeared = false
+
+    /// Per-photo reload keys — bumping a photo's key re-runs its AsyncImage fetch.
+    @State private var photoReloadKeys: [UUID: UUID] = [:]
 
     // Photo picker
     @State private var selectedItems: [PhotosPickerItem] = []
@@ -66,6 +71,44 @@ struct TripGalleryView: View {
                 selectedItems = []
             }
         }
+        .alert("Something went wrong", isPresented: errorAlertBinding, presenting: errorMessage) { _ in
+            Button("OK", role: .cancel) { errorMessage = nil }
+        } message: { msg in
+            Text(msg)
+        }
+        .overlay(alignment: .top) {
+            if let info = infoMessage {
+                infoToast(info)
+                    .padding(.top, OuestTheme.Spacing.sm)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+    }
+
+    // MARK: - Bindings & Toasts
+
+    private var errorAlertBinding: Binding<Bool> {
+        Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )
+    }
+
+    private func infoToast(_ message: String) -> some View {
+        HStack(spacing: OuestTheme.Spacing.sm) {
+            Image(systemName: "info.circle.fill")
+                .foregroundStyle(OuestTheme.Colors.brand)
+            Text(message)
+                .font(OuestTheme.Typography.caption)
+                .foregroundStyle(OuestTheme.Colors.textPrimary)
+                .lineLimit(2)
+        }
+        .padding(.horizontal, OuestTheme.Spacing.md)
+        .padding(.vertical, OuestTheme.Spacing.sm)
+        .background(.ultraThinMaterial)
+        .clipShape(Capsule())
+        .shadow(OuestTheme.Shadow.md)
+        .padding(.horizontal, OuestTheme.Spacing.lg)
     }
 
     // MARK: - Gallery Grid
@@ -113,16 +156,13 @@ struct TripGalleryView: View {
                         .resizable()
                         .scaledToFill()
                 case .failure:
-                    Rectangle()
-                        .fill(OuestTheme.Colors.surfaceSecondary)
-                        .overlay {
-                            Image(systemName: "photo")
-                                .foregroundStyle(OuestTheme.Colors.textSecondary)
-                        }
+                    failureTile(for: photo)
                 default:
                     SkeletonView(height: 100)
                 }
             }
+            // Bumping this key forces AsyncImage to re-fetch.
+            .id(photoReloadKeys[photo.id] ?? photo.id)
             .frame(minWidth: 0, maxWidth: .infinity)
             .aspectRatio(1, contentMode: .fill)
             .clipped()
@@ -136,6 +176,29 @@ struct TripGalleryView: View {
             }
         }
         .fadeSlideIn(isVisible: contentAppeared, delay: Double(index) * 0.03)
+    }
+
+    /// Tappable failure tile — taps trigger a re-fetch of the AsyncImage.
+    private func failureTile(for photo: TripPhoto) -> some View {
+        Button {
+            HapticFeedback.light()
+            // New UUID = new identity = AsyncImage re-fetch
+            photoReloadKeys[photo.id] = UUID()
+        } label: {
+            Rectangle()
+                .fill(OuestTheme.Colors.surfaceSecondary)
+                .overlay {
+                    VStack(spacing: 4) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.body)
+                            .foregroundStyle(OuestTheme.Colors.brand)
+                        Text("Retry")
+                            .font(OuestTheme.Typography.micro)
+                            .foregroundStyle(OuestTheme.Colors.textSecondary)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Loading
@@ -171,12 +234,22 @@ struct TripGalleryView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: OuestTheme.Spacing.md) {
-                ProgressView()
-                    .tint(.white)
-                    .scaleEffect(1.2)
-                Text("Uploading photos…")
-                    .font(OuestTheme.Typography.caption)
-                    .foregroundStyle(.white)
+                if uploadProgress.total > 0 {
+                    // Determinate progress when we know totals
+                    ProgressView(value: Double(uploadProgress.done), total: Double(uploadProgress.total))
+                        .tint(.white)
+                        .frame(width: 140)
+                    Text("Uploading \(uploadProgress.done) of \(uploadProgress.total)…")
+                        .font(OuestTheme.Typography.caption)
+                        .foregroundStyle(.white)
+                } else {
+                    ProgressView()
+                        .tint(.white)
+                        .scaleEffect(1.2)
+                    Text("Preparing photos…")
+                        .font(OuestTheme.Typography.caption)
+                        .foregroundStyle(.white)
+                }
             }
             .padding(OuestTheme.Spacing.xxl)
             .background(.ultraThinMaterial)
@@ -199,34 +272,78 @@ struct TripGalleryView: View {
         guard let userId = authViewModel.currentUser?.id else { return }
 
         isUploading = true
+        uploadProgress = (0, 0)
         HapticFeedback.light()
 
+        // 1. Load the bytes for each picked item, tracking individual load failures.
         var imageDataList: [(data: Data, caption: String?)] = []
+        var loadFailures = 0
 
         for item in items {
-            if let data = try? await item.loadTransferable(type: Data.self) {
-                imageDataList.append((data: data, caption: nil))
+            do {
+                if let data = try await item.loadTransferable(type: Data.self) {
+                    imageDataList.append((data: data, caption: nil))
+                } else {
+                    loadFailures += 1
+                }
+            } catch {
+                loadFailures += 1
             }
         }
 
+        // 2. If everything failed to load, bail with an error.
         guard !imageDataList.isEmpty else {
             isUploading = false
+            errorMessage = "Couldn't read \(items.count == 1 ? "the selected photo" : "any of the selected photos") from your library. Please try a different selection."
+            HapticFeedback.error()
             return
         }
 
-        do {
-            let newPhotos = try await GalleryService.uploadPhotos(
-                tripId: trip.id,
-                userId: userId,
-                images: imageDataList
-            )
-            photos.insert(contentsOf: newPhotos, at: 0)
+        // 3. Upload in parallel with partial-success handling.
+        uploadProgress = (0, imageDataList.count)
+        let result = await GalleryService.uploadPhotos(
+            tripId: trip.id,
+            userId: userId,
+            images: imageDataList,
+            onProgress: { done in
+                Task { @MainActor in
+                    uploadProgress.done = done
+                }
+            }
+        )
+
+        // 4. Insert successful uploads at the top of the grid.
+        if !result.uploaded.isEmpty {
+            photos.insert(contentsOf: result.uploaded, at: 0)
+        }
+
+        // 5. Surface outcomes to the user.
+        let totalFailed = result.failures.count + loadFailures
+        let totalAttempted = imageDataList.count + loadFailures
+
+        if totalFailed == 0 {
             HapticFeedback.success()
-        } catch {
-            errorMessage = error.localizedDescription
+        } else if result.uploaded.isEmpty {
+            // Everything failed — show the first error as the alert message.
+            let detail = result.failures.first?.localizedDescription
+                ?? "We couldn't upload the photo. Please try again."
+            errorMessage = detail
+            HapticFeedback.error()
+        } else {
+            // Partial — non-fatal toast.
+            infoMessage = "\(result.uploaded.count) of \(totalAttempted) photos uploaded. \(totalFailed) failed — try again later."
+            HapticFeedback.success()
+            // Auto-dismiss the toast after a few seconds.
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(4))
+                withAnimation(OuestTheme.Anim.smooth) {
+                    infoMessage = nil
+                }
+            }
         }
 
         isUploading = false
+        uploadProgress = (0, 0)
     }
 
     private func deletePhoto(_ photo: TripPhoto) async {

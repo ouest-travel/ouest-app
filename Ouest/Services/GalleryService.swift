@@ -50,30 +50,70 @@ enum GalleryService {
         return photo
     }
 
-    /// Upload multiple photos in parallel
-    /// - Returns: Array of created TripPhotos
+    /// Result of a multi-photo upload attempt.
+    /// Allows partial successes — UI shows what made it through and reports failures separately.
+    struct BatchUploadResult {
+        let uploaded: [TripPhoto]
+        let failures: [Error]
+
+        var totalAttempted: Int { uploaded.count + failures.count }
+        var hasFailures: Bool { !failures.isEmpty }
+        var allFailed: Bool { uploaded.isEmpty && !failures.isEmpty }
+
+        /// User-facing summary message, or nil if everything succeeded.
+        var summaryMessage: String? {
+            switch (uploaded.count, failures.count) {
+            case (_, 0): return nil
+            case (0, let f) where f == 1:
+                return "1 photo couldn't be uploaded. Try again."
+            case (0, let f):
+                return "\(f) photos couldn't be uploaded. Try again."
+            case (let u, let f):
+                return "\(u) of \(u + f) photos uploaded. \(f) failed."
+            }
+        }
+    }
+
+    /// Upload multiple photos in parallel with partial-success handling.
+    /// Failed photos don't abort the whole batch — successful ones still land.
     static func uploadPhotos(
         tripId: UUID,
         userId: UUID,
-        images: [(data: Data, caption: String?)]
-    ) async throws -> [TripPhoto] {
-        try await withThrowingTaskGroup(of: TripPhoto.self) { group in
+        images: [(data: Data, caption: String?)],
+        onProgress: (@Sendable (Int) -> Void)? = nil
+    ) async -> BatchUploadResult {
+        await withTaskGroup(of: Result<TripPhoto, Error>.self) { group in
             for image in images {
                 group.addTask {
-                    try await uploadPhoto(
-                        tripId: tripId,
-                        userId: userId,
-                        imageData: image.data,
-                        caption: image.caption
-                    )
+                    do {
+                        let photo = try await uploadPhoto(
+                            tripId: tripId,
+                            userId: userId,
+                            imageData: image.data,
+                            caption: image.caption
+                        )
+                        return .success(photo)
+                    } catch {
+                        return .failure(error)
+                    }
                 }
             }
 
-            var photos: [TripPhoto] = []
-            for try await photo in group {
-                photos.append(photo)
+            var uploaded: [TripPhoto] = []
+            var failures: [Error] = []
+            for await result in group {
+                switch result {
+                case .success(let photo): uploaded.append(photo)
+                case .failure(let error): failures.append(error)
+                }
+                // Notify the caller after each photo finishes (in any order)
+                onProgress?(uploaded.count + failures.count)
             }
-            return photos.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+
+            let sorted = uploaded.sorted {
+                ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast)
+            }
+            return BatchUploadResult(uploaded: sorted, failures: failures)
         }
     }
 
