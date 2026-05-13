@@ -30,6 +30,12 @@ final class ItineraryViewModel {
     /// Whether to draw connecting trail lines between stops on the map
     var showMapTrails = true
 
+    // MARK: - AI Itinerary State
+
+    var isGeneratingAI = false
+    var aiError: String?
+    var showAIGenerate = false
+
     // MARK: - Activity Form Fields
 
     var activityTitle = ""
@@ -386,6 +392,46 @@ final class ItineraryViewModel {
         }
 
         HapticFeedback.selection()
+    }
+
+    // MARK: - AI Itinerary
+
+    /// Calls the AI Edge Function to generate a full itinerary, then reloads.
+    /// Returns true on success so the calling view can dismiss itself.
+    @discardableResult
+    func generateAIItinerary(preferences: TripPreferences) async -> Bool {
+        guard let userId = currentUserId else {
+            aiError = "Sign in required."
+            return false
+        }
+        guard let startDate = trip.startDate, let endDate = trip.endDate else {
+            aiError = "Trip dates are required for AI generation. Edit your trip and add start/end dates."
+            return false
+        }
+
+        isGeneratingAI = true
+        aiError = nil
+
+        do {
+            _ = try await AIItineraryService.generateItinerary(
+                tripId: trip.id,
+                userId: userId,
+                destination: trip.destination,
+                startDate: startDate,
+                endDate: endDate,
+                preferences: preferences
+            )
+            // Refresh from DB to pick up the newly inserted days + activities.
+            await loadItinerary()
+            HapticFeedback.success()
+            isGeneratingAI = false
+            return true
+        } catch {
+            aiError = error.localizedDescription
+            HapticFeedback.error()
+            isGeneratingAI = false
+            return false
+        }
     }
 
     // MARK: - Place Search

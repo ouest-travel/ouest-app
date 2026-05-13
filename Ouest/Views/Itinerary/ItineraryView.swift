@@ -76,6 +76,17 @@ struct ItineraryView: View {
                     }
 
                     if canEdit {
+                        // AI generate button — only enabled when trip has dates
+                        if trip.startDate != nil && trip.endDate != nil {
+                            Button {
+                                HapticFeedback.light()
+                                viewModel.showAIGenerate = true
+                            } label: {
+                                Image(systemName: "sparkles")
+                                    .foregroundStyle(OuestTheme.Colors.brand)
+                            }
+                        }
+
                         // Add day button
                         Button {
                             HapticFeedback.light()
@@ -115,6 +126,10 @@ struct ItineraryView: View {
         }
         .sheet(isPresented: $viewModel.showMap) {
             ItineraryMapView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $viewModel.showAIGenerate) {
+            AIGenerateView(trip: trip, viewModel: viewModel)
+                .interactiveDismissDisabled(viewModel.isGeneratingAI)
         }
     }
 
@@ -204,18 +219,37 @@ struct ItineraryView: View {
             if canEdit {
                 VStack(spacing: OuestTheme.Spacing.md) {
                     if tripHasDates {
-                        OuestButton(title: "Generate from Trip Dates") {
+                        Button {
+                            HapticFeedback.light()
+                            viewModel.showAIGenerate = true
+                        } label: {
+                            HStack(spacing: OuestTheme.Spacing.sm) {
+                                Image(systemName: "sparkles")
+                                Text("Generate with AI")
+                                    .fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .foregroundStyle(.white)
+                            .background(OuestTheme.Colors.brandGradient)
+                            .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+                            .shadow(OuestTheme.Shadow.md)
+                        }
+                        .frame(width: 240)
+                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.32)
+
+                        OuestButton(title: "Generate from Trip Dates", style: .secondary) {
                             Task { await viewModel.generateDaysFromTripDates() }
                         }
                         .frame(width: 240)
-                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.35)
+                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.38)
                     }
 
-                    OuestButton(title: "Add First Day") {
+                    OuestButton(title: "Add First Day", style: .secondary) {
                         Task { await viewModel.addDay() }
                     }
                     .frame(width: 200)
-                    .fadeSlideIn(isVisible: contentAppeared, delay: tripHasDates ? 0.42 : 0.35)
+                    .fadeSlideIn(isVisible: contentAppeared, delay: tripHasDates ? 0.44 : 0.35)
                 }
             }
 
