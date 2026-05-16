@@ -76,15 +76,25 @@ struct ItineraryView: View {
                     }
 
                     if canEdit {
-                        // AI generate button — only enabled when trip has dates
-                        if trip.startDate != nil && trip.endDate != nil {
+                        // AI menu — generate or import
+                        Menu {
+                            if trip.startDate != nil && trip.endDate != nil {
+                                Button {
+                                    HapticFeedback.light()
+                                    viewModel.showAIGenerate = true
+                                } label: {
+                                    Label("Generate with AI", systemImage: "sparkles")
+                                }
+                            }
                             Button {
                                 HapticFeedback.light()
-                                viewModel.showAIGenerate = true
+                                viewModel.showAIImport = true
                             } label: {
-                                Image(systemName: "sparkles")
-                                    .foregroundStyle(OuestTheme.Colors.brand)
+                                Label("Import from link or text", systemImage: "wand.and.stars")
                             }
+                        } label: {
+                            Image(systemName: "sparkles")
+                                .foregroundStyle(OuestTheme.Colors.brand)
                         }
 
                         // Add day button
@@ -129,6 +139,10 @@ struct ItineraryView: View {
         }
         .sheet(isPresented: $viewModel.showAIGenerate) {
             AIGenerateView(trip: trip, viewModel: viewModel)
+                .interactiveDismissDisabled(viewModel.isGeneratingAI)
+        }
+        .sheet(isPresented: $viewModel.showAIImport) {
+            AIImportView(trip: trip, viewModel: viewModel)
                 .interactiveDismissDisabled(viewModel.isGeneratingAI)
         }
     }
@@ -238,18 +252,33 @@ struct ItineraryView: View {
                         .frame(width: 240)
                         .fadeSlideIn(isVisible: contentAppeared, delay: 0.32)
 
+                        // AI Import — paste TikTok/Instagram/blog link or text
+                        Button {
+                            HapticFeedback.light()
+                            viewModel.showAIImport = true
+                        } label: {
+                            HStack(spacing: OuestTheme.Spacing.xs) {
+                                Image(systemName: "wand.and.stars")
+                                Text("Import from link or text")
+                            }
+                            .font(OuestTheme.Typography.caption)
+                            .fontWeight(.medium)
+                            .foregroundStyle(OuestTheme.Colors.brand)
+                        }
+                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.36)
+
                         OuestButton(title: "Generate from Trip Dates", style: .secondary) {
                             Task { await viewModel.generateDaysFromTripDates() }
                         }
                         .frame(width: 240)
-                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.38)
+                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.42)
                     }
 
                     OuestButton(title: "Add First Day", style: .secondary) {
                         Task { await viewModel.addDay() }
                     }
                     .frame(width: 200)
-                    .fadeSlideIn(isVisible: contentAppeared, delay: tripHasDates ? 0.44 : 0.35)
+                    .fadeSlideIn(isVisible: contentAppeared, delay: tripHasDates ? 0.48 : 0.35)
                 }
             }
 

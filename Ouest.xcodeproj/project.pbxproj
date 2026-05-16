@@ -148,6 +148,7 @@
 		2412C1C41950C6B6D0375C3E /* AIItinerary.swift in Sources */ = {isa = PBXBuildFile; fileRef = C95853FDF51950B6AB284E08 /* AIItinerary.swift */; };
 		69E3E09B63320A9505277CC5 /* AIItineraryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7612C83BE5F5B6FBC3A83B1 /* AIItineraryService.swift */; };
 		B1F4521064E311CA6D2B8A6A /* AIGenerateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0559336AA14619E7F2DE5EC4 /* AIGenerateView.swift */; };
+		54F03C94F28DDF1E9C31390A /* AIImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95374143C9B0402A6F065F35 /* AIImportView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -315,6 +316,7 @@
 		C95853FDF51950B6AB284E08 /* AIItinerary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIItinerary.swift; sourceTree = "<group>"; };
 		E7612C83BE5F5B6FBC3A83B1 /* AIItineraryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIItineraryService.swift; sourceTree = "<group>"; };
 		0559336AA14619E7F2DE5EC4 /* AIGenerateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGenerateView.swift; sourceTree = "<group>"; };
+		95374143C9B0402A6F065F35 /* AIImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIImportView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -627,6 +629,7 @@
 				151D77F0CBB243608425D71C /* ItineraryView.swift */,
 				ABCDEF0123456789FEDCBA98 /* ReorderActivitiesSheet.swift */,
 				0559336AA14619E7F2DE5EC4 /* AIGenerateView.swift */,
+				95374143C9B0402A6F065F35 /* AIImportView.swift */,
 			);
 			path = Itinerary;
 			sourceTree = "<group>";
@@ -1011,6 +1014,7 @@
 				2412C1C41950C6B6D0375C3E /* AIItinerary.swift in Sources */,
 				69E3E09B63320A9505277CC5 /* AIItineraryService.swift in Sources */,
 				B1F4521064E311CA6D2B8A6A /* AIGenerateView.swift in Sources */,
+				54F03C94F28DDF1E9C31390A /* AIImportView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

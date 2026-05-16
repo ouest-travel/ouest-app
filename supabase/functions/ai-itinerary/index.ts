@@ -95,10 +95,14 @@ Rules:
 - Output ONLY the JSON object. No explanations, no markdown.
 - Use 3–6 activities per day (mornings, midday, afternoon, evening).
 - Stagger start times naturally and leave realistic gaps for transit.
-- Pick real, well-known places — not fictional names.
+- Pick real places (not fictional). Each day MUST include 3–4 lesser-known local gems — small restaurants, neighborhood spots, hidden viewpoints, niche museums, quiet parks — alongside any unavoidable must-see icons. Bias toward what locals actually recommend over what's at the top of guidebooks.
+- When a place is a hidden gem or local favourite, briefly say so in the activity's description (e.g., "favourite of locals, rarely on guidebooks", "tucked-away spot most tourists miss"). When it's a marquee landmark, you can skip that note.
 - Categorize correctly: meals = food, hotels/check-in = accommodation, etc.
 - For multi-day trips, vary the daily theme (avoid repetition).
-- Respect budget level: "budget" = free/cheap/street food; "moderate" = mid-range; "luxury" = high-end restaurants and experiences.`;
+- Respect budget level and adjust the gem mix accordingly:
+  - "budget"   → free attractions, street food finds, hostels, free walking tours, public spots.
+  - "moderate" → mid-range neighborhood favourites and local restaurants.
+  - "luxury"   → boutique experiences, chef-led restaurants, design hotels, private/small-group activities.`;
 }
 
 /** Builds the user-message payload depending on the input type. */
@@ -130,18 +134,26 @@ function buildUserPrompt(req: AIRequest): string {
       .filter((s) => s.length > 0)
       .join("\n");
   } else {
-    // import mode
+    // import mode — content may come from a TikTok caption, Instagram post,
+    // YouTube description, blog article, or freeform user notes.
     const dateRange =
       req.startDate && req.endDate
         ? `The trip is from ${req.startDate} to ${req.endDate}. Use these dates.`
         : `If specific dates aren't mentioned, organize into a logical day-by-day plan starting on Day 1.`;
 
     return [
-      `The user pasted the following content describing a trip. Extract a structured itinerary from it:`,
+      `The user shared the following content (possibly a social media post, blog article, or their own notes) describing places they want to visit on a trip. Extract a structured itinerary from it.`,
       "",
-      "---",
-      req.inputText.slice(0, 12000), // cap to keep prompt under model limits
-      "---",
+      `Guidelines for extraction:`,
+      `- Focus on real places, restaurants, neighborhoods, and activities mentioned.`,
+      `- If the content is sparse (e.g., just a few captions or bullet points), generously fill in supporting activities to make a complete, well-paced trip around the mentioned places.`,
+      `- If the content mentions specific times, days, or sequences, respect them.`,
+      `- If a destination is implied but not stated (e.g., the content is clearly about Tokyo), use that as the location context.`,
+      `- Add the hidden-gem mix from the system prompt rules even when extracting from external content.`,
+      "",
+      "--- Content ---",
+      req.inputText.slice(0, 12000),
+      "--- End content ---",
       "",
       dateRange,
       `Respond with ONLY the JSON object.`,
@@ -149,40 +161,161 @@ function buildUserPrompt(req: AIRequest): string {
   }
 }
 
-/** Fetch URL content + strip HTML to plain text (best-effort). */
+/**
+ * Extracts the value of a `<meta>` tag by property/name.
+ * Looks for both `property="..."` (OG/Twitter style) and `name="..."` (standard).
+ */
+function extractMeta(html: string, key: string): string | null {
+  // Pattern 1: <meta property="og:title" content="...">
+  const propRx = new RegExp(
+    `<meta\\s+[^>]*property\\s*=\\s*["']${key}["'][^>]*content\\s*=\\s*["']([^"']*)["']`,
+    "i"
+  );
+  // Pattern 2: <meta content="..." property="og:title">
+  const propRevRx = new RegExp(
+    `<meta\\s+[^>]*content\\s*=\\s*["']([^"']*)["'][^>]*property\\s*=\\s*["']${key}["']`,
+    "i"
+  );
+  // Pattern 3: <meta name="description" content="...">
+  const nameRx = new RegExp(
+    `<meta\\s+[^>]*name\\s*=\\s*["']${key}["'][^>]*content\\s*=\\s*["']([^"']*)["']`,
+    "i"
+  );
+
+  for (const rx of [propRx, propRevRx, nameRx]) {
+    const m = html.match(rx);
+    if (m && m[1]) {
+      // Decode common HTML entities
+      return m[1]
+        .replace(/&amp;/g, "&")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .trim();
+    }
+  }
+  return null;
+}
+
+/**
+ * Extracts page content for any URL, prioritizing OG meta tags (which Instagram,
+ * TikTok, YouTube, and most modern SPAs rely on for share previews). Falls back to
+ * body text for traditional blogs/news/articles.
+ *
+ * Returns a synthesized text block suitable for Claude. Empty string if nothing useful.
+ */
 async function fetchUrlContent(url: string): Promise<string> {
   try {
     const response = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; OuestBot/1.0)" },
+      headers: {
+        // Use a desktop browser UA so SPAs serve the same OG tags they'd give to facebookexternalhit etc.
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
       redirect: "follow",
     });
     if (!response.ok) return "";
     const html = await response.text();
-    // Very rough HTML → text: drop scripts/styles, then strip remaining tags.
-    return html
+
+    // 1. Pull rich preview metadata first.
+    const ogTitle = extractMeta(html, "og:title");
+    const ogDescription = extractMeta(html, "og:description");
+    const ogSiteName = extractMeta(html, "og:site_name");
+    const twitterTitle = extractMeta(html, "twitter:title");
+    const twitterDescription = extractMeta(html, "twitter:description");
+    const metaDescription = extractMeta(html, "description");
+
+    const title = ogTitle ?? twitterTitle ?? extractTitleTag(html);
+    const description =
+      ogDescription ?? twitterDescription ?? metaDescription ?? null;
+    const sourceName = ogSiteName ?? hostname(url);
+
+    // 2. Strip the body to plain text. For blog/article-style pages this is
+    //    where most of the useful detail lives.
+    const bodyText = html
       .replace(/<script[\s\S]*?<\/script>/gi, " ")
       .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+      .replace(/<header[\s\S]*?<\/header>/gi, " ")
+      .replace(/<footer[\s\S]*?<\/footer>/gi, " ")
+      .replace(/<nav[\s\S]*?<\/nav>/gi, " ")
       .replace(/<[^>]+>/g, " ")
       .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&")
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'")
       .replace(/\s+/g, " ")
       .trim();
+
+    // 3. Synthesize a clean block for the LLM. Lead with the most reliable
+    //    bits (OG metadata) so even SPAs with sparse body content stay useful.
+    const parts: string[] = [];
+    if (sourceName) parts.push(`Source: ${sourceName}`);
+    if (title) parts.push(`Title: ${title}`);
+    if (description) parts.push(`Description: ${description}`);
+    if (bodyText && bodyText.length > 200) {
+      parts.push(`Page content:\n${bodyText.slice(0, 10000)}`);
+    } else if (bodyText && bodyText.length > 0 && !description) {
+      // Tiny body and no description — still pass it along, every bit helps.
+      parts.push(`Page content:\n${bodyText}`);
+    }
+
+    return parts.join("\n\n");
   } catch (error) {
     console.error("URL fetch failed:", error);
     return "";
   }
 }
 
-/** Detects a URL in the inputText and, if present, replaces it with fetched content. */
-async function expandImportInput(req: ImportRequest): Promise<ImportRequest> {
-  const urlMatch = req.inputText.match(/https?:\/\/\S+/);
-  if (!urlMatch) return req;
+/** Best-effort fallback to extract the <title> tag if no OG title is set. */
+function extractTitleTag(html: string): string | null {
+  const m = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  return m ? m[1].trim() : null;
+}
 
-  const fetched = await fetchUrlContent(urlMatch[0]);
-  if (!fetched) return req;
+/** Pull a clean hostname (e.g., "instagram.com") from a URL. */
+function hostname(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Detects URLs in the inputText and, if present, expands them with fetched OG/page
+ * content. Handles multiple URLs (e.g. a list of TikTok links). Always preserves
+ * the original user text so anything they typed manually still counts.
+ */
+async function expandImportInput(req: ImportRequest): Promise<ImportRequest> {
+  // Match all http(s) URLs, dedupe, cap at 5 to avoid runaway requests.
+  const urlMatches = [...req.inputText.matchAll(/https?:\/\/\S+/g)].map((m) => m[0]);
+  const uniqueUrls = Array.from(new Set(urlMatches)).slice(0, 5);
+  if (uniqueUrls.length === 0) return req;
+
+  // Fetch all URLs in parallel (best-effort — empty results are dropped).
+  const fetches = await Promise.all(
+    uniqueUrls.map(async (url) => ({
+      url,
+      content: await fetchUrlContent(url),
+    }))
+  );
+
+  const expansions: string[] = [];
+  for (const { url, content } of fetches) {
+    if (!content) continue;
+    expansions.push(`--- Content from ${url} ---\n${content}`);
+  }
+
+  if (expansions.length === 0) return req;
 
   return {
     ...req,
-    inputText: `${req.inputText}\n\nPage content from ${urlMatch[0]}:\n${fetched}`,
+    inputText: `${req.inputText}\n\n${expansions.join("\n\n")}`,
   };
 }
 
@@ -370,6 +503,70 @@ async function insertItinerary(
   return { dayCount, activityCount };
 }
 
+// ─── Rate Limiting ───────────────────────────────────────────────────
+
+/// Max AI generations a single user may run in a rolling 24h window.
+/// Caps Anthropic API spend per user and prevents abuse.
+const DAILY_LIMIT = 10;
+
+/// Returns whether the user is under the daily quota and how many calls they've used.
+async function checkRateLimit(
+  supabase: ReturnType<typeof createClient>,
+  userId: string
+): Promise<{ ok: boolean; used: number; limit: number }> {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count, error } = await supabase
+    .from("ai_usage_log")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .gte("created_at", since);
+
+  if (error) {
+    // Fail-open: a lookup error shouldn't block a real user, but log loudly
+    // so we notice if this happens consistently.
+    console.error("Rate-limit check failed:", error);
+    return { ok: true, used: 0, limit: DAILY_LIMIT };
+  }
+  const used = count ?? 0;
+  return { ok: used < DAILY_LIMIT, used, limit: DAILY_LIMIT };
+}
+
+/// Inserts a usage log row at the start of a request (success=false). Returns
+/// the row id so we can mark it successful later if the call completes.
+async function logUsageStart(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  inputType: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("ai_usage_log")
+    .insert({
+      user_id: userId,
+      function: "ai-itinerary",
+      input_type: inputType,
+      success: false,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("Usage log insert failed:", error);
+    return null;
+  }
+  return data?.id ?? null;
+}
+
+async function logUsageSuccess(
+  supabase: ReturnType<typeof createClient>,
+  rowId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("ai_usage_log")
+    .update({ success: true })
+    .eq("id", rowId);
+  if (error) console.error("Usage log update failed:", error);
+}
+
 // ─── Main handler ────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
@@ -409,15 +606,34 @@ Deno.serve(async (req: Request) => {
     return json({ error: `Unknown inputType: ${(body as AIRequest).inputType}` }, 400);
   }
 
+  // Service-role client used for both rate limiting and downstream DB writes.
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  // 1. Rate limit — reject before any expensive work.
+  const rateLimit = await checkRateLimit(supabase, body.userId);
+  if (!rateLimit.ok) {
+    return json(
+      {
+        success: false,
+        error: `You've hit today's AI generation limit (${rateLimit.limit}/day). Try again tomorrow.`,
+        used: rateLimit.used,
+        limit: rateLimit.limit,
+      },
+      429
+    );
+  }
+
+  // 2. Log the attempt up-front so even failed Claude calls count toward the
+  //    quota (prevents retry-loop abuse).
+  const usageRowId = await logUsageStart(supabase, body.userId, body.inputType);
+
   try {
-    // 1. Call Claude
+    // 3. Call Claude
     const itinerary = await callClaude(body);
 
-    // 2. Insert into DB using service-role privileges
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
-
+    // 4. Insert into DB using service-role privileges
     const startDate =
       body.inputType === "generate" ? body.startDate : body.startDate;
 
@@ -428,6 +644,11 @@ Deno.serve(async (req: Request) => {
       itinerary,
       startDate
     );
+
+    // 5. Mark this usage row as successful for analytics.
+    if (usageRowId) {
+      await logUsageSuccess(supabase, usageRowId);
+    }
 
     return json({
       success: true,

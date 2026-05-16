@@ -35,6 +35,7 @@ final class ItineraryViewModel {
     var isGeneratingAI = false
     var aiError: String?
     var showAIGenerate = false
+    var showAIImport = false
 
     // MARK: - Activity Form Fields
 
@@ -422,6 +423,44 @@ final class ItineraryViewModel {
                 preferences: preferences
             )
             // Refresh from DB to pick up the newly inserted days + activities.
+            await loadItinerary()
+            HapticFeedback.success()
+            isGeneratingAI = false
+            return true
+        } catch {
+            aiError = error.localizedDescription
+            HapticFeedback.error()
+            isGeneratingAI = false
+            return false
+        }
+    }
+
+    /// Imports an itinerary from pasted text or a URL (TikTok caption, Instagram post,
+    /// YouTube link, blog article, or freeform notes). Returns true on success.
+    @discardableResult
+    func importAIItinerary(inputText: String) async -> Bool {
+        guard let userId = currentUserId else {
+            aiError = "Sign in required."
+            return false
+        }
+
+        let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 10 else {
+            aiError = "Paste at least a short description, a caption, or a link."
+            return false
+        }
+
+        isGeneratingAI = true
+        aiError = nil
+
+        do {
+            _ = try await AIItineraryService.importItinerary(
+                tripId: trip.id,
+                userId: userId,
+                inputText: trimmed,
+                startDate: trip.startDate,
+                endDate: trip.endDate
+            )
             await loadItinerary()
             HapticFeedback.success()
             isGeneratingAI = false
