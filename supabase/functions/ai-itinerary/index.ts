@@ -998,6 +998,9 @@ function iso(d: Date): string {
 const DAILY_LIMIT = 10;
 
 /// Returns whether the user is under the daily quota and how many calls they've used.
+/// Only successful generations count toward the cap — a Claude/parse error
+/// shouldn't penalize the user. Failed attempts are still logged for analytics
+/// (logUsageStart inserts success=false up front), they just don't burn quota.
 async function checkRateLimit(
   supabase: ReturnType<typeof createClient>,
   userId: string
@@ -1007,6 +1010,7 @@ async function checkRateLimit(
     .from("ai_usage_log")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
+    .eq("success", true)
     .gte("created_at", since);
 
   if (error) {
@@ -1118,11 +1122,23 @@ Deno.serve(async (req: Request) => {
   const usageRowId = await logUsageStart(supabase, body.userId, body.inputType);
 
   try {
-    // 3. Enrich context — fetch trip details, taste profile, and seasonal hints
-    //    in parallel. Lever 1 (trip) is required; levers 2 & 3 are best-effort.
-    const [tripCtx, tasteProfile] = await Promise.all([
+    // 3. Enrich context — fetch trip details, taste profile, and weather in
+    //    parallel. For generate mode the body has destination + dates already,
+    //    so we can kick off the weather fetch concurrently with the DB reads
+    //    instead of waiting for trip context first. Import mode skips weather
+    //    (the source text usually already implies conditions).
+    const weatherPromise: Promise<string | null> =
+      body.inputType === "generate" &&
+      body.destination &&
+      body.startDate &&
+      body.endDate
+        ? fetchWeatherForecast(body.destination, body.startDate, body.endDate)
+        : Promise.resolve(null);
+
+    const [tripCtx, tasteProfile, weatherSummary] = await Promise.all([
       fetchTripContext(supabase, body.tripId, body.userId),
       fetchTasteProfile(supabase, body.userId, body.tripId),
+      weatherPromise,
     ]);
 
     if (!tripCtx.trip) {
@@ -1144,17 +1160,11 @@ Deno.serve(async (req: Request) => {
         ? body.endDate
         : tripCtx.trip.end_date ?? body.endDate;
 
-    // Lever 3 — seasonal hint (cheap, always available) + weather forecast
-    // (best-effort, only for near-term trips).
+    // Lever 3 — seasonal hint (cheap, always available).
     const seasonHint =
       startDate && destination
         ? computeSeasonHint(startDate, destination)
         : undefined;
-
-    const weatherSummary =
-      startDate && endDate && destination
-        ? await fetchWeatherForecast(destination, startDate, endDate)
-        : null;
 
     const ctx: EnrichmentContext = {
       tripTitle: tripCtx.trip.title,
