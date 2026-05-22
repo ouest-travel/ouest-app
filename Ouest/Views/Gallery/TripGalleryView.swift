@@ -148,34 +148,40 @@ struct TripGalleryView: View {
     }
 
     private func photoCell(_ photo: TripPhoto, index: Int) -> some View {
-        ZStack(alignment: .bottomTrailing) {
-            AsyncImage(url: URL(string: photo.imageUrl)) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                case .failure:
-                    failureTile(for: photo)
-                default:
-                    SkeletonView(height: 100)
+        // Classic "square photo tile" pattern: a 1:1 placeholder defines the cell
+        // size, then the image fills that fixed frame and is clipped. This keeps
+        // every cell uniform regardless of the photo's natural aspect ratio.
+        Color.clear
+            .aspectRatio(1, contentMode: .fit)
+            .overlay {
+                AsyncImage(url: URL(string: photo.imageUrl)) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        failureTile(for: photo)
+                    default:
+                        Rectangle()
+                            .fill(OuestTheme.Colors.surfaceSecondary)
+                            .shimmerEffect()
+                    }
+                }
+                // Bumping this key forces AsyncImage to re-fetch on retry.
+                .id(photoReloadKeys[photo.id] ?? photo.id)
+            }
+            .overlay(alignment: .bottomTrailing) {
+                if let profile = photo.profile {
+                    AvatarView(url: profile.avatarUrl, size: 22)
+                        .overlay(Circle().stroke(.white, lineWidth: 1.5))
+                        .shadow(radius: 2)
+                        .padding(4)
                 }
             }
-            // Bumping this key forces AsyncImage to re-fetch.
-            .id(photoReloadKeys[photo.id] ?? photo.id)
-            .frame(minWidth: 0, maxWidth: .infinity)
-            .aspectRatio(1, contentMode: .fill)
             .clipped()
-
-            // Uploader avatar badge
-            if let profile = photo.profile {
-                AvatarView(url: profile.avatarUrl, size: 22)
-                    .overlay(Circle().stroke(.white, lineWidth: 1.5))
-                    .shadow(radius: 2)
-                    .padding(4)
-            }
-        }
-        .fadeSlideIn(isVisible: contentAppeared, delay: Double(index) * 0.03)
+            .contentShape(Rectangle()) // Ensures taps register over the whole cell
+            .fadeSlideIn(isVisible: contentAppeared, delay: Double(index) * 0.03)
     }
 
     /// Tappable failure tile — taps trigger a re-fetch of the AsyncImage.
