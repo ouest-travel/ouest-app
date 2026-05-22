@@ -435,16 +435,41 @@ function extractJSON(raw: string): string {
   // 1. Strip ``` or ```json code fences if present (handles multi-line content).
   s = s.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
 
-  // 2. Trim down to the outermost JSON object by finding the first { and last }.
+  // 2. Find the start of the outermost JSON object.
   const first = s.indexOf("{");
   if (first === -1) return s;
-  let last = s.lastIndexOf("}");
-  if (last <= first) {
-    // No closing brace at all — output was truncated. Attempt repair by adding
-    // closing braces/brackets to balance the structure.
-    return repairTruncatedJSON(s.slice(first));
+  s = s.slice(first);
+
+  // 3. Walk the brace stack to find the matching close. If depth never returns
+  //    to zero, the response was truncated mid-object — fall through to repair.
+  //    (lastIndexOf("}") is unsafe: a mid-stream `}` from an inner activity
+  //    looks like a valid close, but the outer object is still unfinished and
+  //    JSON.parse will fail.)
+  let inString = false;
+  let escape = false;
+  let depth = 0;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (inString) {
+      if (escape) escape = false;
+      else if (ch === "\\") escape = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+    if (ch === "{" || ch === "[") {
+      depth++;
+    } else if (ch === "}" || ch === "]") {
+      depth--;
+      if (depth === 0) return s.slice(0, i + 1);
+    }
   }
-  return s.slice(first, last + 1);
+
+  // Depth never returned to zero — truncated. Repair by closing open brackets.
+  return repairTruncatedJSON(s);
 }
 
 /**
@@ -529,10 +554,11 @@ async function callClaude(
     },
     body: JSON.stringify({
       model: CLAUDE_MODEL,
-      // 8192 leaves comfortable headroom for a 7-day itinerary with rich
-      // descriptions + hidden-gem notes. Claude Sonnet 4.5 supports much more
-      // but we don't need it for this task.
-      max_tokens: 8192,
+      // 16384 fits a generous 7-day itinerary with ~6 activities/day, full
+      // descriptions, hidden-gem notes, and lat/lng for every stop. 8192 was
+      // too tight — Claude regularly hit max_tokens mid-day and the response
+      // got cut off, surfacing as "the AI ran out of room" to users.
+      max_tokens: 16384,
       system: buildSystemPrompt(),
       messages: [
         {
