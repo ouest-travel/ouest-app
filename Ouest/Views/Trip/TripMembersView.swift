@@ -108,6 +108,10 @@ struct TripMembersView: View {
 struct InviteMemberSheet: View {
     @Bindable var viewModel: TripDetailViewModel
     @Environment(\.dismiss) private var dismiss
+    /// Track per-row state so each search result reflects its own pending /
+    /// sent status without affecting siblings.
+    @State private var sendingIds: Set<UUID> = []
+    @State private var invitedIds: Set<UUID> = []
 
     var body: some View {
         NavigationStack {
@@ -165,32 +169,74 @@ struct InviteMemberSheet: View {
     }
 
     private func searchResultRow(_ profile: Profile) -> some View {
-        HStack(spacing: 12) {
-            AvatarView(url: profile.avatarUrl, size: 40)
+        let isSending = sendingIds.contains(profile.id)
+        let isInvited = invitedIds.contains(profile.id)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(profile.fullName ?? profile.email)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                if let handle = profile.handle {
-                    Text("@\(handle)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+        return Button {
+            // Whole-row tap → invite. Guards against double-tap and re-tap
+            // after success, which previously did nothing visible.
+            guard !isSending, !isInvited else { return }
+            HapticFeedback.light()
+            sendingIds.insert(profile.id)
+            Task {
+                let ok = await viewModel.inviteMember(profile: profile)
+                sendingIds.remove(profile.id)
+                if ok {
+                    invitedIds.insert(profile.id)
+                    HapticFeedback.success()
                 }
             }
+        } label: {
+            HStack(spacing: 12) {
+                AvatarView(url: profile.avatarUrl, size: 40)
 
-            Spacer()
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(profile.fullName ?? profile.email)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.primary)
+                    if let handle = profile.handle {
+                        Text("@\(handle)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
 
-            Button("Invite") {
-                Task { _ = await viewModel.inviteMember(profile: profile) }
+                Spacer()
+
+                // Status pill — visual mirror of the row's tap action.
+                actionPill(isSending: isSending, isInvited: isInvited)
             }
-            .font(.subheadline)
-            .fontWeight(.semibold)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 6)
-            .background(.primary)
-            .foregroundStyle(Color(.systemBackground))
-            .clipShape(Capsule())
+            .contentShape(Rectangle()) // Ensures taps anywhere on the row register.
+        }
+        .buttonStyle(.plain)
+        .disabled(isSending || isInvited)
+    }
+
+    @ViewBuilder
+    private func actionPill(isSending: Bool, isInvited: Bool) -> some View {
+        if isSending {
+            ProgressView()
+                .controlSize(.small)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+        } else if isInvited {
+            Label("Invited", systemImage: "checkmark")
+                .labelStyle(.titleAndIcon)
+                .font(.subheadline.weight(.semibold))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+                .background(Color(.systemGray5))
+                .foregroundStyle(.secondary)
+                .clipShape(Capsule())
+        } else {
+            Text("Invite")
+                .font(.subheadline.weight(.semibold))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+                .background(.primary)
+                .foregroundStyle(Color(.systemBackground))
+                .clipShape(Capsule())
         }
     }
 }
