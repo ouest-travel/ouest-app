@@ -4,6 +4,9 @@ struct TripMembersView: View {
     @Bindable var viewModel: TripDetailViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showInvite = false
+    /// Member queued for destructive confirmation. Binding the alert to this
+    /// keeps the confirm flow tied to a specific row.
+    @State private var memberToRemove: TripMember?
 
     var body: some View {
         NavigationStack {
@@ -39,64 +42,136 @@ struct TripMembersView: View {
             .sheet(isPresented: $showInvite) {
                 InviteMemberSheet(viewModel: viewModel)
             }
+            // Destructive confirmation as a sheet-style dialog instead of an
+            // .alert. Stacking two .alert modifiers on the same view causes
+            // them to fight over presentation context — the remove prompt
+            // was getting swallowed by the error alert binding.
+            .confirmationDialog(
+                memberToRemove.flatMap { $0.profile?.fullName }.map { "Remove \($0)?" } ?? "Remove member?",
+                isPresented: removeAlertBinding,
+                titleVisibility: .visible,
+                presenting: memberToRemove
+            ) { member in
+                Button("Remove from trip", role: .destructive) {
+                    let m = member
+                    Task {
+                        _ = await viewModel.removeMember(m)
+                        memberToRemove = nil
+                    }
+                }
+                Button("Cancel", role: .cancel) { memberToRemove = nil }
+            } message: { member in
+                Text("\(member.profile?.fullName ?? "This person") will lose access to the trip. They can be re-invited later.")
+            }
+            .alert(
+                "Couldn't update member",
+                isPresented: errorAlertBinding,
+                presenting: viewModel.errorMessage
+            ) { _ in
+                Button("OK", role: .cancel) { viewModel.errorMessage = nil }
+            } message: { msg in
+                Text(msg)
+            }
         }
     }
 
+    private var removeAlertBinding: Binding<Bool> {
+        Binding(
+            get: { memberToRemove != nil },
+            set: { if !$0 { memberToRemove = nil } }
+        )
+    }
+
+    private var errorAlertBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.errorMessage != nil },
+            set: { if !$0 { viewModel.errorMessage = nil } }
+        )
+    }
+
     private func memberRow(_ member: TripMember) -> some View {
-        NavigationLink(value: ProfileDestination(userId: member.userId)) {
-            HStack(spacing: 12) {
-                AvatarView(url: member.profile?.avatarUrl, size: 44)
+        // The owner can manage non-owner rows (change role / remove).
+        let canManage = viewModel.myRole == .owner && member.role != .owner
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(member.profile?.fullName ?? "Unknown")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                    if let handle = member.profile?.handle {
-                        Text("@\(handle)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+        return HStack(spacing: 12) {
+            // Tappable summary — opens the user's profile.
+            NavigationLink(value: ProfileDestination(userId: member.userId)) {
+                HStack(spacing: 12) {
+                    AvatarView(url: member.profile?.avatarUrl, size: 44)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(member.profile?.fullName ?? "Unknown")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.primary)
+                        if let handle = member.profile?.handle {
+                            Text("@\(handle)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                }
 
-                Spacer()
-
-                // Role badge
-                HStack(spacing: 4) {
-                    Image(systemName: member.role.icon)
-                        .font(.caption2)
-                    Text(member.role.label)
-                        .font(.caption)
-                        .fontWeight(.medium)
+                    Spacer()
                 }
-                .foregroundStyle(member.role == .owner ? .orange : .secondary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(member.role == .owner ? .orange.opacity(0.12) : Color(.systemGray5))
-                .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+
+            // Role badge (always visible)
+            HStack(spacing: 4) {
+                Image(systemName: member.role.icon)
+                    .font(.caption2)
+                Text(member.role.label)
+                    .font(.caption)
+                    .fontWeight(.medium)
+            }
+            .foregroundStyle(member.role == .owner ? .orange : .secondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(member.role == .owner ? .orange.opacity(0.12) : Color(.systemGray5))
+            .clipShape(Capsule())
+
+            // Manage menu — only when current user is the owner AND the row
+            // isn't the owner themselves. Previously this was hidden behind
+            // a swipe-left gesture (invisible UX); now it's a clear ellipsis
+            // affordance matching the activity-card pattern.
+            if canManage {
+                Menu {
+                    Section("Change Role") {
+                        Button {
+                            Task { await viewModel.updateRole(member: member, to: .editor) }
+                        } label: {
+                            Label("Editor", systemImage: "pencil")
+                        }
+                        Button {
+                            Task { await viewModel.updateRole(member: member, to: .viewer) }
+                        } label: {
+                            Label("Viewer", systemImage: "eye")
+                        }
+                    }
+
+                    Button(role: .destructive) {
+                        memberToRemove = member
+                    } label: {
+                        Label("Remove from trip", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.body)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 32, height: 32)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
             }
         }
+        // Backup affordances (kept for power users).
         .swipeActions(edge: .trailing) {
-            if viewModel.myRole == .owner && member.role != .owner {
+            if canManage {
                 Button(role: .destructive) {
-                    Task { _ = await viewModel.removeMember(member) }
+                    memberToRemove = member
                 } label: {
                     Label("Remove", systemImage: "trash")
-                }
-            }
-        }
-        .contextMenu {
-            if viewModel.myRole == .owner && member.role != .owner {
-                Menu("Change Role") {
-                    Button {
-                        Task { await viewModel.updateRole(member: member, to: .editor) }
-                    } label: {
-                        Label("Editor", systemImage: "pencil")
-                    }
-                    Button {
-                        Task { await viewModel.updateRole(member: member, to: .viewer) }
-                    } label: {
-                        Label("Viewer", systemImage: "eye")
-                    }
                 }
             }
         }
