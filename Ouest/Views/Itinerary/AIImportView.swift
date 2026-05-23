@@ -294,40 +294,17 @@ struct AIImportView: View {
     // MARK: - Loading View
 
     private var loadingView: some View {
-        VStack(spacing: OuestTheme.Spacing.xxl) {
-            Spacer()
-
-            ZStack {
-                Circle()
-                    .fill(OuestTheme.Colors.brandLight)
-                    .frame(width: 120, height: 120)
-                    .shimmerEffect()
-
-                Image(systemName: "wand.and.stars")
-                    .font(.system(size: 48))
-                    .foregroundStyle(OuestTheme.Colors.brandGradient)
-                    .symbolEffect(.pulse, options: .repeating)
-            }
-
-            VStack(spacing: OuestTheme.Spacing.sm) {
-                Text("Reading your input…")
-                    .font(OuestTheme.Typography.screenTitle)
-                    .foregroundStyle(OuestTheme.Colors.textPrimary)
-
-                Text("Fetching link content and turning it into a real day-by-day plan for \(trip.destination).")
-                    .font(.subheadline)
-                    .foregroundStyle(OuestTheme.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, OuestTheme.Spacing.xxl)
-            }
-
-            Text("This usually takes 20-40 seconds")
-                .font(OuestTheme.Typography.micro)
-                .foregroundStyle(OuestTheme.Colors.textSecondary)
-
-            Spacer()
-        }
-        .padding(OuestTheme.Spacing.lg)
+        AIProgressView(
+            icon: "wand.and.stars",
+            phases: [
+                "Reading your input…",
+                "Extracting itinerary details…",
+                "Looking up locations…",
+                "Building your day-by-day plan…",
+                "Adding final touches…",
+            ],
+            estimatedDuration: 32
+        )
     }
 
     // MARK: - Helpers
