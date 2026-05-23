@@ -12,9 +12,18 @@ struct ItineraryView: View {
         case calendar = "Calendar"
     }
 
-    /// Show calendar toggle only when trip has dates and days exist
+    /// Show calendar toggle whenever there are days to render AND we have
+    /// some date anchor to render the calendar against — either the trip's
+    /// own date range, or dates on the days themselves (e.g. AI-generated
+    /// days set their own dates even if the trip's startDate is nil).
+    ///
+    /// This used to require trip.startDate AND trip.endDate, which silently
+    /// hid the toggle for viewers of trips whose owner never set dates on
+    /// the trip row but did generate dated days.
     private var showViewModeToggle: Bool {
-        trip.startDate != nil && trip.endDate != nil && !viewModel.days.isEmpty
+        guard !viewModel.days.isEmpty else { return false }
+        if trip.startDate != nil && trip.endDate != nil { return true }
+        return viewModel.days.contains { $0.date != nil }
     }
 
     init(trip: Trip, canEdit: Bool = true) {
