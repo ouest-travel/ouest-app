@@ -2,6 +2,16 @@ import SwiftUI
 
 struct CommentsView: View {
     let tripId: UUID
+    /// How this view is being presented. `.sheet` (default) gives it its own
+    /// NavigationStack + Done button — appropriate when shown via `.sheet(...)`.
+    /// `.push` is used when the view is already pushed onto a parent
+    /// NavigationStack (e.g. from a notification tap) — wrapping it in another
+    /// NavigationStack would cause nested-stack issues where the destination
+    /// silently fails to render.
+    var presentation: Presentation = .sheet
+
+    enum Presentation { case sheet, push }
+
     @Environment(\.dismiss) private var dismiss
     @State private var comments: [TripComment] = []
     @State private var isLoading = true
@@ -17,8 +27,17 @@ struct CommentsView: View {
     @State private var activeMentionQuery = ""
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
+        Group {
+            if presentation == .sheet {
+                NavigationStack { content }
+            } else {
+                content
+            }
+        }
+    }
+
+    private var content: some View {
+        VStack(spacing: 0) {
                 // Comments list
                 Group {
                     if isLoading {
@@ -63,8 +82,12 @@ struct CommentsView: View {
                 UserProfileView(userId: dest.userId)
             }
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                // Done button only makes sense for sheet presentation. Push
+                // presentation gets the parent's back button automatically.
+                if presentation == .sheet {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { dismiss() }
+                    }
                 }
             }
             .task {
@@ -77,7 +100,6 @@ struct CommentsView: View {
                 }
             }
             .animation(OuestTheme.Anim.quick, value: errorMessage)
-        }
     }
 
     // MARK: - Comments List

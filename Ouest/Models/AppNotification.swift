@@ -113,13 +113,15 @@ struct AppNotification: Codable, Identifiable, Sendable {
 
     // MARK: - Computed
 
-    var tripId: UUID? {
-        guard let str = data["trip_id"] else { return nil }
-        return UUID(uuidString: str)
-    }
+    var tripId: UUID? { uuid(for: "trip_id") }
+    var followerId: UUID? { uuid(for: "follower_id") }
+    var commentId: UUID? { uuid(for: "comment_id") }
+    var expenseId: UUID? { uuid(for: "expense_id") }
+    var pollId: UUID? { uuid(for: "poll_id") }
+    var entryId: UUID? { uuid(for: "entry_id") }
 
-    var followerId: UUID? {
-        guard let str = data["follower_id"] else { return nil }
+    private func uuid(for key: String) -> UUID? {
+        guard let str = data[key] else { return nil }
         return UUID(uuidString: str)
     }
 }
