@@ -218,24 +218,27 @@ struct InviteMemberSheet: View {
         if isSending {
             ProgressView()
                 .controlSize(.small)
+                .tint(OuestTheme.Colors.brand)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 6)
         } else if isInvited {
             Label("Invited", systemImage: "checkmark")
                 .labelStyle(.titleAndIcon)
                 .font(.subheadline.weight(.semibold))
+                .foregroundStyle(OuestTheme.Colors.textSecondary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 6)
                 .background(Color(.systemGray5))
-                .foregroundStyle(.secondary)
                 .clipShape(Capsule())
         } else {
+            // Explicit colors so the styling isn't fighting the outer Button's
+            // label-tint inheritance (which was wiping the text in light mode).
             Text("Invite")
                 .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 6)
-                .background(.primary)
-                .foregroundStyle(Color(.systemBackground))
+                .background(OuestTheme.Colors.brand)
                 .clipShape(Capsule())
         }
     }
