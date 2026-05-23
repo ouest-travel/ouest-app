@@ -32,10 +32,20 @@ final class ItineraryViewModel {
 
     // MARK: - AI Itinerary State
 
+    /// Which AI flow is currently running, if any. Used to restore the right
+    /// sheet when the user minimizes generation and taps the floating banner.
+    enum AIRunMode: Hashable {
+        case generate
+        case importing
+    }
+
     var isGeneratingAI = false
     var aiError: String?
     var showAIGenerate = false
     var showAIImport = false
+    /// Set when an AI run starts; cleared when the run completes. Survives
+    /// the sheet being dismissed mid-flight (minimize).
+    var lastAIMode: AIRunMode?
 
     // MARK: - Activity Form Fields
 
@@ -410,6 +420,7 @@ final class ItineraryViewModel {
             return false
         }
 
+        lastAIMode = .generate
         isGeneratingAI = true
         aiError = nil
 
@@ -450,6 +461,7 @@ final class ItineraryViewModel {
             return false
         }
 
+        lastAIMode = .importing
         isGeneratingAI = true
         aiError = nil
 

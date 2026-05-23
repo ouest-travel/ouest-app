@@ -42,8 +42,23 @@ struct AIImportView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
-                        .disabled(viewModel.isGeneratingAI)
+                    // During import, the leading button becomes "Minimize" so
+                    // the user can dismiss the sheet without aborting the
+                    // background Task. The parent shows a floating banner that
+                    // reopens this sheet when tapped.
+                    if viewModel.isGeneratingAI {
+                        Button {
+                            HapticFeedback.light()
+                            dismiss()
+                        } label: {
+                            Label("Minimize", systemImage: "chevron.down")
+                                .labelStyle(.iconOnly)
+                                .foregroundStyle(OuestTheme.Colors.brand)
+                        }
+                        .accessibilityLabel("Minimize")
+                    } else {
+                        Button("Cancel") { dismiss() }
+                    }
                 }
             }
             .alert(

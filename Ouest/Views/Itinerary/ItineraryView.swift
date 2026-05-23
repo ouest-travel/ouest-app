@@ -139,12 +139,75 @@ struct ItineraryView: View {
         }
         .sheet(isPresented: $viewModel.showAIGenerate) {
             AIGenerateView(trip: trip, viewModel: viewModel)
-                .interactiveDismissDisabled(viewModel.isGeneratingAI)
         }
         .sheet(isPresented: $viewModel.showAIImport) {
             AIImportView(trip: trip, viewModel: viewModel)
-                .interactiveDismissDisabled(viewModel.isGeneratingAI)
         }
+        // Floating banner shown when AI is running in the background (sheet was
+        // minimized). Tap restores the matching sheet.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if shouldShowAIBanner {
+                aiBackgroundBanner
+                    .padding(.horizontal, OuestTheme.Spacing.md)
+                    .padding(.bottom, OuestTheme.Spacing.sm)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(OuestTheme.Anim.smooth, value: shouldShowAIBanner)
+    }
+
+    // MARK: - Background AI Banner
+
+    /// Show the banner only when AI work is happening *and* neither AI sheet is
+    /// currently open. Once the sheet is reopened we hand the UI back to it.
+    private var shouldShowAIBanner: Bool {
+        viewModel.isGeneratingAI
+            && !viewModel.showAIGenerate
+            && !viewModel.showAIImport
+    }
+
+    /// Pill-shaped banner with a spinner + "Building your itinerary…" label.
+    /// Tap → re-open whichever AI sheet started the run.
+    private var aiBackgroundBanner: some View {
+        Button {
+            HapticFeedback.light()
+            switch viewModel.lastAIMode {
+            case .importing:
+                viewModel.showAIImport = true
+            case .generate, nil:
+                viewModel.showAIGenerate = true
+            }
+        } label: {
+            HStack(spacing: OuestTheme.Spacing.sm) {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .controlSize(.small)
+                    .tint(.white)
+
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Building your itinerary…")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                    Text("Tap to view progress")
+                        .font(OuestTheme.Typography.micro)
+                        .foregroundStyle(.white.opacity(0.85))
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.up")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.9))
+            }
+            .padding(.horizontal, OuestTheme.Spacing.lg)
+            .padding(.vertical, OuestTheme.Spacing.sm)
+            .frame(maxWidth: .infinity)
+            .background(OuestTheme.Colors.brandGradient)
+            .clipShape(Capsule())
+            .shadow(OuestTheme.Shadow.md)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("AI is building your itinerary. Tap to view progress.")
     }
 
     // MARK: - Day List

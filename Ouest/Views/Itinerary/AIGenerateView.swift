@@ -37,8 +37,23 @@ struct AIGenerateView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
-                        .disabled(viewModel.isGeneratingAI)
+                    // While generating, the leading button becomes a "Minimize"
+                    // affordance — dismisses the sheet without cancelling the
+                    // background Task. A floating banner in the parent picks up
+                    // the run state and lets the user re-open this sheet.
+                    if viewModel.isGeneratingAI {
+                        Button {
+                            HapticFeedback.light()
+                            dismiss()
+                        } label: {
+                            Label("Minimize", systemImage: "chevron.down")
+                                .labelStyle(.iconOnly)
+                                .foregroundStyle(OuestTheme.Colors.brand)
+                        }
+                        .accessibilityLabel("Minimize")
+                    } else {
+                        Button("Cancel") { dismiss() }
+                    }
                 }
             }
             .alert(
