@@ -120,6 +120,27 @@ struct InviteMemberSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                // Toast lives inside the VStack so it appears below the nav
+                // title bar (rather than behind it, which is what happens when
+                // .overlay(.top) is attached to the NavigationStack itself).
+                if let name = lastInvitedName {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                        Text("Invited \(name)")
+                            .font(.subheadline.weight(.medium))
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(OuestTheme.Shadow.sm)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
                 // Search bar
                 HStack {
                     Image(systemName: "magnifyingglass")
@@ -167,25 +188,6 @@ struct InviteMemberSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
-                }
-            }
-            .overlay(alignment: .top) {
-                if let name = lastInvitedName {
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                        Text("Invited \(name)")
-                            .font(.subheadline.weight(.medium))
-                        Spacer()
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .shadow(OuestTheme.Shadow.sm)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
             .animation(OuestTheme.Anim.smooth, value: lastInvitedName)
