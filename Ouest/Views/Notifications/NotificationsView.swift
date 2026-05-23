@@ -158,9 +158,12 @@ struct NotificationsView: View {
             HapticFeedback.light()
             Task { await viewModel.markAsRead(notification) }
 
-            // Navigate to the relevant screen
-            if let nav = notificationNav(for: notification) {
-                path.append(nav)
+            // Push the full destination chain so the back-button takes the
+            // user through the natural hierarchy (e.g. Comments → Trip →
+            // Notifications). Landing the user on a bare Comments view with
+            // no trip context above it felt disconnected.
+            for destination in navPath(for: notification) {
+                path.append(destination)
             }
         } label: {
             HStack(alignment: .top, spacing: OuestTheme.Spacing.md) {
@@ -209,46 +212,56 @@ struct NotificationsView: View {
 
     // MARK: - Helpers
 
-    /// Map a notification to a navigation destination. Each notification type
-    /// lands the user on the most relevant screen — not just the trip detail.
-    private func notificationNav(for notification: AppNotification) -> NotificationNav? {
+    /// Map a notification to an ordered destination stack. Returning multiple
+    /// destinations pushes them all onto the navigation path so the user lands
+    /// on the most specific screen (visible top of stack) but the back-button
+    /// walks through the natural hierarchy back to the notifications list.
+    ///
+    /// Example: tapping a "new comment" notification yields
+    ///   [.trip(id), .commentsForTrip(tripId)]
+    /// → user lands on Comments, back goes to Trip Detail, back goes to
+    /// Notifications. Previously we only pushed Comments which left the
+    /// user with no obvious way to jump to the trip itself.
+    private func navPath(for notification: AppNotification) -> [NotificationNav] {
         switch notification.type {
         case .newFollower:
-            return notification.followerId.map { .profile(id: $0) }
+            guard let id = notification.followerId else { return [] }
+            return [.profile(id: id)]
+
+        case .tripInvite, .tripLiked:
+            // No more-specific destination — land on the trip itself.
+            guard let tripId = notification.tripId else { return [] }
+            return [.trip(id: tripId)]
 
         case .newExpense:
-            guard let tripId = notification.tripId else { return nil }
-            return .expensesForTrip(
-                tripId: tripId,
-                focusExpenseId: notification.expenseId
-            )
+            guard let tripId = notification.tripId else { return [] }
+            return [
+                .trip(id: tripId),
+                .expensesForTrip(tripId: tripId, focusExpenseId: notification.expenseId),
+            ]
 
         case .newComment:
             // Trip-level comments live in CommentsView (the same surface used
             // by Explore when you tap the comment bubble on a feed card).
-            guard let tripId = notification.tripId else { return nil }
-            return .commentsForTrip(
-                tripId: tripId,
-                focusCommentId: notification.commentId
-            )
+            guard let tripId = notification.tripId else { return [] }
+            return [
+                .trip(id: tripId),
+                .commentsForTrip(tripId: tripId, focusCommentId: notification.commentId),
+            ]
 
         case .newJournalEntry:
-            guard let tripId = notification.tripId else { return nil }
-            return .journalForTrip(
-                tripId: tripId,
-                focusEntryId: notification.entryId
-            )
+            guard let tripId = notification.tripId else { return [] }
+            return [
+                .trip(id: tripId),
+                .journalForTrip(tripId: tripId, focusEntryId: notification.entryId),
+            ]
 
         case .newPoll:
-            guard let tripId = notification.tripId else { return nil }
-            return .pollsForTrip(
-                tripId: tripId,
-                focusPollId: notification.pollId
-            )
-
-        case .tripInvite, .tripLiked:
-            // No more-specific destination — land on the trip itself.
-            return notification.tripId.map { .trip(id: $0) }
+            guard let tripId = notification.tripId else { return [] }
+            return [
+                .trip(id: tripId),
+                .pollsForTrip(tripId: tripId, focusPollId: notification.pollId),
+            ]
         }
     }
 }
