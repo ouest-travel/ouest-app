@@ -112,6 +112,10 @@ struct InviteMemberSheet: View {
     /// sent status without affecting siblings.
     @State private var sendingIds: Set<UUID> = []
     @State private var invitedIds: Set<UUID> = []
+    /// Brief toast shown after a successful invite (the row itself is removed
+    /// from searchResults by the viewmodel, so without this the user only
+    /// sees the row disappear with no positive confirmation).
+    @State private var lastInvitedName: String?
 
     var body: some View {
         NavigationStack {
@@ -165,52 +169,101 @@ struct InviteMemberSheet: View {
                     Button("Done") { dismiss() }
                 }
             }
+            .overlay(alignment: .top) {
+                if let name = lastInvitedName {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                        Text("Invited \(name)")
+                            .font(.subheadline.weight(.medium))
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(OuestTheme.Shadow.sm)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+            .animation(OuestTheme.Anim.smooth, value: lastInvitedName)
+            .alert(
+                "Couldn't send invite",
+                isPresented: errorAlertBinding,
+                presenting: viewModel.errorMessage
+            ) { _ in
+                Button("OK", role: .cancel) { viewModel.errorMessage = nil }
+            } message: { msg in
+                Text(msg)
+            }
         }
+    }
+
+    private var errorAlertBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.errorMessage != nil },
+            set: { if !$0 { viewModel.errorMessage = nil } }
+        )
     }
 
     private func searchResultRow(_ profile: Profile) -> some View {
         let isSending = sendingIds.contains(profile.id)
         let isInvited = invitedIds.contains(profile.id)
 
-        return Button {
-            // Whole-row tap → invite. Guards against double-tap and re-tap
-            // after success, which previously did nothing visible.
+        // We use .onTapGesture on the HStack rather than wrapping the row in
+        // a Button. Inside a List, Button-wrapped rows can swallow taps
+        // (especially when the label has its own interactive-looking pill),
+        // which was the root of "tapping the row does nothing".
+        return HStack(spacing: 12) {
+            AvatarView(url: profile.avatarUrl, size: 40)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(profile.fullName ?? profile.email)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                if let handle = profile.handle {
+                    Text("@\(handle)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer()
+
+            // Visual mirror of the row's tap action.
+            actionPill(isSending: isSending, isInvited: isInvited)
+        }
+        .contentShape(Rectangle()) // Whole row registers taps, not just text.
+        .onTapGesture {
             guard !isSending, !isInvited else { return }
             HapticFeedback.light()
             sendingIds.insert(profile.id)
             Task {
+                let displayName = profile.fullName ?? profile.handle.map { "@\($0)" } ?? profile.email
                 let ok = await viewModel.inviteMember(profile: profile)
                 sendingIds.remove(profile.id)
                 if ok {
                     invitedIds.insert(profile.id)
                     HapticFeedback.success()
-                }
-            }
-        } label: {
-            HStack(spacing: 12) {
-                AvatarView(url: profile.avatarUrl, size: 40)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(profile.fullName ?? profile.email)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.primary)
-                    if let handle = profile.handle {
-                        Text("@\(handle)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    // Toast confirmation — the row itself gets removed from
+                    // searchResults by the viewmodel, so this is the user's
+                    // only positive feedback that the invite landed.
+                    lastInvitedName = displayName
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(2.5))
+                        if lastInvitedName == displayName {
+                            lastInvitedName = nil
+                        }
                     }
+                } else {
+                    HapticFeedback.error()
+                    // viewModel.errorMessage is set inside inviteMember on
+                    // failure; the alert binding above will catch it.
                 }
-
-                Spacer()
-
-                // Status pill — visual mirror of the row's tap action.
-                actionPill(isSending: isSending, isInvited: isInvited)
             }
-            .contentShape(Rectangle()) // Ensures taps anywhere on the row register.
         }
-        .buttonStyle(.plain)
-        .disabled(isSending || isInvited)
     }
 
     @ViewBuilder
