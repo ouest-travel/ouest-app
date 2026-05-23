@@ -158,26 +158,31 @@ struct ItineraryView: View {
 
     // MARK: - Background AI Banner
 
-    /// Show the banner only when AI work is happening *and* neither AI sheet is
-    /// currently open. Once the sheet is reopened we hand the UI back to it.
+    /// Show the banner whenever AI work is happening OR has just failed while
+    /// the user was elsewhere — but only when neither AI sheet is open (the
+    /// sheet handles its own loading + alert when visible).
     private var shouldShowAIBanner: Bool {
-        viewModel.isGeneratingAI
-            && !viewModel.showAIGenerate
-            && !viewModel.showAIImport
+        guard !viewModel.showAIGenerate, !viewModel.showAIImport else { return false }
+        return viewModel.isGeneratingAI || viewModel.aiError != nil
     }
 
-    /// Pill-shaped banner with a spinner + "Building your itinerary…" label.
-    /// Tap → re-open whichever AI sheet started the run.
+    /// Banner has two visual modes:
+    /// 1. Loading — brand gradient with spinner ("Building your itinerary…")
+    /// 2. Error  — red with warning icon + dismiss button ("Couldn't generate…")
+    ///
+    /// In both modes, tapping the body re-opens the matching AI sheet so the
+    /// user sees the full progress or the error alert.
+    @ViewBuilder
     private var aiBackgroundBanner: some View {
-        Button {
-            HapticFeedback.light()
-            switch viewModel.lastAIMode {
-            case .importing:
-                viewModel.showAIImport = true
-            case .generate, nil:
-                viewModel.showAIGenerate = true
-            }
-        } label: {
+        if viewModel.isGeneratingAI {
+            aiLoadingBanner
+        } else if let error = viewModel.aiError {
+            aiErrorBanner(error)
+        }
+    }
+
+    private var aiLoadingBanner: some View {
+        Button(action: reopenLastAISheet) {
             HStack(spacing: OuestTheme.Spacing.sm) {
                 ProgressView()
                     .progressViewStyle(.circular)
@@ -208,6 +213,74 @@ struct ItineraryView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("AI is building your itinerary. Tap to view progress.")
+    }
+
+    private func aiErrorBanner(_ message: String) -> some View {
+        HStack(spacing: OuestTheme.Spacing.sm) {
+            // Main tap target → re-open the sheet so the user sees the alert
+            // with the full error message and can retry.
+            Button(action: reopenLastAISheet) {
+                HStack(spacing: OuestTheme.Spacing.sm) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.white)
+
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("Couldn't generate itinerary")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                        Text(message)
+                            .font(OuestTheme.Typography.micro)
+                            .foregroundStyle(.white.opacity(0.9))
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Text("Retry")
+                        .font(OuestTheme.Typography.caption.weight(.semibold))
+                        .foregroundStyle(.white)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            // Secondary affordance to clear the error without re-opening.
+            Button {
+                HapticFeedback.light()
+                withAnimation(OuestTheme.Anim.smooth) {
+                    viewModel.aiError = nil
+                }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white)
+                    .padding(6)
+                    .background(.white.opacity(0.18))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Dismiss error")
+        }
+        .padding(.horizontal, OuestTheme.Spacing.md)
+        .padding(.vertical, OuestTheme.Spacing.sm)
+        .frame(maxWidth: .infinity)
+        .background(OuestTheme.Colors.error)
+        .clipShape(Capsule())
+        .shadow(OuestTheme.Shadow.md)
+        .accessibilityElement(children: .contain)
+    }
+
+    /// Re-open whichever AI sheet kicked off the most recent run.
+    private func reopenLastAISheet() {
+        HapticFeedback.light()
+        switch viewModel.lastAIMode {
+        case .importing:
+            viewModel.showAIImport = true
+        case .generate, nil:
+            viewModel.showAIGenerate = true
+        }
     }
 
     // MARK: - Day List
