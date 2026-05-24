@@ -256,6 +256,13 @@ struct NotificationsView: View {
                 .journalForTrip(tripId: tripId, focusEntryId: notification.entryId),
             ]
 
+        case .newActivity:
+            // New itinerary activity — land on the trip's Itinerary (with the
+            // trip detail behind it in the back stack for context). We don't
+            // have an "activity focus" wire today; that's a follow-up.
+            guard let tripId = notification.tripId else { return [] }
+            return [.trip(id: tripId)]
+
         case .newPoll:
             guard let tripId = notification.tripId else { return [] }
             return [

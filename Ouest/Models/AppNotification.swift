@@ -11,6 +11,7 @@ enum NotificationType: String, Codable, CaseIterable, Sendable {
     case newFollower = "new_follower"
     case newPoll = "new_poll"
     case newJournalEntry = "new_journal_entry"
+    case newActivity = "new_activity"
 
     var label: String {
         switch self {
@@ -21,6 +22,7 @@ enum NotificationType: String, Codable, CaseIterable, Sendable {
         case .newFollower: "New Follower"
         case .newPoll: "New Poll"
         case .newJournalEntry: "Journal Entry"
+        case .newActivity: "New Activity"
         }
     }
 
@@ -33,6 +35,7 @@ enum NotificationType: String, Codable, CaseIterable, Sendable {
         case .newFollower: "person.fill.checkmark"
         case .newPoll: "chart.bar.fill"
         case .newJournalEntry: "book.fill"
+        case .newActivity: "list.bullet.clipboard.fill"
         }
     }
 
@@ -45,6 +48,7 @@ enum NotificationType: String, Codable, CaseIterable, Sendable {
         case .newFollower: .purple
         case .newPoll: .orange
         case .newJournalEntry: .purple
+        case .newActivity: .blue
         }
     }
 }
@@ -172,6 +176,7 @@ struct NotificationPreference: Codable, Sendable {
     var newFollowers: Bool
     var newPolls: Bool
     var journalEntries: Bool
+    var newActivities: Bool
 
     enum CodingKeys: String, CodingKey {
         case userId = "user_id"
@@ -182,6 +187,7 @@ struct NotificationPreference: Codable, Sendable {
         case newFollowers = "new_followers"
         case newPolls = "new_polls"
         case journalEntries = "journal_entries"
+        case newActivities = "new_activities"
     }
 
     init(from decoder: Decoder) throws {
@@ -194,6 +200,7 @@ struct NotificationPreference: Codable, Sendable {
         newFollowers = try container.decodeIfPresent(Bool.self, forKey: .newFollowers) ?? true
         newPolls = try container.decodeIfPresent(Bool.self, forKey: .newPolls) ?? true
         journalEntries = try container.decodeIfPresent(Bool.self, forKey: .journalEntries) ?? true
+        newActivities = try container.decodeIfPresent(Bool.self, forKey: .newActivities) ?? true
     }
 
     init(
@@ -204,7 +211,8 @@ struct NotificationPreference: Codable, Sendable {
         tripLikes: Bool = true,
         newFollowers: Bool = true,
         newPolls: Bool = true,
-        journalEntries: Bool = true
+        journalEntries: Bool = true,
+        newActivities: Bool = true
     ) {
         self.userId = userId
         self.tripInvites = tripInvites
@@ -214,6 +222,7 @@ struct NotificationPreference: Codable, Sendable {
         self.newFollowers = newFollowers
         self.newPolls = newPolls
         self.journalEntries = journalEntries
+        self.newActivities = newActivities
     }
 
     /// Returns a new preference with all defaults (everything enabled).
