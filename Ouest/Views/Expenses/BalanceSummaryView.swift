@@ -53,34 +53,45 @@ struct BalanceSummaryView: View {
                             Text(balance.name)
                                 .font(.body)
                                 .fontWeight(.medium)
+                                .lineLimit(1)
 
-                            HStack(spacing: OuestTheme.Spacing.xs) {
-                                Text("Paid")
-                                    .foregroundStyle(OuestTheme.Colors.textSecondary)
-                                Text(formatCurrency(balance.totalPaid))
-                                    .fontWeight(.medium)
-                                Text("·")
-                                    .foregroundStyle(OuestTheme.Colors.textSecondary)
-                                Text("Owes")
-                                    .foregroundStyle(OuestTheme.Colors.textSecondary)
-                                Text(formatCurrency(balance.totalOwed))
-                                    .fontWeight(.medium)
-                            }
+                            // Concatenated into a SINGLE Text so the runtime
+                            // treats "Paid US$995.00 · Owes US$0.00" as one
+                            // layout unit. Previously each fragment was its
+                            // own Text inside an HStack, which meant SwiftUI
+                            // could line-break in the middle of a currency
+                            // value (e.g. "US$995." / "00" stacked).
+                            (
+                                Text("Paid ").foregroundStyle(OuestTheme.Colors.textSecondary)
+                                + Text(formatCurrency(balance.totalPaid)).fontWeight(.medium)
+                                + Text("  ·  ").foregroundStyle(OuestTheme.Colors.textSecondary)
+                                + Text("Owes ").foregroundStyle(OuestTheme.Colors.textSecondary)
+                                + Text(formatCurrency(balance.totalOwed)).fontWeight(.medium)
+                            )
                             .font(OuestTheme.Typography.caption)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .minimumScaleFactor(0.85)
                         }
 
-                        Spacer()
+                        Spacer(minLength: OuestTheme.Spacing.sm)
 
                         VStack(alignment: .trailing, spacing: 2) {
                             Text(balance.formattedBalance)
                                 .font(OuestTheme.Typography.cardTitle)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(balanceColor(balance.netBalance))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
 
                             Text(balanceLabel(balance.netBalance))
                                 .font(OuestTheme.Typography.micro)
                                 .foregroundStyle(balanceColor(balance.netBalance))
+                                .lineLimit(1)
                         }
+                        // Keep the trailing balance from elbowing the leading
+                        // summary off the row when both have large numbers.
+                        .layoutPriority(0.5)
                     }
                     .padding(OuestTheme.Spacing.md)
                     .background(OuestTheme.Colors.surface)
