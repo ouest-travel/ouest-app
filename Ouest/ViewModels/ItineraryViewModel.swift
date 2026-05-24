@@ -30,6 +30,12 @@ final class ItineraryViewModel {
     /// Whether to draw connecting trail lines between stops on the map
     var showMapTrails = true
 
+    /// Most recently created day id — the list view watches this to auto-scroll
+    /// and briefly highlight the new row. Cleared after the highlight fades so
+    /// the user knows their tap landed (silent append at the bottom of a long
+    /// list felt broken).
+    var lastAddedDayId: UUID?
+
     // MARK: - AI Itinerary State
 
     /// Which AI flow is currently running, if any. Used to restore the right
@@ -173,7 +179,14 @@ final class ItineraryViewModel {
             )
             let day = try await ItineraryService.createDay(payload)
             days.append(day)
+            lastAddedDayId = day.id
             HapticFeedback.success()
+            // Clear the marker after the scroll + highlight has had time to
+            // play so subsequent re-renders don't re-trigger the animation.
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(2))
+                if lastAddedDayId == day.id { lastAddedDayId = nil }
+            }
         } catch {
             errorMessage = error.localizedDescription
             HapticFeedback.error()
@@ -423,6 +436,14 @@ final class ItineraryViewModel {
         lastAIMode = .generate
         isGeneratingAI = true
         aiError = nil
+        // Promote the run to the app-wide coordinator so the floating bubble
+        // can surface above the tab bar regardless of which tab the user is
+        // looking at.
+        AIRunCoordinator.shared.start(
+            tripId: trip.id,
+            tripTitle: trip.title,
+            mode: .generate
+        )
 
         do {
             _ = try await AIItineraryService.generateItinerary(
@@ -437,11 +458,13 @@ final class ItineraryViewModel {
             await loadItinerary()
             HapticFeedback.success()
             isGeneratingAI = false
+            AIRunCoordinator.shared.finishSuccess()
             return true
         } catch {
             aiError = error.localizedDescription
             HapticFeedback.error()
             isGeneratingAI = false
+            AIRunCoordinator.shared.finishError(error.localizedDescription)
             return false
         }
     }
@@ -464,6 +487,11 @@ final class ItineraryViewModel {
         lastAIMode = .importing
         isGeneratingAI = true
         aiError = nil
+        AIRunCoordinator.shared.start(
+            tripId: trip.id,
+            tripTitle: trip.title,
+            mode: .importing
+        )
 
         do {
             _ = try await AIItineraryService.importItinerary(
@@ -476,11 +504,13 @@ final class ItineraryViewModel {
             await loadItinerary()
             HapticFeedback.success()
             isGeneratingAI = false
+            AIRunCoordinator.shared.finishSuccess()
             return true
         } catch {
             aiError = error.localizedDescription
             HapticFeedback.error()
             isGeneratingAI = false
+            AIRunCoordinator.shared.finishError(error.localizedDescription)
             return false
         }
     }

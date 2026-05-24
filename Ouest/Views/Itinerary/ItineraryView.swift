@@ -152,173 +152,65 @@ struct ItineraryView: View {
         .sheet(isPresented: $viewModel.showAIImport) {
             AIImportView(trip: trip, viewModel: viewModel)
         }
-        // Floating banner shown when AI is running in the background (sheet was
-        // minimized). Tap restores the matching sheet.
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if shouldShowAIBanner {
-                aiBackgroundBanner
-                    .padding(.horizontal, OuestTheme.Spacing.md)
-                    .padding(.bottom, OuestTheme.Spacing.sm)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
-        .animation(OuestTheme.Anim.smooth, value: shouldShowAIBanner)
-    }
-
-    // MARK: - Background AI Banner
-
-    /// Show the banner whenever AI work is happening OR has just failed while
-    /// the user was elsewhere — but only when neither AI sheet is open (the
-    /// sheet handles its own loading + alert when visible).
-    private var shouldShowAIBanner: Bool {
-        guard !viewModel.showAIGenerate, !viewModel.showAIImport else { return false }
-        return viewModel.isGeneratingAI || viewModel.aiError != nil
-    }
-
-    /// Banner has two visual modes:
-    /// 1. Loading — brand gradient with spinner ("Building your itinerary…")
-    /// 2. Error  — red with warning icon + dismiss button ("Couldn't generate…")
-    ///
-    /// In both modes, tapping the body re-opens the matching AI sheet so the
-    /// user sees the full progress or the error alert.
-    @ViewBuilder
-    private var aiBackgroundBanner: some View {
-        if viewModel.isGeneratingAI {
-            aiLoadingBanner
-        } else if let error = viewModel.aiError {
-            aiErrorBanner(error)
-        }
-    }
-
-    private var aiLoadingBanner: some View {
-        Button(action: reopenLastAISheet) {
-            HStack(spacing: OuestTheme.Spacing.sm) {
-                ProgressView()
-                    .progressViewStyle(.circular)
-                    .controlSize(.small)
-                    .tint(.white)
-
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Building your itinerary…")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
-                    Text("Tap to view progress")
-                        .font(OuestTheme.Typography.micro)
-                        .foregroundStyle(.white.opacity(0.85))
-                }
-
-                Spacer(minLength: 0)
-
-                Image(systemName: "chevron.up")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.9))
-            }
-            .padding(.horizontal, OuestTheme.Spacing.lg)
-            .padding(.vertical, OuestTheme.Spacing.sm)
-            .frame(maxWidth: .infinity)
-            .background(OuestTheme.Colors.brandGradient)
-            .clipShape(Capsule())
-            .shadow(OuestTheme.Shadow.md)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("AI is building your itinerary. Tap to view progress.")
-    }
-
-    private func aiErrorBanner(_ message: String) -> some View {
-        HStack(spacing: OuestTheme.Spacing.sm) {
-            // Main tap target → re-open the sheet so the user sees the alert
-            // with the full error message and can retry.
-            Button(action: reopenLastAISheet) {
-                HStack(spacing: OuestTheme.Spacing.sm) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.subheadline)
-                        .foregroundStyle(.white)
-
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("Couldn't generate itinerary")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                        Text(message)
-                            .font(OuestTheme.Typography.micro)
-                            .foregroundStyle(.white.opacity(0.9))
-                            .lineLimit(1)
-                    }
-
-                    Spacer(minLength: 0)
-
-                    Text("Retry")
-                        .font(OuestTheme.Typography.caption.weight(.semibold))
-                        .foregroundStyle(.white)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            // Secondary affordance to clear the error without re-opening.
-            Button {
-                HapticFeedback.light()
-                withAnimation(OuestTheme.Anim.smooth) {
-                    viewModel.aiError = nil
-                }
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.white)
-                    .padding(6)
-                    .background(.white.opacity(0.18))
-                    .clipShape(Circle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Dismiss error")
-        }
-        .padding(.horizontal, OuestTheme.Spacing.md)
-        .padding(.vertical, OuestTheme.Spacing.sm)
-        .frame(maxWidth: .infinity)
-        .background(OuestTheme.Colors.error)
-        .clipShape(Capsule())
-        .shadow(OuestTheme.Shadow.md)
-        .accessibilityElement(children: .contain)
-    }
-
-    /// Re-open whichever AI sheet kicked off the most recent run.
-    private func reopenLastAISheet() {
-        HapticFeedback.light()
-        switch viewModel.lastAIMode {
-        case .importing:
-            viewModel.showAIImport = true
-        case .generate, nil:
-            viewModel.showAIGenerate = true
-        }
     }
 
     // MARK: - Day List
+    // (The AI background banner now lives at the root of MainTabView via the
+    // shared AIRunCoordinator so it persists across tabs and trips.)
 
     @ViewBuilder
     private var dayListView: some View {
-        List {
-            Section {
-                ForEach(viewModel.days) { day in
-                    DayCardView(day: day, viewModel: viewModel, canEdit: canEdit)
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+        // ScrollViewReader lets us scroll to the newly-added day after the
+        // "+" button creates it. Without this the row appended silently at
+        // the bottom of a long list, which read as "the button does nothing".
+        ScrollViewReader { proxy in
+            List {
+                Section {
+                    ForEach(viewModel.days) { day in
+                        DayCardView(day: day, viewModel: viewModel, canEdit: canEdit)
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                            // Brief brand-color flash on the newly-added day.
+                            .overlay {
+                                if viewModel.lastAddedDayId == day.id {
+                                    RoundedRectangle(cornerRadius: OuestTheme.Radius.lg)
+                                        .stroke(OuestTheme.Colors.brand, lineWidth: 2)
+                                        .padding(.horizontal, 16)
+                                        .transition(.opacity)
+                                }
+                            }
+                            .id(day.id)
+                    }
+                    .onMove { from, to in
+                        viewModel.moveDays(from: from, to: to)
+                    }
+                    .deleteDisabled(true)
+                } header: {
+                    if viewModel.totalEstimatedCost > 0 {
+                        costSummaryBar
+                            .textCase(nil)
+                            .padding(.bottom, 8)
+                    }
                 }
-                .onMove { from, to in
-                    viewModel.moveDays(from: from, to: to)
-                }
-                .deleteDisabled(true)
-            } header: {
-                if viewModel.totalEstimatedCost > 0 {
-                    costSummaryBar
-                        .textCase(nil)
-                        .padding(.bottom, 8)
+            }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            // Note: we deliberately don't pin editMode to .active anymore.
+            // Always-on edit mode forced a reorder handle (≡) onto every row
+            // and reserved trailing-edge space for it, which (a) narrowed the
+            // activity rows inside each day card and (b) intercepted the
+            // swipe gesture used to delete an activity. iOS 17's List
+            // supports drag-to-reorder via long-press on a row by default
+            // when .onMove is attached, which preserves the day-reorder UX
+            // without breaking activity swipes.
+            .onChange(of: viewModel.lastAddedDayId) { _, newValue in
+                guard let id = newValue else { return }
+                withAnimation(OuestTheme.Anim.smooth) {
+                    proxy.scrollTo(id, anchor: .center)
                 }
             }
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .environment(\.editMode, .constant(canEdit ? .active : .inactive))
     }
 
     // MARK: - Cost Summary Bar

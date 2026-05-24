@@ -5,21 +5,32 @@ struct ActivityCardView: View {
     var onEdit: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
 
-    /// When collapsed (default) the card shows a compact summary. Tap toggles
-    /// the description + full text — important for viewers who can't open the
-    /// edit form to read the rich detail (esp. AI-generated hidden-gem notes).
+    /// Expand inline to show the activity description. For viewers (no onEdit
+    /// callback) this is the only way to read the full notes — tap toggles it.
+    /// For editors, tapping the row goes straight to Edit instead, since the
+    /// description is visible in that sheet too.
     @State private var isExpanded = false
 
-    private var hasActions: Bool { onEdit != nil || onDelete != nil }
+    private var canEdit: Bool { onEdit != nil }
+    private var canDelete: Bool { onDelete != nil }
     private var hasMoreToReveal: Bool {
         (activity.description?.isEmpty == false)
             || (activity.locationName?.isEmpty == false)
-            || activity.title.count > 40 // hint of truncation in collapsed state
+            || activity.title.count > 40
     }
 
     var body: some View {
+        // Primary interaction model:
+        // - Tap → opens Edit (editors) or expands the description (viewers).
+        // - Long-press → context menu with Edit + Delete (iOS-standard
+        //   destructive-action affordance).
+        //
+        // A custom swipe-to-delete reveal was attempted but the layered
+        // layout doesn't render reliably inside the nested
+        // VStack-inside-List-row context this view lives in. Proper fix
+        // (follow-up): lift activities to first-class List rows so native
+        // .swipeActions(edge: .trailing) works.
         VStack(alignment: .leading, spacing: OuestTheme.Spacing.sm) {
-            // Top row: icon + summary + actions (always visible)
             HStack(spacing: OuestTheme.Spacing.md) {
                 // Category icon
                 Image(systemName: activity.category.icon)
@@ -29,10 +40,11 @@ struct ActivityCardView: View {
                     .foregroundStyle(activity.category.color)
                     .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.sm))
 
-                // Content
+                // Text content
                 VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
                     Text(activity.title)
                         .font(OuestTheme.Typography.cardTitle)
+                        .foregroundStyle(.primary)
                         .lineLimit(isExpanded ? nil : 1)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
@@ -61,8 +73,10 @@ struct ActivityCardView: View {
 
                 Spacer(minLength: 0)
 
-                // Disclosure chevron — shows there's more to read.
-                if hasMoreToReveal {
+                // For viewers: chevron indicates the row expands to reveal the
+                // description inline. Editors don't see it (tap goes to Edit,
+                // which already shows the description in the form).
+                if hasMoreToReveal && !canEdit {
                     Image(systemName: "chevron.down")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(OuestTheme.Colors.textSecondary)
@@ -70,64 +84,28 @@ struct ActivityCardView: View {
                         .animation(OuestTheme.Anim.quick, value: isExpanded)
                         .frame(width: 24)
                 }
-
-                // Visible actions menu (only when editable)
-                if hasActions {
-                    Menu {
-                        if let onEdit {
-                            Button {
-                                onEdit()
-                            } label: {
-                                Label("Edit", systemImage: "pencil")
-                            }
-                        }
-
-                        if let onDelete {
-                            Button(role: .destructive) {
-                                onDelete()
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.body)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(OuestTheme.Colors.textSecondary)
-                            .frame(width: 32, height: 32)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
             }
 
-            // Expanded section: full description (and any other detail we want
-            // to surface). Indented under the icon column for visual alignment.
+            // Expanded description (viewers only).
             if isExpanded, let description = activity.description, !description.isEmpty {
                 Text(description)
                     .font(OuestTheme.Typography.caption)
-                    .foregroundStyle(OuestTheme.Colors.textPrimary)
+                    .foregroundStyle(.primary)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.leading, 48) // 36 (icon) + 12 (HStack spacing)
+                    .padding(.leading, 48)
                     .padding(.top, OuestTheme.Spacing.xxs)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .padding(OuestTheme.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(OuestTheme.Colors.surfaceSecondary)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
         .contentShape(Rectangle())
         .onTapGesture {
-            // Tap on the card body toggles the expanded view. The action menu
-            // is on its own button so taps there don't trigger this.
-            guard hasMoreToReveal else { return }
-            HapticFeedback.selection()
-            withAnimation(OuestTheme.Anim.smooth) {
-                isExpanded.toggle()
-            }
+            handleTap()
         }
-        // Keep long-press context menu as a backup
         .contextMenu {
             if let onEdit {
                 Button {
@@ -136,7 +114,6 @@ struct ActivityCardView: View {
                     Label("Edit", systemImage: "pencil")
                 }
             }
-
             if let onDelete {
                 Button(role: .destructive) {
                     onDelete()
@@ -146,26 +123,56 @@ struct ActivityCardView: View {
             }
         }
     }
+
+    /// Tap priority:
+    /// 1. Editor → open the Edit sheet (primary action).
+    /// 2. Viewer with hidden content → toggle the inline description.
+    /// 3. Otherwise → no-op (no actions available).
+    private func handleTap() {
+        if let onEdit {
+            HapticFeedback.light()
+            onEdit()
+            return
+        }
+        if hasMoreToReveal {
+            HapticFeedback.selection()
+            withAnimation(OuestTheme.Anim.smooth) {
+                isExpanded.toggle()
+            }
+        }
+    }
 }
 
 #Preview {
-    ActivityCardView(
-        activity: Activity(
-            dayId: UUID(),
-            title: "Sagrada Familia Tour",
-            description: "Guided tour of Gaudi's masterpiece",
-            locationName: "Sagrada Familia, Barcelona",
-            latitude: 41.4036,
-            longitude: 2.1744,
-            startTime: "10:00:00",
-            endTime: "12:30:00",
-            category: .activity,
-            costEstimate: 35,
-            currency: "EUR",
-            sortOrder: 0
-        ),
-        onEdit: {},
-        onDelete: {}
-    )
+    VStack {
+        ActivityCardView(
+            activity: Activity(
+                dayId: UUID(),
+                title: "Sagrada Familia Tour",
+                description: "Guided tour of Gaudi's masterpiece. A favourite of locals, often missed by guidebooks.",
+                locationName: "Sagrada Familia, Barcelona",
+                latitude: 41.4036,
+                longitude: 2.1744,
+                startTime: "10:00:00",
+                endTime: "12:30:00",
+                category: .activity,
+                costEstimate: 35,
+                currency: "EUR",
+                sortOrder: 0
+            ),
+            onEdit: {},
+            onDelete: {}
+        )
+
+        ActivityCardView(
+            activity: Activity(
+                dayId: UUID(),
+                title: "Read-only view",
+                description: "Viewer-mode sees a chevron and taps to expand the description inline.",
+                category: .food,
+                sortOrder: 1
+            )
+        )
+    }
     .padding()
 }
