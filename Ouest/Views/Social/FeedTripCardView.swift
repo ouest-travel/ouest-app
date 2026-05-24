@@ -93,6 +93,9 @@ struct FeedTripCardView: View {
                     placeholderGradient
                 }
             }
+            // Bound width so panoramic cover images don't blow the feed card
+            // wider than the screen — see TripDetailView for the same fix.
+            .frame(maxWidth: .infinity)
             .frame(height: 200)
             .clipped()
             .contentShape(Rectangle())

@@ -111,6 +111,9 @@ struct AddJournalEntryView: View {
                     .background(.ultraThinMaterial)
                     .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
                 }
+                // Bound width — see TripDetailView for the .scaledToFill +
+                // panoramic-image layout-shift bug this prevents.
+                .frame(maxWidth: .infinity)
                 .frame(height: 200)
                 .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
             }

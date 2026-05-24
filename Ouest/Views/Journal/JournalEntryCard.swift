@@ -13,6 +13,9 @@ struct JournalEntryCard: View {
                         image
                             .resizable()
                             .scaledToFill()
+                            // maxWidth bound prevents wide images from forcing
+                            // the card wider than the row. See TripDetailView.
+                            .frame(maxWidth: .infinity)
                             .frame(height: 180)
                             .clipped()
                     case .failure:

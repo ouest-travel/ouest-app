@@ -172,6 +172,11 @@ struct JoinTripView: View {
                 gradientPlaceholder(preview.tripDestination)
             }
         }
+        // maxWidth: .infinity guards against panoramic cover images blowing
+        // the layout wider than the screen — .scaledToFill() preserves the
+        // image's intrinsic aspect ratio and would otherwise force the parent
+        // VStack wider than expected. See TripDetailView for the same fix.
+        .frame(maxWidth: .infinity)
         .frame(height: 180)
         .clipped()
     }

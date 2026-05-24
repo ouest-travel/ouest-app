@@ -123,6 +123,11 @@ struct CreateTripView: View {
                 .background(.ultraThinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
             }
+            // Bound width so a wide selected photo doesn't expand the picker
+            // wider than its row. .scaledToFill preserves aspect ratio at the
+            // given height, so otherwise an oversized image would push the
+            // surrounding form left.
+            .frame(maxWidth: .infinity)
             .frame(height: 180)
             .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
         }

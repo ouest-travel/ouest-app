@@ -187,6 +187,11 @@ struct TripCardView: View {
                 placeholderGradient
             }
         }
+        // maxWidth: .infinity prevents a panoramic cover image from forcing
+        // the cell wider than its proposed width. .scaledToFill() preserves
+        // aspect ratio at the given height, so a wide image would otherwise
+        // have an intrinsic width larger than the row.
+        .frame(maxWidth: .infinity)
         .frame(height: height)
         .clipped()
     }

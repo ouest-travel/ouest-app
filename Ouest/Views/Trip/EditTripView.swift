@@ -96,6 +96,9 @@ struct EditTripView: View {
                 .background(.ultraThinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
             }
+            // Bound width — see TripDetailView for the .scaledToFill +
+            // panoramic-image layout-shift bug this prevents.
+            .frame(maxWidth: .infinity)
             .frame(height: 160)
             .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
         }
