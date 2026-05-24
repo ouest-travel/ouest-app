@@ -20,20 +20,20 @@ struct ExpenseCardView: View {
                     .font(OuestTheme.Typography.cardTitle)
                     .lineLimit(1)
 
-                HStack(spacing: OuestTheme.Spacing.xs) {
-                    Text("Paid by \(expense.paidByName)")
-                        .font(OuestTheme.Typography.caption)
-                        .foregroundStyle(OuestTheme.Colors.textSecondary)
-
+                // Concatenate so the line treats "Paid by Dev · 2 days ago"
+                // as one layout unit — separate Text views in an HStack will
+                // line-break between fragments when the row is tight.
+                Group {
                     if let date = expense.formattedDate {
-                        Text("·")
-                            .font(OuestTheme.Typography.caption)
-                            .foregroundStyle(OuestTheme.Colors.textSecondary)
-                        Text(date)
-                            .font(OuestTheme.Typography.caption)
-                            .foregroundStyle(OuestTheme.Colors.textSecondary)
+                        Text("Paid by \(expense.paidByName)  ·  \(date)")
+                    } else {
+                        Text("Paid by \(expense.paidByName)")
                     }
                 }
+                .font(OuestTheme.Typography.caption)
+                .foregroundStyle(OuestTheme.Colors.textSecondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
 
                 HStack(spacing: OuestTheme.Spacing.xs) {
                     Text(expense.splitDescription)

@@ -161,17 +161,16 @@ struct AIImportView: View {
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 4) {
-                    Text("Pro tip")
-                        .font(OuestTheme.Typography.caption)
-                        .fontWeight(.bold)
-                        .foregroundStyle(OuestTheme.Colors.textPrimary)
-                    Text("·")
-                        .foregroundStyle(OuestTheme.Colors.textSecondary)
-                    Text("YouTube + travel blogs work best")
-                        .font(OuestTheme.Typography.caption)
-                        .foregroundStyle(OuestTheme.Colors.textSecondary)
-                }
+                // Concatenated single Text so SwiftUI treats it as one line
+                // and doesn't line-break between "Pro tip" and the tip body.
+                (
+                    Text("Pro tip").fontWeight(.bold).foregroundStyle(OuestTheme.Colors.textPrimary)
+                    + Text("  ·  ").foregroundStyle(OuestTheme.Colors.textSecondary)
+                    + Text("YouTube + travel blogs work best").foregroundStyle(OuestTheme.Colors.textSecondary)
+                )
+                .font(OuestTheme.Typography.caption)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
                 Text("Travel YouTubers paste day-by-day breakdowns in their video descriptions, and blogs have full article text — both extract almost perfectly. TikTok and Instagram captions work too, just shorter.")
                     .font(OuestTheme.Typography.micro)
                     .foregroundStyle(OuestTheme.Colors.textSecondary)

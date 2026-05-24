@@ -44,22 +44,23 @@ struct PollCardView: View {
                     .font(OuestTheme.Typography.cardTitle)
                     .foregroundStyle(OuestTheme.Colors.textPrimary)
 
-                HStack(spacing: OuestTheme.Spacing.xs) {
-                    if let profile = poll.profile {
-                        Text(profile.fullName ?? "Unknown")
-                            .font(OuestTheme.Typography.micro)
-                            .foregroundStyle(OuestTheme.Colors.textSecondary)
-                    }
-
-                    if let date = poll.createdAt {
-                        Text("·")
-                            .font(OuestTheme.Typography.micro)
-                            .foregroundStyle(OuestTheme.Colors.textSecondary)
+                // Single Text so "Username · 3h ago" doesn't line-break in
+                // the middle of the username (or worse, mid-date).
+                Group {
+                    if let name = poll.profile?.fullName, let date = poll.createdAt {
+                        Text("\(name)  ·  \(date.relativeText)")
+                    } else if let name = poll.profile?.fullName {
+                        Text(name)
+                    } else if let date = poll.createdAt {
                         Text(date.relativeText)
-                            .font(OuestTheme.Typography.micro)
-                            .foregroundStyle(OuestTheme.Colors.textSecondary)
+                    } else {
+                        Text("")
                     }
                 }
+                .font(OuestTheme.Typography.micro)
+                .foregroundStyle(OuestTheme.Colors.textSecondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
             }
 
             Spacer()
