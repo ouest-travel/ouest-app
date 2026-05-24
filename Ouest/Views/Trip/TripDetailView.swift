@@ -174,7 +174,19 @@ struct TripDetailView: View {
     // MARK: - Cover Header
 
     private func coverHeader(_ trip: Trip) -> some View {
+        // Establish the screen-width bound via Color.clear at the back of the
+        // ZStack. .scaledToFill() preserves aspect ratio, so a panoramic cover
+        // image at 260pt tall has a natural width far wider than the screen —
+        // without an explicit maxWidth: .infinity constraint, the ZStack
+        // expands to that natural width and pushes every section below it off
+        // the leading edge. .clipped() clips painting but NOT layout, so the
+        // bug stays invisible until the cover image has a wide aspect.
         ZStack(alignment: .bottomLeading) {
+            // Width-bounding sibling — guarantees the ZStack takes exactly
+            // the proposed (screen) width regardless of the cover image's
+            // intrinsic dimensions.
+            Color.clear
+
             if let urlString = trip.coverImageUrl, let url = URL(string: urlString) {
                 AsyncImage(url: url) { phase in
                     switch phase {
@@ -218,6 +230,7 @@ struct TripDetailView: View {
             }
             .padding(OuestTheme.Spacing.xl)
         }
+        .frame(maxWidth: .infinity)
         .frame(height: 260)
         .clipped()
     }
