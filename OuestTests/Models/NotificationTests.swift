@@ -40,9 +40,9 @@ struct NotificationModelTests {
         }
     }
 
-    @Test("NotificationType has exactly 7 cases")
+    @Test("NotificationType has exactly 8 cases")
     func typeCount() {
-        #expect(NotificationType.allCases.count == 7)
+        #expect(NotificationType.allCases.count == 8)
     }
 
     @Test("NotificationType raw values match database strings")
@@ -54,6 +54,7 @@ struct NotificationModelTests {
         #expect(NotificationType.newFollower.rawValue == "new_follower")
         #expect(NotificationType.newPoll.rawValue == "new_poll")
         #expect(NotificationType.newJournalEntry.rawValue == "new_journal_entry")
+        #expect(NotificationType.newActivity.rawValue == "new_activity")
     }
 
     @Test("NotificationType label values match expected")

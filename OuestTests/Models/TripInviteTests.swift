@@ -197,7 +197,7 @@ struct TripInviteTests {
         """.data(using: .utf8)!
 
         let invite = try Self.supabaseDecoder.decode(TripInvite.self, from: json)
-        #expect(invite.inviteURL.absoluteString == "ouest://join/TestCode")
+        #expect(invite.inviteURL.absoluteString == "https://links.ouest.travel/join/TestCode")
     }
 
     @Test("shareText contains invite URL")
@@ -216,7 +216,7 @@ struct TripInviteTests {
         """.data(using: .utf8)!
 
         let invite = try Self.supabaseDecoder.decode(TripInvite.self, from: json)
-        #expect(invite.shareText.contains("ouest://join/Share123"))
+        #expect(invite.shareText.contains("https://links.ouest.travel/join/Share123"))
         #expect(invite.shareText.contains("Ouest"))
     }
 
