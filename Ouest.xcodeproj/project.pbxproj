@@ -28,6 +28,7 @@
 		0FCFB6AB42F8FF495D9DA6B8 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15D2561FDBAF19DC839A7EF7 /* Secrets.swift */; };
 		136C2931919D81BA4737E0E9 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D890038FEE1E7EB64D7D246 /* MainTabView.swift */; };
 		1758C3B9FE774C23EAF3E934 /* ExpensesService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E54A48B8BDF64E5A792EC03 /* ExpensesService.swift */; };
+		A1B2C3D40000000000000001 /* CurrencyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000002 /* CurrencyService.swift */; };
 		1A6B8687BB964CC7C28E43CE /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 273CE2266E9D1A8C1C78F1B4 /* Date+Extensions.swift */; };
 		1CE946EA1585C30E664CF7B8 /* ItineraryViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D13D36FFE00E1F68E84A206 /* ItineraryViewModelTests.swift */; };
 		1DB3824A8551B9905C8D2A05 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1471B5493D5E72E118435843 /* ContentView.swift */; };
@@ -84,7 +85,6 @@
 		7DDB9745CCD9E5A0BB60E98B /* ShareTripSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7950DEBD6E369436C8EF1509 /* ShareTripSheet.swift */; };
 		7F567BBCAEF6CE97A92E65CD /* ExpenseModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AAB52CD63F3D8601C1A4258 /* ExpenseModelTests.swift */; };
 		807B76729FA3C2E4A3DBC9FB /* Activity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EBB2799E6366193CDB16466 /* Activity.swift */; };
-		80D0DDF92DB184722E1B1F41 /* DayCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16749E99FA021BA81CD02BAA /* DayCardView.swift */; };
 		87904E8AF3932235359F72E4 /* AuthServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7632576DB97B7B51BD4DABE /* AuthServiceTests.swift */; };
 		8AE4C82B5C339832A831F2A5 /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A0B3F20A09687C202B8D50 /* ErrorView.swift */; };
 		8C09AB25F698869BA1D9C803 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80A6FE65E2EF16888306AEB7 /* ExploreView.swift */; };
@@ -150,6 +150,7 @@
 		364BAC0245B942A2B7C4D54C /* AIRunCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9861221158BA4B5FB909E9C8 /* AIRunCoordinator.swift */; };
 		B1F4521064E311CA6D2B8A6A /* AIGenerateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0559336AA14619E7F2DE5EC4 /* AIGenerateView.swift */; };
 		5AD7C56E0277416F9B006253 /* AIProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9E2A172D49342ED839742F8 /* AIProgressView.swift */; };
+		92BA87ABA1204DB3B8E198D0 /* DayHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF14D33F3FD54F379EABFD29 /* DayHeaderView.swift */; };
 		54F03C94F28DDF1E9C31390A /* AIImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95374143C9B0402A6F065F35 /* AIImportView.swift */; };
 /* End PBXBuildFile section */
 
@@ -198,13 +199,13 @@
 		A1B2C3D4E5F60718293A4B5C /* ItineraryCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItineraryCalendarView.swift; sourceTree = "<group>"; };
 		0460985269C5B30C27ED8BC5 /* QuickAddActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAddActivityView.swift; sourceTree = "<group>"; };
 		15D2561FDBAF19DC839A7EF7 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
-		16749E99FA021BA81CD02BAA /* DayCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayCardView.swift; sourceTree = "<group>"; };
 		1D57406D4CDD5CE2F41A5721 /* EntryRequirementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryRequirementTests.swift; sourceTree = "<group>"; };
 		255631B938B95987A5B8FBBC /* ActivityCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityCardView.swift; sourceTree = "<group>"; };
 		273CE2266E9D1A8C1C78F1B4 /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
 		2AB76DC74BD804B52FBAF4E6 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		2DC2976C312342C3BC671696 /* DeepLinkRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkRouter.swift; sourceTree = "<group>"; };
 		2E54A48B8BDF64E5A792EC03 /* ExpensesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpensesService.swift; sourceTree = "<group>"; };
+		A1B2C3D40000000000000002 /* CurrencyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyService.swift; sourceTree = "<group>"; };
 		31849C9F45EECCF3DBB25945 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		31CF6B1C3ECF35ABB9A53CC7 /* BalanceSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceSummaryView.swift; sourceTree = "<group>"; };
 		3678A63F971B4089EA2721D1 /* JournalEntryDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalEntryDetailView.swift; sourceTree = "<group>"; };
@@ -320,6 +321,7 @@
 		9861221158BA4B5FB909E9C8 /* AIRunCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIRunCoordinator.swift; sourceTree = "<group>"; };
 		0559336AA14619E7F2DE5EC4 /* AIGenerateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGenerateView.swift; sourceTree = "<group>"; };
 		E9E2A172D49342ED839742F8 /* AIProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProgressView.swift; sourceTree = "<group>"; };
+		FF14D33F3FD54F379EABFD29 /* DayHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayHeaderView.swift; sourceTree = "<group>"; };
 		95374143C9B0402A6F065F35 /* AIImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIImportView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -441,6 +443,7 @@
 				F22AD11A1B8686AEE718BA8D /* AppleSignInCoordinator.swift */,
 				C2503CCBB38708B06F75CEAC /* AuthService.swift */,
 				8804C0610A3880690B30AC7F /* CommunityService.swift */,
+				A1B2C3D40000000000000002 /* CurrencyService.swift */,
 				F9AC9CFD269E3DC0D2CD6013 /* EntryRequirementService.swift */,
 				2E54A48B8BDF64E5A792EC03 /* ExpensesService.swift */,
 				B463C5773141641023C3E576 /* GalleryService.swift */,
@@ -627,7 +630,6 @@
 			children = (
 				255631B938B95987A5B8FBBC /* ActivityCardView.swift */,
 				8F4B619AE1A54106C825969D /* AddActivityView.swift */,
-				16749E99FA021BA81CD02BAA /* DayCardView.swift */,
 				A1B2C3D4E5F60718293A4B5C /* ItineraryCalendarView.swift */,
 				8321E58626DD54970C40CDCD /* ItineraryMapView.swift */,
 				0460985269C5B30C27ED8BC5 /* QuickAddActivityView.swift */,
@@ -635,6 +637,7 @@
 				ABCDEF0123456789FEDCBA98 /* ReorderActivitiesSheet.swift */,
 				0559336AA14619E7F2DE5EC4 /* AIGenerateView.swift */,
 				E9E2A172D49342ED839742F8 /* AIProgressView.swift */,
+				FF14D33F3FD54F379EABFD29 /* DayHeaderView.swift */,
 				95374143C9B0402A6F065F35 /* AIImportView.swift */,
 			);
 			path = Itinerary;
@@ -932,7 +935,6 @@
 				5EB65A2DE0954DC2C6A499F7 /* CreateTripView.swift in Sources */,
 				1A6B8687BB964CC7C28E43CE /* Date+Extensions.swift in Sources */,
 				0A9F57364C218CD13B29EE82 /* Date+Relative.swift in Sources */,
-				80D0DDF92DB184722E1B1F41 /* DayCardView.swift in Sources */,
 				BC8B407A319B42174293CC6A /* DeepLinkRouter.swift in Sources */,
 				76ACCADC9901D63AB28EF0F5 /* EditProfileView.swift in Sources */,
 				022182BBD5521DEC1A9F2B08 /* EditTripView.swift in Sources */,
@@ -944,6 +946,7 @@
 				8AE4C82B5C339832A831F2A5 /* ErrorView.swift in Sources */,
 				50D5733C85AD41BF917C1EE4 /* Expense.swift in Sources */,
 				B3AC2909E96E55F908BB6F7D /* ExpenseCardView.swift in Sources */,
+				A1B2C3D40000000000000001 /* CurrencyService.swift in Sources */,
 				1758C3B9FE774C23EAF3E934 /* ExpensesService.swift in Sources */,
 				0424263A86BDBDA6B8D15F3E /* ExpensesView.swift in Sources */,
 				FA503A13120DAF574F2EC471 /* ExpensesViewModel.swift in Sources */,
@@ -1022,6 +1025,7 @@
 				364BAC0245B942A2B7C4D54C /* AIRunCoordinator.swift in Sources */,
 				B1F4521064E311CA6D2B8A6A /* AIGenerateView.swift in Sources */,
 				5AD7C56E0277416F9B006253 /* AIProgressView.swift in Sources */,
+				92BA87ABA1204DB3B8E198D0 /* DayHeaderView.swift in Sources */,
 				54F03C94F28DDF1E9C31390A /* AIImportView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1084,7 +1088,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ouest.OuestUITests;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1";
 				TEST_TARGET_NAME = Ouest;
 			};
 			name = Release;
@@ -1107,7 +1111,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ouest.app;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1";
 			};
 			name = Debug;
 		};
@@ -1129,7 +1133,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ouest.app;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1";
 			};
 			name = Release;
 		};
@@ -1144,7 +1148,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ouest.OuestTests;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Ouest.app/Ouest";
 			};
 			name = Debug;
@@ -1228,7 +1232,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ouest.OuestUITests;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1";
 				TEST_TARGET_NAME = Ouest;
 			};
 			name = Debug;
@@ -1305,7 +1309,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ouest.OuestTests;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Ouest.app/Ouest";
 			};
 			name = Release;

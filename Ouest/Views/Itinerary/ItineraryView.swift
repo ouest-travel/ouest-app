@@ -1,3 +1,4 @@
+import MapKit
 import SwiftUI
 
 struct ItineraryView: View {
@@ -6,6 +7,13 @@ struct ItineraryView: View {
     @State private var viewModel: ItineraryViewModel
     @State private var contentAppeared = false
     @State private var viewMode: ViewMode = .list
+
+    /// Confirmation state for the destructive day / activity flows. Lifted
+    /// here so a single alert binding can fire from any section header or
+    /// swipe action, regardless of which day owns the offending row.
+    @State private var dayToDelete: ItineraryDay?
+    @State private var activityToDelete: Activity?
+    @State private var activityToDeleteDayId: UUID?
 
     enum ViewMode: String, CaseIterable {
         case list = "List"
@@ -155,62 +163,228 @@ struct ItineraryView: View {
     }
 
     // MARK: - Day List
-    // (The AI background banner now lives at the root of MainTabView via the
-    // shared AIRunCoordinator so it persists across tabs and trips.)
+    // Inset-grouped sections (one per day) so activities can be direct List
+    // rows and pick up native .swipeActions(edge: .trailing) for delete.
+    // The day header (with its •••-menu Delete Day) lives in the Section's
+    // header slot. Mini-map sits as a final styled row inside each section.
+    //
+    // The AI background banner lives at the root of MainTabView via the
+    // shared AIRunCoordinator so it persists across tabs and trips.
 
     @ViewBuilder
     private var dayListView: some View {
-        // ScrollViewReader lets us scroll to the newly-added day after the
-        // "+" button creates it. Without this the row appended silently at
-        // the bottom of a long list, which read as "the button does nothing".
-        ScrollViewReader { proxy in
-            List {
-                Section {
+        VStack(spacing: 0) {
+            if viewModel.totalEstimatedCost > 0 {
+                costSummaryBar
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
+            }
+
+            ScrollViewReader { proxy in
+                List {
                     ForEach(viewModel.days) { day in
-                        DayCardView(day: day, viewModel: viewModel, canEdit: canEdit)
-                            .listRowSeparator(.hidden)
-                            .listRowBackground(Color.clear)
-                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                            // Brief brand-color flash on the newly-added day.
-                            .overlay {
-                                if viewModel.lastAddedDayId == day.id {
-                                    RoundedRectangle(cornerRadius: OuestTheme.Radius.lg)
-                                        .stroke(OuestTheme.Colors.brand, lineWidth: 2)
-                                        .padding(.horizontal, 16)
-                                        .transition(.opacity)
-                                }
-                            }
+                        daySection(for: day)
                             .id(day.id)
                     }
                     .onMove { from, to in
                         viewModel.moveDays(from: from, to: to)
                     }
+                    // Days can't be deleted via swipe (the destructive flow
+                    // for whole days lives in the section-header •••-menu
+                    // with a confirmation dialog). .deleteDisabled keeps
+                    // SwiftUI from creating an implicit minus-circle handle.
                     .deleteDisabled(true)
-                } header: {
-                    if viewModel.totalEstimatedCost > 0 {
-                        costSummaryBar
-                            .textCase(nil)
-                            .padding(.bottom, 8)
+                }
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
+                .onChange(of: viewModel.lastAddedDayId) { _, newValue in
+                    guard let id = newValue else { return }
+                    withAnimation(OuestTheme.Anim.smooth) {
+                        proxy.scrollTo(id, anchor: .center)
                     }
                 }
             }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            // Note: we deliberately don't pin editMode to .active anymore.
-            // Always-on edit mode forced a reorder handle (≡) onto every row
-            // and reserved trailing-edge space for it, which (a) narrowed the
-            // activity rows inside each day card and (b) intercepted the
-            // swipe gesture used to delete an activity. iOS 17's List
-            // supports drag-to-reorder via long-press on a row by default
-            // when .onMove is attached, which preserves the day-reorder UX
-            // without breaking activity swipes.
-            .onChange(of: viewModel.lastAddedDayId) { _, newValue in
-                guard let id = newValue else { return }
-                withAnimation(OuestTheme.Anim.smooth) {
-                    proxy.scrollTo(id, anchor: .center)
+        }
+        // Destructive confirmations — one alert apiece, lifted to the parent
+        // so we never end up with multiple competing alert bindings.
+        .alert(
+            "Delete day?",
+            isPresented: deleteDayBinding,
+            presenting: dayToDelete
+        ) { day in
+            Button("Cancel", role: .cancel) { dayToDelete = nil }
+            Button("Delete", role: .destructive) {
+                let d = day
+                Task {
+                    await viewModel.deleteDay(d)
+                    dayToDelete = nil
+                }
+            }
+        } message: { day in
+            Text("\"\(day.displayTitle)\" and its \(day.sortedActivities.count) activit\(day.sortedActivities.count == 1 ? "y" : "ies") will be permanently removed.")
+        }
+        .alert(
+            "Delete activity?",
+            isPresented: deleteActivityBinding,
+            presenting: activityToDelete
+        ) { activity in
+            Button("Cancel", role: .cancel) {
+                activityToDelete = nil
+                activityToDeleteDayId = nil
+            }
+            Button("Delete", role: .destructive) {
+                let a = activity
+                let dayId = activityToDeleteDayId
+                Task {
+                    if let dayId {
+                        await viewModel.deleteActivity(a, fromDay: dayId)
+                    }
+                    activityToDelete = nil
+                    activityToDeleteDayId = nil
+                }
+            }
+        } message: { activity in
+            Text("\"\(activity.title)\" will be permanently removed from this day.")
+        }
+    }
+
+    private var deleteDayBinding: Binding<Bool> {
+        Binding(
+            get: { dayToDelete != nil },
+            set: { if !$0 { dayToDelete = nil } }
+        )
+    }
+
+    private var deleteActivityBinding: Binding<Bool> {
+        Binding(
+            get: { activityToDelete != nil },
+            set: {
+                if !$0 {
+                    activityToDelete = nil
+                    activityToDeleteDayId = nil
+                }
+            }
+        )
+    }
+
+    // MARK: - Per-day Section
+
+    @ViewBuilder
+    private func daySection(for day: ItineraryDay) -> some View {
+        Section {
+            // 1. Optional notes line (rendered as a styled row).
+            if let notes = day.notes, !notes.isEmpty {
+                Text(notes)
+                    .font(OuestTheme.Typography.caption)
+                    .foregroundStyle(OuestTheme.Colors.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .listRowSeparator(.hidden)
+            }
+
+            // 2. Activities — direct List rows so they get native swipe.
+            if day.sortedActivities.isEmpty {
+                emptyActivityRow(for: day)
+                    .listRowSeparator(.hidden)
+            } else {
+                ForEach(day.sortedActivities) { activity in
+                    ActivityCardView(
+                        activity: activity,
+                        onEdit: canEdit ? {
+                            viewModel.populateFormFromActivity(activity)
+                            viewModel.selectedDay = day
+                            viewModel.showAddActivity = true
+                        } : nil,
+                        onDelete: canEdit ? {
+                            HapticFeedback.medium()
+                            activityToDelete = activity
+                            activityToDeleteDayId = day.id
+                        } : nil
+                    )
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        if canEdit {
+                            Button(role: .destructive) {
+                                HapticFeedback.medium()
+                                activityToDelete = activity
+                                activityToDeleteDayId = day.id
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    }
+                    .listRowSeparator(.hidden)
+                }
+            }
+
+            // 3. Mini-map as the final row of the section.
+            if day.activitiesWithCoordinatesCount > 0 {
+                miniMapRow(for: day)
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+            }
+        } header: {
+            DayHeaderView(day: day, viewModel: viewModel, canEdit: canEdit) {
+                dayToDelete = day
+            }
+            // The grouped-list header default is uppercased, gray. Reset so
+            // our cardTitle styling renders the way DayHeaderView intends.
+            .textCase(nil)
+            .padding(.bottom, 4)
+        }
+    }
+
+    @ViewBuilder
+    private func emptyActivityRow(for day: ItineraryDay) -> some View {
+        if canEdit {
+            Button {
+                HapticFeedback.light()
+                viewModel.resetActivityForm()
+                viewModel.selectedDay = day
+                viewModel.showAddActivity = true
+            } label: {
+                HStack(spacing: OuestTheme.Spacing.sm) {
+                    Image(systemName: "plus.circle")
+                        .foregroundStyle(OuestTheme.Colors.brand)
+                    Text("Add your first activity")
+                        .font(OuestTheme.Typography.caption)
+                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, OuestTheme.Spacing.sm)
+            }
+            .buttonStyle(.plain)
+        } else {
+            Text("No activities planned")
+                .font(OuestTheme.Typography.caption)
+                .foregroundStyle(OuestTheme.Colors.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, OuestTheme.Spacing.sm)
+        }
+    }
+
+    /// Non-interactive map preview at the bottom of each day's section,
+    /// rendered as a flush-bleed list row so it slots cleanly inside the
+    /// rounded section group.
+    private func miniMapRow(for day: ItineraryDay) -> some View {
+        let activities = day.sortedActivities.filter(\.hasCoordinates)
+
+        return Map {
+            ForEach(activities) { activity in
+                if let lat = activity.latitude, let lng = activity.longitude {
+                    Annotation(activity.title, coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng)) {
+                        Image(systemName: activity.category.icon)
+                            .font(.caption2)
+                            .foregroundStyle(.white)
+                            .frame(width: 24, height: 24)
+                            .background(activity.category.color)
+                            .clipShape(Circle())
+                    }
                 }
             }
         }
+        .mapStyle(.standard(pointsOfInterest: .excludingAll))
+        .frame(height: 120)
+        .allowsHitTesting(false)
     }
 
     // MARK: - Cost Summary Bar
