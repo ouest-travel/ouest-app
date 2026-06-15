@@ -1,9 +1,14 @@
 import SwiftUI
 
 struct BalanceSummaryView: View {
-    let viewModel: ExpensesViewModel
+    @Bindable var viewModel: ExpensesViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var contentAppeared = false
+
+    /// Settlement queued for the "are you sure?" confirmation. Lifted to the
+    /// root view so a single dialog handles every settlement card.
+    @State private var settlementToConfirm: Settlement?
+    @State private var isSettling = false
 
     var body: some View {
         NavigationStack {
@@ -34,7 +39,37 @@ struct BalanceSummaryView: View {
                     contentAppeared = true
                 }
             }
+            .confirmationDialog(
+                settlementToConfirm.map {
+                    "Mark \($0.formattedAmount) from \(firstName($0.from.name)) to \(firstName($0.to.name)) as paid?"
+                } ?? "",
+                isPresented: confirmBinding,
+                titleVisibility: .visible,
+                presenting: settlementToConfirm
+            ) { settlement in
+                Button("Mark Paid") {
+                    let s = settlement
+                    Task {
+                        isSettling = true
+                        await viewModel.markSettlementPaid(s)
+                        isSettling = false
+                        settlementToConfirm = nil
+                    }
+                }
+                Button("Cancel", role: .cancel) {
+                    settlementToConfirm = nil
+                }
+            } message: { _ in
+                Text("This marks the matching unsettled splits as paid. You can undo by marking individual splits unsettled from the expense detail (coming soon).")
+            }
         }
+    }
+
+    private var confirmBinding: Binding<Bool> {
+        Binding(
+            get: { settlementToConfirm != nil },
+            set: { if !$0 { settlementToConfirm = nil } }
+        )
     }
 
     // MARK: - Balances Section
@@ -115,44 +150,71 @@ struct BalanceSummaryView: View {
 
             VStack(spacing: OuestTheme.Spacing.sm) {
                 ForEach(viewModel.settlements) { settlement in
-                    HStack(spacing: OuestTheme.Spacing.md) {
-                        // From person
-                        VStack(spacing: 2) {
-                            AvatarView(url: settlement.from.avatarUrl, size: 36)
-                            Text(firstName(settlement.from.name))
-                                .font(OuestTheme.Typography.micro)
-                                .lineLimit(1)
-                        }
-                        .frame(width: 56)
-
-                        // Arrow with amount
-                        VStack(spacing: 2) {
-                            Image(systemName: "arrow.right")
-                                .font(.caption)
-                                .foregroundStyle(OuestTheme.Colors.brand)
-                            Text(settlement.formattedAmount)
-                                .font(OuestTheme.Typography.cardTitle)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(OuestTheme.Colors.brand)
-                        }
-
-                        // To person
-                        VStack(spacing: 2) {
-                            AvatarView(url: settlement.to.avatarUrl, size: 36)
-                            Text(firstName(settlement.to.name))
-                                .font(OuestTheme.Typography.micro)
-                                .lineLimit(1)
-                        }
-                        .frame(width: 56)
-
-                        Spacer()
-                    }
-                    .padding(OuestTheme.Spacing.md)
-                    .background(OuestTheme.Colors.brand.opacity(0.06))
-                    .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
+                    settlementCard(settlement)
                 }
             }
         }
+    }
+
+    /// One row in the suggested-settlements list. From-avatar → amount →
+    /// to-avatar on the top half, "Mark Paid" CTA on the bottom half. Taps
+    /// the CTA → confirmation dialog → batch-settle the direct splits.
+    private func settlementCard(_ settlement: Settlement) -> some View {
+        VStack(spacing: OuestTheme.Spacing.sm) {
+            HStack(spacing: OuestTheme.Spacing.md) {
+                // From person
+                VStack(spacing: 2) {
+                    AvatarView(url: settlement.from.avatarUrl, size: 36)
+                    Text(firstName(settlement.from.name))
+                        .font(OuestTheme.Typography.micro)
+                        .lineLimit(1)
+                }
+                .frame(width: 56)
+
+                // Arrow with amount
+                VStack(spacing: 2) {
+                    Image(systemName: "arrow.right")
+                        .font(.caption)
+                        .foregroundStyle(OuestTheme.Colors.brand)
+                    Text(settlement.formattedAmount)
+                        .font(OuestTheme.Typography.cardTitle)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(OuestTheme.Colors.brand)
+                }
+
+                // To person
+                VStack(spacing: 2) {
+                    AvatarView(url: settlement.to.avatarUrl, size: 36)
+                    Text(firstName(settlement.to.name))
+                        .font(OuestTheme.Typography.micro)
+                        .lineLimit(1)
+                }
+                .frame(width: 56)
+
+                Spacer()
+            }
+
+            Button {
+                HapticFeedback.light()
+                settlementToConfirm = settlement
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                    Text("Mark Paid")
+                }
+                .font(OuestTheme.Typography.caption.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(OuestTheme.Colors.brand)
+                .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .disabled(isSettling)
+        }
+        .padding(OuestTheme.Spacing.md)
+        .background(OuestTheme.Colors.brand.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
     }
 
     // MARK: - Helpers

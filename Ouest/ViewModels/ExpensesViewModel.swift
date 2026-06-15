@@ -31,6 +31,18 @@ final class ExpensesViewModel {
     var customSplits: [UUID: String] = [:]
     var receiptImageData: Data?
 
+    /// Currency the user is entering this expense in. Defaults to the trip's
+    /// currency; the picker can swap it to anything in `CommonCurrency.all`.
+    /// On edit, this reflects the original currency the expense was paid in
+    /// and the picker is locked so the frozen FX rate stays consistent.
+    var expenseCurrency: String = "USD"
+
+    /// Live FX rate fetched when `expenseCurrency != trip.currency`. Nil when
+    /// no conversion is needed (same currency). Frozen into the row on save.
+    var liveFXRate: Double?
+    var isFetchingFXRate = false
+    var fxFetchError: String?
+
     // MARK: - Trip Reference
 
     let trip: Trip
@@ -38,6 +50,7 @@ final class ExpensesViewModel {
 
     init(trip: Trip) {
         self.trip = trip
+        self.expenseCurrency = trip.currency ?? "USD"
     }
 
     // MARK: - Computed
@@ -47,8 +60,40 @@ final class ExpensesViewModel {
         guard !trimmed.isEmpty else { return false }
         guard let amount = Double(expenseAmountText), amount > 0 else { return false }
         if splitType != .full && selectedMembers.isEmpty { return false }
+        // If a foreign currency is picked we need the FX rate to be available
+        // before save; otherwise we can't compute the trip-currency amount.
+        if needsCurrencyConversion && liveFXRate == nil { return false }
         return true
     }
+
+    /// True when the user picked a currency different from the trip's, which
+    /// means a conversion (and live FX rate) is required at save time.
+    var needsCurrencyConversion: Bool {
+        let trip = (trip.currency ?? "USD").uppercased()
+        return expenseCurrency.uppercased() != trip
+    }
+
+    /// Trip-currency equivalent of `expenseAmountText`, using the live rate.
+    /// Returns nil when no conversion is needed or the rate hasn't loaded.
+    var convertedAmountPreview: Double? {
+        guard needsCurrencyConversion, let rate = liveFXRate else { return nil }
+        guard let amount = Double(expenseAmountText), amount > 0 else { return nil }
+        return amount * rate
+    }
+
+    /// "≈ $68.00 CAD" — preview string for the converted amount.
+    var convertedAmountPreviewText: String? {
+        guard let converted = convertedAmountPreview else { return nil }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = trip.currency ?? "USD"
+        guard let formatted = formatter.string(from: NSNumber(value: converted)) else { return nil }
+        return "≈ \(formatted)"
+    }
+
+    /// True iff the currency picker should be enabled. Locked in edit mode so
+    /// the frozen FX rate stays coherent with the stored splits.
+    var canEditCurrency: Bool { editingExpense == nil }
 
     var totalSpent: Double {
         expenses.reduce(0) { $0 + $1.amount }
@@ -71,19 +116,33 @@ final class ExpensesViewModel {
 
     // MARK: - Balance Computation
 
-    /// Net balance per member across all expenses
+    /// Net balance per member across all expenses.
+    ///
+    /// A settled split represents a reimbursement that's already happened
+    /// (debtor paid the payer back outside the app). We cancel it from
+    /// BOTH sides — the debtor no longer owes that amount AND the payer's
+    /// effective outstanding "paid" drops by the same amount. The net effect
+    /// is that the settled portion stops affecting either party's net
+    /// balance, and the suggested-settlements computation no longer surfaces
+    /// it as something still to resolve.
     var memberBalances: [MemberBalance] {
         var paid: [UUID: Double] = [:]
         var owed: [UUID: Double] = [:]
 
         for expense in expenses {
-            // Track who paid
             paid[expense.paidBy, default: 0] += expense.amount
 
-            // Track who owes via splits
             if let splits = expense.splits {
                 for split in splits {
                     owed[split.userId, default: 0] += split.amount
+
+                    // Cancel out a reimbursement that's already happened.
+                    // (The payer's split for their own expense doesn't count
+                    // as a reimbursement — they "settled" with themselves.)
+                    if split.isSettled && split.userId != expense.paidBy {
+                        owed[split.userId, default: 0] -= split.amount
+                        paid[expense.paidBy, default: 0] -= split.amount
+                    }
                 }
             }
         }
@@ -164,11 +223,46 @@ final class ExpensesViewModel {
 
     func saveExpense() async -> Bool {
         guard let userId = currentUserId else { return false }
-        guard let amount = Double(expenseAmountText), amount > 0 else { return false }
+        guard let amountInput = Double(expenseAmountText), amountInput > 0 else { return false }
         isSaving = true
 
         let trimmedTitle = expenseTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        let currency = trip.currency ?? "USD"
+        let tripCurrency = trip.currency ?? "USD"
+
+        // Resolve trip-currency amount + frozen FX fields up front. For
+        // same-currency expenses these stay nil; for foreign-currency
+        // expenses we lock today's rate (or the previously-frozen one when
+        // editing) before any DB writes.
+        let convertedAmount: Double
+        let originalAmountForRow: Double?
+        let originalCurrencyForRow: String?
+        let fxRateForRow: Double?
+
+        if needsCurrencyConversion {
+            // Pull a rate now. In edit mode `liveFXRate` is the locked rate
+            // from the original row; in create mode it should already have
+            // been fetched by the picker, but re-fetch defensively if missing.
+            var rate = liveFXRate
+            if rate == nil {
+                await refreshFXRate()
+                rate = liveFXRate
+            }
+            guard let rate, rate > 0 else {
+                fxFetchError = fxFetchError ?? "Couldn't fetch an exchange rate. Try again."
+                HapticFeedback.error()
+                isSaving = false
+                return false
+            }
+            convertedAmount = amountInput * rate
+            originalAmountForRow = amountInput
+            originalCurrencyForRow = expenseCurrency.uppercased()
+            fxRateForRow = rate
+        } else {
+            convertedAmount = amountInput
+            originalAmountForRow = nil
+            originalCurrencyForRow = nil
+            fxRateForRow = nil
+        }
 
         do {
             if let editing = editingExpense {
@@ -184,8 +278,11 @@ final class ExpensesViewModel {
                 let payload = UpdateExpensePayload(
                     title: trimmedTitle,
                     description: expenseDescription.isEmpty ? nil : expenseDescription,
-                    amount: amount,
-                    currency: currency,
+                    amount: convertedAmount,
+                    currency: tripCurrency,
+                    originalAmount: originalAmountForRow,
+                    originalCurrency: originalCurrencyForRow,
+                    fxRate: fxRateForRow,
                     category: expenseCategory,
                     date: expenseDate,
                     splitType: splitType,
@@ -193,9 +290,14 @@ final class ExpensesViewModel {
                 )
                 let updated = try await ExpensesService.updateExpense(id: editing.id, payload)
 
-                // Re-create splits
+                // Re-create splits in trip currency (using the frozen rate
+                // for foreign-currency expenses).
                 try await ExpensesService.deleteSplits(expenseId: editing.id)
-                let splitPayloads = buildSplitPayloads(expenseId: editing.id, totalAmount: amount)
+                let splitPayloads = buildSplitPayloads(
+                    expenseId: editing.id,
+                    totalAmount: convertedAmount,
+                    fxRate: fxRateForRow
+                )
                 try await ExpensesService.createSplits(splitPayloads)
 
                 // Refresh the full expense to get nested data
@@ -211,8 +313,11 @@ final class ExpensesViewModel {
                     paidBy: userId,
                     title: trimmedTitle,
                     description: expenseDescription.isEmpty ? nil : expenseDescription,
-                    amount: amount,
-                    currency: currency,
+                    amount: convertedAmount,
+                    currency: tripCurrency,
+                    originalAmount: originalAmountForRow,
+                    originalCurrency: originalCurrencyForRow,
+                    fxRate: fxRateForRow,
                     category: expenseCategory,
                     date: expenseDate,
                     splitType: splitType,
@@ -232,7 +337,11 @@ final class ExpensesViewModel {
                 }
 
                 // Create splits
-                let splitPayloads = buildSplitPayloads(expenseId: created.id, totalAmount: amount)
+                let splitPayloads = buildSplitPayloads(
+                    expenseId: created.id,
+                    totalAmount: convertedAmount,
+                    fxRate: fxRateForRow
+                )
                 try await ExpensesService.createSplits(splitPayloads)
 
                 // Re-fetch to get nested split/profile data
@@ -284,6 +393,49 @@ final class ExpensesViewModel {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// Mark a suggested settlement as paid. Settles every unsettled split
+    /// where the debtor is the splitter AND the creditor is the expense payer
+    /// — i.e., the direct splits that net to this settlement amount.
+    ///
+    /// Note: the greedy `settlements` algorithm can suggest amounts that route
+    /// through intermediate parties (Tim owes Sarah indirectly because both
+    /// share splits with Dev). For v1 we only auto-settle direct splits; any
+    /// residual indirect amount stays in the suggestions list and the user
+    /// can settle that via the separate Tim→Sarah card.
+    func markSettlementPaid(_ settlement: Settlement) async {
+        let debtorId = settlement.from.userId
+        let creditorId = settlement.to.userId
+
+        // Collect all matching unsettled splits first so the local updates
+        // batch together cleanly (one re-render at the end).
+        var toSettle: [ExpenseSplit] = []
+        for expense in expenses where expense.paidBy == creditorId {
+            guard let splits = expense.splits else { continue }
+            for split in splits where split.userId == debtorId && !split.isSettled {
+                toSettle.append(split)
+            }
+        }
+
+        if toSettle.isEmpty {
+            return
+        }
+
+        HapticFeedback.medium()
+
+        for split in toSettle {
+            do {
+                try await ExpensesService.settleSplit(id: split.id)
+                updateSplitLocally(splitId: split.id, settled: true)
+            } catch {
+                errorMessage = error.localizedDescription
+                HapticFeedback.error()
+                return
+            }
+        }
+
+        HapticFeedback.success()
     }
 
     // MARK: - Import Estimates from Itinerary
@@ -362,24 +514,79 @@ final class ExpensesViewModel {
         customSplits = [:]
         receiptImageData = nil
         editingExpense = nil
+        expenseCurrency = trip.currency ?? "USD"
+        liveFXRate = nil
+        isFetchingFXRate = false
+        fxFetchError = nil
     }
 
     func populateFormFromExpense(_ expense: Expense) {
         editingExpense = expense
         expenseTitle = expense.title
         expenseDescription = expense.description ?? ""
-        expenseAmountText = String(format: "%.2f", expense.amount)
         expenseCategory = expense.category
         expenseDate = expense.date ?? Date()
         splitType = expense.splitType
 
-        // Populate selected members from existing splits
+        // For foreign-currency expenses, populate amount + splits in the
+        // ORIGINAL currency the payer entered. The frozen FX rate stays
+        // locked so we can re-convert on save without re-quoting.
+        if let originalAmount = expense.originalAmount,
+           let originalCurrency = expense.originalCurrency,
+           let fxRate = expense.fxRate {
+            expenseAmountText = String(format: "%.2f", originalAmount)
+            expenseCurrency = originalCurrency
+            liveFXRate = fxRate
+        } else {
+            expenseAmountText = String(format: "%.2f", expense.amount)
+            expenseCurrency = expense.currency ?? trip.currency ?? "USD"
+            liveFXRate = nil
+        }
+
+        // Populate selected members from existing splits. Reverse-convert
+        // split amounts to the original currency when applicable.
         if let splits = expense.splits {
             selectedMembers = Set(splits.map(\.userId))
             for split in splits {
-                customSplits[split.userId] = String(format: "%.2f", split.amount)
+                let displayAmount: Double = {
+                    guard let fx = liveFXRate, fx > 0, expense.originalAmount != nil else {
+                        return split.amount
+                    }
+                    return split.amount / fx
+                }()
+                customSplits[split.userId] = String(format: "%.2f", displayAmount)
             }
         }
+    }
+
+    // MARK: - FX
+
+    /// Fetch the rate to convert from `expenseCurrency` to the trip's
+    /// currency. Clears the rate when no conversion is needed. Call this from
+    /// the view whenever the currency picker changes.
+    func refreshFXRate() async {
+        // Edit mode keeps the frozen rate — never re-quote.
+        if !canEditCurrency { return }
+        guard needsCurrencyConversion else {
+            liveFXRate = nil
+            fxFetchError = nil
+            return
+        }
+        let from = expenseCurrency
+        let to = trip.currency ?? "USD"
+        isFetchingFXRate = true
+        fxFetchError = nil
+        do {
+            let rate = try await CurrencyService.fetchRate(from: from, to: to)
+            // Only apply if the picker hasn't changed mid-flight.
+            if expenseCurrency == from {
+                liveFXRate = rate
+            }
+        } catch {
+            liveFXRate = nil
+            fxFetchError = error.localizedDescription
+        }
+        isFetchingFXRate = false
     }
 
     /// Pre-select all members for a new expense
@@ -389,7 +596,15 @@ final class ExpensesViewModel {
 
     // MARK: - Private Helpers
 
-    private func buildSplitPayloads(expenseId: UUID, totalAmount: Double) -> [CreateSplitPayload] {
+    /// Build split rows in the trip's currency. `totalAmount` is already
+    /// converted to trip currency by the caller; for `.custom` splits the
+    /// per-person entries are still in `expenseCurrency`, so we apply
+    /// `fxRate` (when set) to convert each one.
+    private func buildSplitPayloads(
+        expenseId: UUID,
+        totalAmount: Double,
+        fxRate: Double?
+    ) -> [CreateSplitPayload] {
         switch splitType {
         case .full:
             // No splits needed for full-amount expenses
@@ -405,7 +620,8 @@ final class ExpensesViewModel {
             return selectedMembers.compactMap { userId in
                 guard let amountStr = customSplits[userId],
                       let amount = Double(amountStr), amount > 0 else { return nil }
-                return CreateSplitPayload(expenseId: expenseId, userId: userId, amount: amount)
+                let converted = (fxRate ?? 1.0) * amount
+                return CreateSplitPayload(expenseId: expenseId, userId: userId, amount: converted)
             }
         }
     }
