@@ -6,6 +6,7 @@ struct ShareTripSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedRole: MemberRole = .viewer
     @State private var copied = false
+    @State private var codeCopied = false
     @State private var contentAppeared = false
 
     var body: some View {
@@ -66,6 +67,11 @@ struct ShareTripSheet: View {
 
                 // Invite link with copy
                 inviteLinkRow(invite)
+
+                // Raw 8-char code with copy — companion to "Join with Code",
+                // for sharing in person / on a call / when the URL preview
+                // gets stripped by a messaging app.
+                inviteCodeRow(invite)
             } else if viewModel.isGeneratingInvite {
                 ProgressView()
                     .frame(height: 200)
@@ -135,6 +141,44 @@ struct ShareTripSheet: View {
             .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
         }
         .buttonStyle(.plain)
+    }
+
+    /// Displays the raw 8-character invite code in large monospaced text,
+    /// with tap-to-copy. Mirrors `inviteLinkRow`'s layout so the two share
+    /// surfaces read as a matched pair.
+    private func inviteCodeRow(_ invite: TripInvite) -> some View {
+        Button {
+            UIPasteboard.general.string = invite.code
+            HapticFeedback.success()
+            withAnimation(OuestTheme.Anim.quick) { codeCopied = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                withAnimation(OuestTheme.Anim.quick) { codeCopied = false }
+            }
+        } label: {
+            HStack(spacing: OuestTheme.Spacing.md) {
+                Image(systemName: "number")
+                    .font(.subheadline)
+                    .foregroundStyle(OuestTheme.Colors.brand)
+
+                Text(invite.code)
+                    .font(.system(.title3, design: .monospaced).weight(.semibold))
+                    .foregroundStyle(OuestTheme.Colors.textPrimary)
+                    .kerning(2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                Spacer()
+
+                Image(systemName: codeCopied ? "checkmark.circle.fill" : "doc.on.doc")
+                    .font(.subheadline)
+                    .foregroundStyle(codeCopied ? OuestTheme.Colors.success : OuestTheme.Colors.brand)
+            }
+            .padding(OuestTheme.Spacing.md)
+            .background(OuestTheme.Colors.surfaceSecondary)
+            .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Invite code \(invite.code). Tap to copy.")
     }
 
     // MARK: - Role Picker
