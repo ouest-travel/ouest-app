@@ -300,9 +300,15 @@ final class TripDetailViewModel {
         guard let tripId = trip?.id, let userId = currentUserId else { return }
         isGeneratingInvite = true
         inviteError = nil
+        defer { isGeneratingInvite = false }
 
-        // Try up to 2 times in case of code collision
-        for _ in 0..<2 {
+        // Up to 2 attempts, but ONLY retry on a unique-code collision — any
+        // other error (network, auth, RLS) fails fast so we don't burn our
+        // one retry on a non-collision then surface a stale error message.
+        // 23505 surfaces in localizedDescription as "duplicate key value
+        // violates unique constraint …" — same detection style as
+        // EditProfileView.applySaveError.
+        for attempt in 0..<2 {
             do {
                 let payload = CreateInvitePayload(
                     tripId: tripId,
@@ -315,14 +321,20 @@ final class TripDetailViewModel {
                 let invite = try await TripService.createInvite(payload)
                 invites.insert(invite, at: 0)
                 activeInvite = invite
-                isGeneratingInvite = false
                 return
             } catch {
-                inviteError = error.localizedDescription
+                let desc = error.localizedDescription.lowercased()
+                let isCollision = desc.contains("duplicate key")
+                    || desc.contains("unique constraint")
+                if isCollision && attempt == 0 {
+                    continue  // Roll a new code and try once more.
+                }
+                inviteError = isCollision
+                    ? "Couldn't generate a unique code. Please try again."
+                    : error.localizedDescription
+                return
             }
         }
-
-        isGeneratingInvite = false
     }
 
     func revokeInvite(_ invite: TripInvite) async {
