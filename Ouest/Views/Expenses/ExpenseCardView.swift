@@ -50,11 +50,18 @@ struct ExpenseCardView: View {
 
             Spacer()
 
-            // Amount
-            Text(expense.formattedAmount)
-                .font(OuestTheme.Typography.cardTitle)
-                .fontWeight(.semibold)
-                .foregroundStyle(OuestTheme.Colors.textPrimary)
+            // Amount (with original-currency subtitle for foreign expenses)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(expense.formattedAmount)
+                    .font(OuestTheme.Typography.cardTitle)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(OuestTheme.Colors.textPrimary)
+                if let original = expense.formattedOriginalAmount {
+                    Text(original)
+                        .font(OuestTheme.Typography.micro)
+                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+                }
+            }
         }
         .padding(OuestTheme.Spacing.md)
         .background(OuestTheme.Colors.surface)

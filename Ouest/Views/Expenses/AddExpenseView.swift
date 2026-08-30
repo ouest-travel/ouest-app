@@ -65,13 +65,17 @@ struct AddExpenseView: View {
                         }
                     }
                     .fontWeight(.semibold)
-                    .disabled(!viewModel.isFormValid || viewModel.isSaving)
+                    .disabled(!viewModel.isFormValid || viewModel.isSaving || viewModel.isFetchingFXRate)
                 }
             }
             .onAppear {
                 withAnimation(OuestTheme.Anim.smooth) {
                     contentAppeared = true
                 }
+                Task { await viewModel.refreshFXRate() }
+            }
+            .onChange(of: viewModel.expenseCurrency) { _, _ in
+                Task { await viewModel.refreshFXRate() }
             }
         }
     }
@@ -91,21 +95,28 @@ struct AddExpenseView: View {
                     .background(OuestTheme.Colors.surfaceSecondary)
                     .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
 
-                // Amount
-                HStack {
-                    Text(currencySymbol)
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+                // Amount + currency
+                VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
+                    HStack(spacing: OuestTheme.Spacing.sm) {
+                        currencyPicker
 
-                    TextField("0.00", text: $viewModel.expenseAmountText)
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .keyboardType(.decimalPad)
+                        Text(currencySymbol)
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(OuestTheme.Colors.textSecondary)
+
+                        TextField("0.00", text: $viewModel.expenseAmountText)
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .keyboardType(.decimalPad)
+                    }
+                    .padding(OuestTheme.Spacing.md)
+                    .background(OuestTheme.Colors.surfaceSecondary)
+                    .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+
+                    conversionPreview
+                        .padding(.horizontal, OuestTheme.Spacing.xs)
                 }
-                .padding(OuestTheme.Spacing.md)
-                .background(OuestTheme.Colors.surfaceSecondary)
-                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
 
                 // Description (optional)
                 TextField("Description (optional)", text: $viewModel.expenseDescription, axis: .vertical)
@@ -429,10 +440,74 @@ struct AddExpenseView: View {
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
     }
 
+    // MARK: - Currency Picker
+
+    private var currencyPicker: some View {
+        let entries = CommonCurrency.listIncluding(viewModel.trip.currency)
+        return Menu {
+            ForEach(entries) { entry in
+                Button {
+                    HapticFeedback.selection()
+                    viewModel.expenseCurrency = entry.code
+                } label: {
+                    HStack {
+                        Text(entry.code).bold()
+                        Text(entry.name)
+                        Spacer()
+                        if entry.code == viewModel.expenseCurrency {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(viewModel.expenseCurrency)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                if viewModel.canEditCurrency {
+                    Image(systemName: "chevron.down")
+                        .font(.caption2)
+                }
+            }
+            .foregroundStyle(viewModel.canEditCurrency ? OuestTheme.Colors.brand : OuestTheme.Colors.textSecondary)
+            .padding(.horizontal, OuestTheme.Spacing.sm)
+            .padding(.vertical, 6)
+            .background(OuestTheme.Colors.brand.opacity(viewModel.canEditCurrency ? 0.1 : 0.05))
+            .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.sm))
+        }
+        .disabled(!viewModel.canEditCurrency)
+    }
+
+    @ViewBuilder
+    private var conversionPreview: some View {
+        if viewModel.needsCurrencyConversion {
+            if viewModel.isFetchingFXRate {
+                HStack(spacing: 6) {
+                    ProgressView().controlSize(.mini)
+                    Text("Fetching exchange rate…")
+                        .font(OuestTheme.Typography.caption)
+                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+                }
+            } else if let error = viewModel.fxFetchError {
+                Text(error)
+                    .font(OuestTheme.Typography.caption)
+                    .foregroundStyle(OuestTheme.Colors.warning)
+            } else if let preview = viewModel.convertedAmountPreviewText {
+                Text(preview)
+                    .font(OuestTheme.Typography.caption)
+                    .foregroundStyle(OuestTheme.Colors.textSecondary)
+            }
+        }
+    }
+
     // MARK: - Helpers
 
     private var currencySymbol: String {
-        let code = viewModel.trip.currency ?? "USD"
+        symbol(for: viewModel.expenseCurrency)
+    }
+
+    private func symbol(for code: String) -> String {
         let locale = Locale.availableIdentifiers
             .map { Locale(identifier: $0) }
             .first { $0.currency?.identifier == code }
@@ -442,7 +517,7 @@ struct AddExpenseView: View {
     private func formatAmount(_ value: Double) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
-        formatter.currencyCode = viewModel.trip.currency ?? "USD"
+        formatter.currencyCode = viewModel.expenseCurrency
         return formatter.string(from: NSNumber(value: value)) ?? "$\(value)"
     }
 }

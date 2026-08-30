@@ -395,6 +395,73 @@ final class ExpensesViewModel {
         }
     }
 
+    /// Every settled split rolled up by (debtor, payer) pair so the Balances
+    /// view can render "Tim paid Dev · $95 · Undo" instead of listing each
+    /// underlying split separately. Sorted latest-first for recency.
+    var settledGroups: [SettledGroup] {
+        struct Key: Hashable { let debtorId: UUID; let payerId: UUID }
+        var groups: [Key: (amount: Double, splitIds: [UUID], latest: Date?)] = [:]
+
+        for expense in expenses {
+            guard let splits = expense.splits else { continue }
+            for split in splits
+            where split.isSettled && split.userId != expense.paidBy {
+                let key = Key(debtorId: split.userId, payerId: expense.paidBy)
+                var entry = groups[key] ?? (amount: 0, splitIds: [], latest: nil)
+                entry.amount += split.amount
+                entry.splitIds.append(split.id)
+                if let existing = entry.latest, let this = split.settledAt {
+                    entry.latest = max(existing, this)
+                } else {
+                    entry.latest = entry.latest ?? split.settledAt
+                }
+                groups[key] = entry
+            }
+        }
+
+        return groups.compactMap { key, value -> SettledGroup? in
+            let debtor = members.first(where: { $0.userId == key.debtorId })
+            let payer = members.first(where: { $0.userId == key.payerId })
+            return SettledGroup(
+                debtorId: key.debtorId,
+                debtorName: debtor?.profile?.fullName ?? "Unknown",
+                debtorAvatarUrl: debtor?.profile?.avatarUrl,
+                payerId: key.payerId,
+                payerName: payer?.profile?.fullName ?? "Unknown",
+                payerAvatarUrl: payer?.profile?.avatarUrl,
+                amount: value.amount,
+                splitIds: value.splitIds,
+                latestSettledAt: value.latest
+            )
+        }
+        .sorted {
+            // Latest first, nils last.
+            switch ($0.latestSettledAt, $1.latestSettledAt) {
+            case let (a?, b?): return a > b
+            case (_?, nil):    return true
+            case (nil, _?):    return false
+            default:           return false
+            }
+        }
+    }
+
+    /// Reverse a settled group — flips is_settled = false on every underlying
+    /// split. Symmetric to markSettlementPaid.
+    func unsettleGroup(_ group: SettledGroup) async {
+        HapticFeedback.medium()
+        for splitId in group.splitIds {
+            do {
+                try await ExpensesService.unsettleSplit(id: splitId)
+                updateSplitLocally(splitId: splitId, settled: false)
+            } catch {
+                errorMessage = error.localizedDescription
+                HapticFeedback.error()
+                return
+            }
+        }
+        HapticFeedback.success()
+    }
+
     /// Mark a suggested settlement as paid. Settles every unsettled split
     /// where the debtor is the splitter AND the creditor is the expense payer
     /// — i.e., the direct splits that net to this settlement amount.
