@@ -10,6 +10,10 @@ struct BalanceSummaryView: View {
     @State private var settlementToConfirm: Settlement?
     @State private var isSettling = false
 
+    /// Group queued for undo confirmation.
+    @State private var groupToUndo: SettledGroup?
+    @State private var isUndoing = false
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -22,6 +26,12 @@ struct BalanceSummaryView: View {
                     if !viewModel.settlements.isEmpty {
                         settlementsSection
                             .fadeSlideIn(isVisible: contentAppeared, delay: 0.15)
+                    }
+
+                    // Already-settled — with per-group Undo
+                    if !viewModel.settledGroups.isEmpty {
+                        settledSection
+                            .fadeSlideIn(isVisible: contentAppeared, delay: 0.2)
                     }
                 }
                 .padding(.horizontal, OuestTheme.Spacing.lg)
@@ -60,7 +70,30 @@ struct BalanceSummaryView: View {
                     settlementToConfirm = nil
                 }
             } message: { _ in
-                Text("This marks the matching unsettled splits as paid. You can undo by marking individual splits unsettled from the expense detail (coming soon).")
+                Text("This marks the matching unsettled splits as paid. If it was a mistake, you can undo it from the Settled section below.")
+            }
+            .confirmationDialog(
+                groupToUndo.map {
+                    "Undo \(formatCurrency($0.amount)) from \(firstName($0.debtorName)) to \(firstName($0.payerName))?"
+                } ?? "",
+                isPresented: undoBinding,
+                titleVisibility: .visible,
+                presenting: groupToUndo
+            ) { group in
+                Button("Undo", role: .destructive) {
+                    let g = group
+                    Task {
+                        isUndoing = true
+                        await viewModel.unsettleGroup(g)
+                        isUndoing = false
+                        groupToUndo = nil
+                    }
+                }
+                Button("Keep as settled", role: .cancel) {
+                    groupToUndo = nil
+                }
+            } message: { _ in
+                Text("This will re-open the underlying splits as unpaid so they show up in Suggested Settlements again.")
             }
         }
     }
@@ -217,6 +250,97 @@ struct BalanceSummaryView: View {
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
     }
 
+    // MARK: - Settled Section
+
+    private var settledSection: some View {
+        VStack(alignment: .leading, spacing: OuestTheme.Spacing.md) {
+            HStack(spacing: OuestTheme.Spacing.sm) {
+                Image(systemName: "checkmark.seal.fill")
+                    .foregroundStyle(OuestTheme.Colors.success)
+                Text("Settled")
+                    .font(OuestTheme.Typography.sectionTitle)
+            }
+
+            VStack(spacing: OuestTheme.Spacing.sm) {
+                ForEach(viewModel.settledGroups) { group in
+                    settledCard(group)
+                }
+            }
+        }
+    }
+
+    /// One row per (debtor, payer) with a subtle Undo pill. Symmetric to
+    /// `settlementCard`, but tinted success-green and gated by a confirmation
+    /// dialog so a fat-fingered undo doesn't silently resurface old debts.
+    private func settledCard(_ group: SettledGroup) -> some View {
+        HStack(spacing: OuestTheme.Spacing.md) {
+            // From (debtor) — the one who paid it back
+            VStack(spacing: 2) {
+                AvatarView(url: group.debtorAvatarUrl, size: 36)
+                Text(firstName(group.debtorName))
+                    .font(OuestTheme.Typography.micro)
+                    .lineLimit(1)
+            }
+            .frame(width: 56)
+
+            // Amount + "settled …ago"
+            VStack(spacing: 2) {
+                Image(systemName: "checkmark")
+                    .font(.caption)
+                    .foregroundStyle(OuestTheme.Colors.success)
+                Text(formatCurrency(group.amount))
+                    .font(OuestTheme.Typography.cardTitle)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(OuestTheme.Colors.success)
+                if let when = group.latestSettledAt {
+                    Text(relativeSettledLabel(when))
+                        .font(OuestTheme.Typography.micro)
+                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+                        .lineLimit(1)
+                }
+            }
+
+            // To (payer)
+            VStack(spacing: 2) {
+                AvatarView(url: group.payerAvatarUrl, size: 36)
+                Text(firstName(group.payerName))
+                    .font(OuestTheme.Typography.micro)
+                    .lineLimit(1)
+            }
+            .frame(width: 56)
+
+            Spacer()
+
+            Button {
+                HapticFeedback.light()
+                groupToUndo = group
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.uturn.backward.circle.fill")
+                    Text("Undo")
+                }
+                .font(OuestTheme.Typography.caption.weight(.semibold))
+                .foregroundStyle(OuestTheme.Colors.textSecondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(OuestTheme.Colors.surface)
+                .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .disabled(isUndoing)
+        }
+        .padding(OuestTheme.Spacing.md)
+        .background(OuestTheme.Colors.success.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
+    }
+
+    private var undoBinding: Binding<Bool> {
+        Binding(
+            get: { groupToUndo != nil },
+            set: { if !$0 { groupToUndo = nil } }
+        )
+    }
+
     // MARK: - Helpers
 
     private func balanceColor(_ net: Double) -> Color {
@@ -240,6 +364,14 @@ struct BalanceSummaryView: View {
 
     private func firstName(_ fullName: String) -> String {
         fullName.components(separatedBy: " ").first ?? fullName
+    }
+
+    /// "5m ago", "3h ago", "2d ago" — matches the tone of other timestamps in
+    /// the app without pulling in a full formatter dependency.
+    private func relativeSettledLabel(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 }
 
