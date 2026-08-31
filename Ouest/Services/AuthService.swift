@@ -65,11 +65,18 @@ enum AuthService {
     /// DeepLinkRouter (`/auth/callback`) → ContentView, which forwards the URL
     /// to `client.auth.session(from:)` to finalize the session in-app.
     ///
-    /// NOTE: this URL must ALSO be added to the Supabase project's
-    /// "Redirect URLs" allowlist (Auth → URL Configuration) — otherwise
-    /// Supabase silently falls back to the Site URL and the redirect
-    /// still lands on the web app.
-    private static let signUpRedirectURL = URL(string: "https://ouest.travel/auth/callback")
+    /// Uses `links.ouest.travel` because that's the subdomain actually
+    /// pointed at this repo's Vercel deployment (which serves the AASA)
+    /// and it's already declared in the app's associated-domains
+    /// entitlement. The bare `ouest.travel` domain currently resolves to
+    /// a placeholder page at a non-Vercel host, so the redirect would
+    /// 404 there.
+    ///
+    /// NOTE: this URL must ALSO be on the Supabase project's Auth →
+    /// URL Configuration → Redirect URLs allowlist — otherwise Supabase
+    /// silently falls back to the Site URL and the redirect still lands
+    /// on whatever the Site URL is.
+    private static let signUpRedirectURL = URL(string: "https://links.ouest.travel/auth/callback")
 
     /// Sign in with Apple using the identity token from ASAuthorization
     static func signInWithApple(idToken: String, nonce: String) async throws -> Session {
