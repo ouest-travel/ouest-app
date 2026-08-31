@@ -25,6 +25,7 @@ struct ItineraryMapView: View {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(OuestTheme.Colors.textSecondary)
                     }
+                    .accessibilityLabel("Close map")
                 }
 
                 // Only show the trail toggle when there's actually a trail to toggle

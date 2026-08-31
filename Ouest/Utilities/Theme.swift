@@ -103,25 +103,30 @@ enum OuestTheme {
     // MARK: - Typography helpers
 
     enum Typography {
-        // Fraunces headings — using UIFont for reliable variable-font weight rendering
-        static let heroTitle: Font = fraunces(size: 36, weight: .bold)
-        static let screenTitle: Font = fraunces(size: 28, weight: .bold)
-        static let sectionTitle: Font = fraunces(size: 18, weight: .semibold)
+        // Fraunces headings — using UIFont for reliable variable-font weight rendering,
+        // scaled via UIFontMetrics so Dynamic Type keeps working.
+        static let heroTitle: Font = fraunces(size: 36, weight: .bold, textStyle: .largeTitle)
+        static let screenTitle: Font = fraunces(size: 28, weight: .bold, textStyle: .title1)
+        static let sectionTitle: Font = fraunces(size: 18, weight: .semibold, textStyle: .title3)
 
-        // System body text
-        static let cardTitle: Font = .system(size: 17, weight: .bold)
-        static let body: Font = .system(size: 15)
-        static let caption: Font = .system(size: 13)
-        static let micro: Font = .system(size: 11, weight: .semibold)
+        // System body text — mapped to text styles so it scales with the user's
+        // Larger Text setting. Default sizes match the previous hardcoded values.
+        static let cardTitle: Font = .system(.body, weight: .bold)     // 17pt at default
+        static let body: Font = .system(.subheadline)                  // 15pt at default
+        static let caption: Font = .system(.footnote)                  // 13pt at default
+        static let micro: Font = .system(.caption2, weight: .semibold) // 11pt at default
 
-        /// Create a Fraunces font with precise weight via UIFont descriptor
-        private static func fraunces(size: CGFloat, weight: UIFont.Weight) -> Font {
+        /// Create a Fraunces font with precise weight via UIFont descriptor,
+        /// then scale it against a text style so Dynamic Type takes effect.
+        private static func fraunces(size: CGFloat, weight: UIFont.Weight, textStyle: UIFont.TextStyle) -> Font {
             let descriptor = UIFontDescriptor(fontAttributes: [
                 .family: "Fraunces",
             ]).addingAttributes([
                 .traits: [UIFontDescriptor.TraitKey.weight: weight],
             ])
-            return Font(UIFont(descriptor: descriptor, size: size))
+            let base = UIFont(descriptor: descriptor, size: size)
+            let scaled = UIFontMetrics(forTextStyle: textStyle).scaledFont(for: base)
+            return Font(scaled)
         }
     }
 }

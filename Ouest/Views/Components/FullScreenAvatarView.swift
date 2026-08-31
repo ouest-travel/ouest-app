@@ -34,6 +34,7 @@ struct FullScreenAvatarView: View {
                             .foregroundStyle(.white.opacity(0.7))
                     }
                     .padding()
+                    .accessibilityLabel("Close")
                 }
 
                 Spacer()

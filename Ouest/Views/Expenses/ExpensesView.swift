@@ -41,6 +41,7 @@ struct ExpensesView: View {
                             Image(systemName: "chart.pie")
                                 .foregroundStyle(OuestTheme.Colors.brand)
                         }
+                        .accessibilityLabel("Balance summary")
                     }
 
                     if canEdit {
@@ -71,6 +72,8 @@ struct ExpensesView: View {
                                 .fontWeight(.semibold)
                                 .foregroundStyle(OuestTheme.Colors.brand)
                         }
+                        .accessibilityLabel("Add expense")
+                        .accessibilityHint("Opens a menu to add an expense or import from itinerary")
                     }
                 }
             }

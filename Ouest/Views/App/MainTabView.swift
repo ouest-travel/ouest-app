@@ -225,6 +225,7 @@ struct MainTabView: View {
                 .background(OuestTheme.Colors.brandGradient)
                 .clipShape(Circle())
                 .shadow(OuestTheme.Shadow.md)
+                .accessibilityLabel("New trip")
         }
         .buttonStyle(ScaledButtonStyle(scale: 0.9))
     }

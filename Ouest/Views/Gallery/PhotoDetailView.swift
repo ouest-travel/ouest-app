@@ -54,6 +54,7 @@ struct PhotoDetailView: View {
                         Image(systemName: "trash")
                             .foregroundStyle(.red)
                     }
+                    .accessibilityLabel("Delete photo")
                 }
             }
         }

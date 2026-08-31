@@ -91,6 +91,7 @@ struct ItineraryView: View {
                         Image(systemName: "map")
                             .foregroundStyle(OuestTheme.Colors.brand)
                     }
+                    .accessibilityLabel("Trip map")
 
                     if canEdit {
                         // AI menu — generate or import
@@ -113,6 +114,8 @@ struct ItineraryView: View {
                             Image(systemName: "sparkles")
                                 .foregroundStyle(OuestTheme.Colors.brand)
                         }
+                        .accessibilityLabel("AI tools")
+                        .accessibilityHint("Opens a menu to generate or import an itinerary")
 
                         // Add day button
                         Button {
@@ -123,6 +126,7 @@ struct ItineraryView: View {
                                 .fontWeight(.semibold)
                                 .foregroundStyle(OuestTheme.Colors.brand)
                         }
+                        .accessibilityLabel("Add day")
                     }
                 }
             }

@@ -32,6 +32,7 @@ struct JournalView: View {
                             .fontWeight(.semibold)
                             .foregroundStyle(OuestTheme.Colors.brand)
                     }
+                    .accessibilityLabel("Add journal entry")
                 }
             }
         }

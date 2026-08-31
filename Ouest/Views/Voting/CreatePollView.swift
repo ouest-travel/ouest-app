@@ -137,6 +137,7 @@ struct CreatePollView: View {
                             Image(systemName: "minus.circle.fill")
                                 .font(.title3)
                                 .foregroundStyle(.red.opacity(0.7))
+                                .accessibilityLabel("Remove option \(index + 1)")
                         }
                     }
                 }

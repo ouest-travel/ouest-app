@@ -257,6 +257,7 @@ struct CommentsView: View {
                     )
             }
             .disabled(commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending)
+            .accessibilityLabel("Send comment")
         }
         .padding(.horizontal, OuestTheme.Spacing.lg)
         .padding(.vertical, OuestTheme.Spacing.sm)

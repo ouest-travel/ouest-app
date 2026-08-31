@@ -35,6 +35,7 @@ struct QuickAddActivityView: View {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundStyle(OuestTheme.Colors.textSecondary)
                         }
+                        .accessibilityLabel("Clear search")
                     }
                 }
                 .padding(.horizontal, OuestTheme.Spacing.md)

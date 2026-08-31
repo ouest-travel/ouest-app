@@ -114,6 +114,7 @@ struct AddActivityView: View {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(OuestTheme.Colors.textSecondary)
                     }
+                    .accessibilityLabel("Clear selected place")
                 }
                 .padding(OuestTheme.Spacing.md)
                 .background(OuestTheme.Colors.brandLight)

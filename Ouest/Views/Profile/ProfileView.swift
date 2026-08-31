@@ -157,6 +157,7 @@ struct ProfileView: View {
                         Image(systemName: "star.circle.fill")
                             .font(.title3)
                             .foregroundStyle(.white.opacity(0.5))
+                            .accessibilityLabel("View stickers")
                     } else {
                         stickerCluster
                     }

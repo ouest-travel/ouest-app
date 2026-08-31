@@ -101,8 +101,10 @@ struct ItineraryCalendarView: View {
                 Image(systemName: "chevron.left")
                     .font(.body.weight(.semibold))
                     .foregroundStyle(OuestTheme.Colors.brand)
-                    .frame(width: 36, height: 36)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
+            .accessibilityLabel("Previous month")
 
             Spacer()
 
@@ -120,8 +122,10 @@ struct ItineraryCalendarView: View {
                 Image(systemName: "chevron.right")
                     .font(.body.weight(.semibold))
                     .foregroundStyle(OuestTheme.Colors.brand)
-                    .frame(width: 36, height: 36)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
+            .accessibilityLabel("Next month")
         }
     }
 

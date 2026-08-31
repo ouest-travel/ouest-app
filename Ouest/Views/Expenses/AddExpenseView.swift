@@ -362,6 +362,7 @@ struct AddExpenseView: View {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title3)
                             .foregroundStyle(.white)
+                            .accessibilityLabel("Remove receipt photo")
                             .shadow(radius: 2)
                     }
                     .padding(OuestTheme.Spacing.sm)
@@ -477,6 +478,11 @@ struct AddExpenseView: View {
             .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.sm))
         }
         .disabled(!viewModel.canEditCurrency)
+        .accessibilityLabel("Currency")
+        .accessibilityValue(viewModel.expenseCurrency)
+        .accessibilityHint(viewModel.canEditCurrency
+            ? "Double tap to change the currency for this expense"
+            : "Currency is locked on existing expenses")
     }
 
     @ViewBuilder

@@ -37,6 +37,7 @@ struct PollsView: View {
                             .fontWeight(.semibold)
                             .foregroundStyle(OuestTheme.Colors.brand)
                     }
+                    .accessibilityLabel("Create poll")
                 }
             }
         }

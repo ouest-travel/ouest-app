@@ -63,10 +63,11 @@ struct DayHeaderView: View {
                 Image(systemName: "magnifyingglass")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(OuestTheme.Colors.brand)
-                    .frame(width: 32, height: 32)
+                    .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Quick-add activity")
 
             // Full add activity — plus.circle.fill
             Button {
@@ -78,10 +79,11 @@ struct DayHeaderView: View {
                 Image(systemName: "plus.circle.fill")
                     .font(.title3)
                     .foregroundStyle(OuestTheme.Colors.brand)
-                    .frame(width: 32, height: 32)
+                    .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Add activity")
 
             // ••• menu — reorder + destructive Delete Day
             Menu {
@@ -102,10 +104,12 @@ struct DayHeaderView: View {
                 Image(systemName: "ellipsis")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(OuestTheme.Colors.textSecondary)
-                    .frame(width: 32, height: 32)
+                    .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.borderless)
+            .accessibilityLabel("More day options")
+            .accessibilityHint("Opens a menu to reorder activities or delete the day")
         }
     }
 

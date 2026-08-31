@@ -205,6 +205,7 @@ struct FeedTripCardView: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(feedTrip.isSaved ? "Unsave trip" : "Save trip")
 
             // More menu
             Menu {
