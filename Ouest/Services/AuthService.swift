@@ -52,13 +52,24 @@ enum AuthService {
             let response = try await SupabaseManager.client.auth.signUp(
                 email: email,
                 password: password,
-                data: ["full_name": .string(fullName)]
+                data: ["full_name": .string(fullName)],
+                redirectTo: Self.signUpRedirectURL
             )
             return response.session
         } catch {
             throw mapError(error)
         }
     }
+
+    /// Universal Link the Supabase email-confirmation lands on. Handled by
+    /// DeepLinkRouter (`/auth/callback`) → ContentView, which forwards the URL
+    /// to `client.auth.session(from:)` to finalize the session in-app.
+    ///
+    /// NOTE: this URL must ALSO be added to the Supabase project's
+    /// "Redirect URLs" allowlist (Auth → URL Configuration) — otherwise
+    /// Supabase silently falls back to the Site URL and the redirect
+    /// still lands on the web app.
+    private static let signUpRedirectURL = URL(string: "https://ouest.travel/auth/callback")
 
     /// Sign in with Apple using the identity token from ASAuthorization
     static func signInWithApple(idToken: String, nonce: String) async throws -> Session {

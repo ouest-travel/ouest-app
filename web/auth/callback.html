@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="apple-itunes-app" content="app-id=PLACEHOLDER_APP_ID" />
+  <title>You're confirmed — Ouest</title>
+  <meta name="description" content="Your Ouest account is confirmed. Open the app to finish signing in." />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/png" href="/logo.png" />
+  <link rel="apple-touch-icon" href="/logo.png" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --brand: #2563EB;
+      --brand-cyan: #38BDF8;
+      --brand-blue: #1E40AF;
+      --success: #22C55E;
+      --success-glow: rgba(34,197,94,0.35);
+      --bg: #0E0F11;
+      --surface: #1A1B1E;
+      --text: #FFFFFF;
+      --text-secondary: rgba(255,255,255,0.7);
+      --text-tertiary: rgba(255,255,255,0.45);
+      --border: rgba(255,255,255,0.1);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Animated gradient backdrop — matches index.html */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: -50%;
+      background:
+        radial-gradient(ellipse at 20% 30%, rgba(37,99,235,0.25), transparent 50%),
+        radial-gradient(ellipse at 80% 70%, rgba(56,189,248,0.18), transparent 50%),
+        radial-gradient(ellipse at 50% 100%, rgba(34,197,94,0.12), transparent 50%);
+      animation: drift 20s ease-in-out infinite;
+      z-index: 0;
+    }
+
+    @keyframes drift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      50% { transform: translate(2%, 1%) rotate(0.5deg); }
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      max-width: 420px;
+      width: 100%;
+      background: rgba(26,27,30,0.7);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      border-radius: 24px;
+      padding: 40px 28px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset;
+      animation: rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .check {
+      width: 88px;
+      height: 88px;
+      margin: 0 auto 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--success), #16A34A);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 12px 32px var(--success-glow), 0 0 0 8px rgba(34,197,94,0.08);
+      animation: pop 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) 0.15s both;
+    }
+
+    @keyframes pop {
+      0% { opacity: 0; transform: scale(0.5); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .check svg { width: 44px; height: 44px; }
+
+    .label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--brand-cyan);
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-family: 'Fraunces', serif;
+      font-size: 32px;
+      font-weight: 600;
+      line-height: 1.15;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 28px;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 16px 24px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-cyan));
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 14px;
+      text-decoration: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 8px 24px rgba(37,99,235,0.35);
+      margin-bottom: 12px;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 32px rgba(37,99,235,0.5);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px 24px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 14px;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      transition: background 0.15s ease;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.04);
+    }
+
+    .help {
+      margin-top: 20px;
+      font-size: 13px;
+      color: var(--text-tertiary);
+      line-height: 1.5;
+    }
+
+    .footer {
+      position: relative;
+      z-index: 1;
+      margin-top: 32px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="check" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="4 12 10 18 20 6" />
+    </svg>
+  </div>
+
+  <div class="label">Confirmed</div>
+  <h1>You're all set</h1>
+  <p class="subtitle">Your Ouest account is confirmed. Open the app to finish signing in.</p>
+
+  <a href="#" id="openApp" class="btn-primary">
+    Open Ouest
+  </a>
+
+  <a href="https://apps.apple.com/app/idPLACEHOLDER_APP_ID" class="btn-secondary">
+    Get Ouest on the App Store
+  </a>
+
+  <p class="help">
+    On iOS with the app installed, this page usually never appears — the confirmation link opens Ouest directly. Seeing this means the app wasn't found or you followed the link from a different device.
+  </p>
+</div>
+
+<div class="footer">
+  &copy; Ouest · <a href="/privacy">Privacy</a> · <a href="/support">Support</a>
+</div>
+
+<script>
+  // Preserve the auth params (Supabase ships them as ?code=… for PKCE or
+  // #access_token=… for implicit) when trying the custom scheme so the app
+  // can complete the session if it happens to be installed.
+  const params = window.location.search + window.location.hash;
+  const appURL = "ouest://auth/callback" + params;
+
+  document.getElementById("openApp").setAttribute("href", appURL);
+
+  // Auto-attempt on iOS after a short delay so the user sees the "confirmed"
+  // state briefly before the app takes over. On Universal-Link-capable clicks
+  // this page never actually renders in the first place — this only fires
+  // when the user landed here in Safari or with the app uninstalled.
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS) {
+    setTimeout(() => { window.location.href = appURL; }, 400);
+  }
+</script>
+
+</body>
+</html>

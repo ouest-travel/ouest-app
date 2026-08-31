@@ -83,7 +83,20 @@ struct ContentView: View {
     }
 
     private func handleDeepLink(_ destination: DeepLinkRouter.Destination?) {
-        guard authViewModel.isAuthenticated, let destination else { return }
+        guard let destination else { return }
+
+        // Auth callbacks land BEFORE the user is authenticated — that's their
+        // whole job — so handle them first, outside the `isAuthenticated`
+        // guard. The Supabase client parses tokens off the URL, persists the
+        // session, and flips AuthViewModel state to trigger the LoginView →
+        // MainTabView transition.
+        if case .authCallback(let url) = destination {
+            Task { await authViewModel.handleAuthCallback(url: url) }
+            pendingDeepLink.wrappedValue = nil
+            return
+        }
+
+        guard authViewModel.isAuthenticated else { return }
 
         switch destination {
         case .joinTrip(let code):
@@ -95,6 +108,22 @@ struct ContentView: View {
         case .userProfile(let id):
             deepLinkUserId = id
             showUserProfile = true
+        case .userProfileByHandle(let handle):
+            // Resolve handle → user ID before opening the profile sheet.
+            // If lookup fails (404 / unknown handle), silently drop the link
+            // rather than showing an empty sheet.
+            Task {
+                if let profile = try? await TripService.fetchProfile(byHandle: handle) {
+                    await MainActor.run {
+                        deepLinkUserId = profile.id
+                        showUserProfile = true
+                    }
+                }
+            }
+        case .authCallback:
+            // Already handled above; unreachable, but the switch must be
+            // exhaustive.
+            break
         }
 
         pendingDeepLink.wrappedValue = nil

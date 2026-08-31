@@ -11,8 +11,11 @@
   "rewrites": [
     { "source": "/join", "destination": "/" },
     { "source": "/join/:code", "destination": "/" },
+    { "source": "/t/:code", "destination": "/api/t/:code" },
+    { "source": "/u/:handle", "destination": "/api/u/:handle" },
     { "source": "/privacy", "destination": "/privacy.html" },
-    { "source": "/support", "destination": "/support.html" }
+    { "source": "/support", "destination": "/support.html" },
+    { "source": "/auth/callback", "destination": "/auth/callback.html" }
   ],
   "trailingSlash": false
 }

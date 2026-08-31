@@ -6,7 +6,19 @@
         "components": [
           {
             "/": "/join/*",
-            "comment": "Trip invite Universal Links"
+            "comment": "Trip invite Universal Links (legacy + invite-flow URL)"
+          },
+          {
+            "/": "/t/*",
+            "comment": "Trip preview / share URL — rich link previews"
+          },
+          {
+            "/": "/u/*",
+            "comment": "Profile preview / share URL"
+          },
+          {
+            "/": "/auth/callback",
+            "comment": "Supabase auth callback (email confirmation, password reset) — deep-links back into the app so the confirmation lands in-app instead of the web app"
           }
         ]
       }

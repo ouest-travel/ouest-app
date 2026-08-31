@@ -24,6 +24,32 @@ final class AuthViewModel {
         }
     }
 
+    /// Complete a signUp / magic-link flow by handing the callback URL to
+    /// Supabase. The client parses tokens (PKCE code or implicit access token)
+    /// off the URL, persists the session in Keychain, and returns it. On
+    /// success we flip UI state so ContentView transitions from LoginView to
+    /// the onboarding / main tab flow.
+    func handleAuthCallback(url: URL) async {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let session = try await SupabaseManager.client.auth.session(from: url)
+            isAuthenticated = true
+            needsEmailConfirmation = false
+            await loadProfile(userId: session.user.id)
+            // A freshly-confirmed account needs onboarding. If loadProfile
+            // discovers the user already has a handle (rare here — this path
+            // is a fresh confirmation — but future-proof for magic-link
+            // sign-ins on existing accounts), don't force onboarding.
+            if currentUser?.handle == nil {
+                needsOnboarding = true
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func signIn(email: String, password: String) async {
         errorMessage = nil
         isLoading = true
