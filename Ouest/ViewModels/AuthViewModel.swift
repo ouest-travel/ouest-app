@@ -10,6 +10,10 @@ final class AuthViewModel {
     var errorMessage: String?
     var needsEmailConfirmation = false
     var needsOnboarding = false
+    /// True when the current session was established via a password-recovery
+    /// callback — the user must set a new password before doing anything else.
+    /// ContentView routes to NewPasswordView while this is true.
+    var isPasswordRecovery = false
 
     func restoreSession() async {
         isLoading = true
@@ -24,19 +28,35 @@ final class AuthViewModel {
         }
     }
 
-    /// Complete a signUp / magic-link flow by handing the callback URL to
-    /// Supabase. The client parses tokens (PKCE code or implicit access token)
-    /// off the URL, persists the session in Keychain, and returns it. On
-    /// success we flip UI state so ContentView transitions from LoginView to
-    /// the onboarding / main tab flow.
+    /// Complete a signUp / magic-link / password-recovery flow by handing the
+    /// callback URL to Supabase. The client parses tokens (PKCE code or
+    /// implicit access token) off the URL, persists the session in Keychain,
+    /// and returns it. On success we flip UI state so ContentView transitions
+    /// from LoginView to onboarding / main / new-password as appropriate.
     func handleAuthCallback(url: URL) async {
         isLoading = true
         defer { isLoading = false }
+
+        // Supabase encodes the flow type on the callback URL — `type=recovery`
+        // for password-reset links, `type=signup` for email confirmations.
+        // Check BEFORE consuming the URL so we can pick the right destination
+        // regardless of which branch (implicit fragment vs PKCE query) it
+        // arrived on.
+        let isRecovery = Self.callbackType(from: url) == "recovery"
 
         do {
             let session = try await SupabaseManager.client.auth.session(from: url)
             isAuthenticated = true
             needsEmailConfirmation = false
+
+            if isRecovery {
+                // Route to NewPasswordView. Do NOT load profile / trigger
+                // onboarding — this session's only job is to accept a new
+                // password, then the user re-enters the normal flow.
+                isPasswordRecovery = true
+                return
+            }
+
             await loadProfile(userId: session.user.id)
             // A freshly-confirmed account needs onboarding. If loadProfile
             // discovers the user already has a handle (rare here — this path
@@ -44,6 +64,43 @@ final class AuthViewModel {
             // sign-ins on existing accounts), don't force onboarding.
             if currentUser?.handle == nil {
                 needsOnboarding = true
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Extract Supabase's `type` param from a callback URL. It lives in the
+    /// query string on PKCE flows and in the URL fragment on implicit flows —
+    /// check both so recovery detection works regardless of project config.
+    private static func callbackType(from url: URL) -> String? {
+        if let q = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?.first(where: { $0.name == "type" })?.value, !q.isEmpty {
+            return q
+        }
+        if let fragment = url.fragment {
+            var comps = URLComponents()
+            comps.query = fragment
+            return comps.queryItems?.first(where: { $0.name == "type" })?.value
+        }
+        return nil
+    }
+
+    /// Finalize a password-recovery flow by writing the new password and
+    /// returning the user to the normal authenticated state. On success,
+    /// clears `isPasswordRecovery` so ContentView routes back to Main / Onboarding.
+    func updatePassword(newPassword: String) async {
+        errorMessage = nil
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            try await AuthService.updatePassword(newPassword)
+            isPasswordRecovery = false
+            // Load the profile now that we're past recovery so Main renders
+            // with the user's data on first frame.
+            if let userId = try? await SupabaseManager.client.auth.session.user.id {
+                await loadProfile(userId: userId)
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -147,6 +204,7 @@ final class AuthViewModel {
             isAuthenticated = false
             currentUser = nil
             needsEmailConfirmation = false
+            isPasswordRecovery = false
         } catch {
             errorMessage = error.localizedDescription
         }

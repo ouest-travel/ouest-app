@@ -17,7 +17,10 @@ struct ContentView: View {
                 SplashView()
                     .transition(.opacity)
             } else if authViewModel.isAuthenticated {
-                if authViewModel.needsOnboarding {
+                if authViewModel.isPasswordRecovery {
+                    NewPasswordView()
+                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                } else if authViewModel.needsOnboarding {
                     OnboardingView()
                         .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 } else {
@@ -32,6 +35,7 @@ struct ContentView: View {
         .animation(OuestTheme.Anim.smooth, value: authViewModel.isLoading)
         .animation(OuestTheme.Anim.smooth, value: authViewModel.isAuthenticated)
         .animation(OuestTheme.Anim.smooth, value: authViewModel.needsOnboarding)
+        .animation(OuestTheme.Anim.smooth, value: authViewModel.isPasswordRecovery)
         .task {
             await authViewModel.restoreSession()
         }

@@ -103,9 +103,23 @@ enum AuthService {
         try await SupabaseManager.client.auth.session
     }
 
-    /// Send a password reset email
+    /// Send a password reset email. Uses the same Universal Link callback as
+    /// signup so tapping the reset link opens the app (not the web) and lands
+    /// the user on NewPasswordView to set a fresh password.
     static func resetPassword(email: String) async throws {
-        try await SupabaseManager.client.auth.resetPasswordForEmail(email)
+        try await SupabaseManager.client.auth.resetPasswordForEmail(
+            email,
+            redirectTo: Self.signUpRedirectURL
+        )
+    }
+
+    /// Update the currently-signed-in user's password. Used by NewPasswordView
+    /// after a recovery-flow auth callback has established a temporary session
+    /// with password-recovery scope.
+    static func updatePassword(_ newPassword: String) async throws {
+        try await SupabaseManager.client.auth.update(
+            user: UserAttributes(password: newPassword)
+        )
     }
 
     /// Fetch the profile for a given user ID
