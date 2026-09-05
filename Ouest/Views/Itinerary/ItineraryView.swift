@@ -420,86 +420,46 @@ struct ItineraryView: View {
         trip.startDate != nil && trip.endDate != nil
     }
 
+    @ViewBuilder
     private var emptyStateView: some View {
-        VStack(spacing: OuestTheme.Spacing.xxl) {
-            Spacer()
-
-            VStack(spacing: OuestTheme.Spacing.md) {
-                Image(systemName: "list.bullet.clipboard")
-                    .font(.system(size: OuestTheme.Icon.hero))
-                    .foregroundStyle(OuestTheme.Colors.inkGradient)
-                    .bouncyAppear(isVisible: contentAppeared, delay: 0)
-
-                Text(canEdit ? "Plan your days" : "No itinerary yet")
-                    .font(OuestTheme.Typography.screenTitle)
-                    .fadeSlideIn(isVisible: contentAppeared, delay: 0.15)
-
-                Text(canEdit
-                     ? (tripHasDates
-                        ? "Generate days from your trip dates\nor add them one by one"
-                        : "Add days and fill them with\nactivities, places, and times")
-                     : "The trip owner hasn't added\nan itinerary yet")
-                    .font(.subheadline)
-                    .foregroundStyle(OuestTheme.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .fadeSlideIn(isVisible: contentAppeared, delay: 0.25)
-            }
-
-            if canEdit {
-                VStack(spacing: OuestTheme.Spacing.md) {
-                    if tripHasDates {
-                        Button {
-                            HapticFeedback.light()
-                            viewModel.showAIGenerate = true
-                        } label: {
-                            HStack(spacing: OuestTheme.Spacing.sm) {
-                                Image(systemName: "sparkles")
-                                Text("Generate with AI")
-                                    .fontWeight(.semibold)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .foregroundStyle(.white)
-                            .background(OuestTheme.Colors.brandFill) // white label needs solid fill
-                            .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
-                            .ouestElevation(.md)
-                        }
-                        .frame(width: 240)
-                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.32)
-
-                        // AI Import — paste TikTok/Instagram/blog link or text
-                        Button {
-                            HapticFeedback.light()
-                            viewModel.showAIImport = true
-                        } label: {
-                            HStack(spacing: OuestTheme.Spacing.xs) {
-                                Image(systemName: "wand.and.stars")
-                                Text("Import from link or text")
-                            }
-                            .font(OuestTheme.Typography.caption)
-                            .fontWeight(.medium)
-                            .foregroundStyle(OuestTheme.Colors.brand)
-                        }
-                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.36)
-
-                        OuestButton(title: "Generate from Trip Dates", style: .secondary) {
-                            Task { await viewModel.generateDaysFromTripDates() }
-                        }
-                        .frame(width: 240)
-                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.42)
-                    }
-
-                    OuestButton(title: "Add First Day", style: .secondary) {
+        // The brief calls for the AI action to be promoted to primary when
+        // trip dates exist. Secondary text action is "Add a day" so users
+        // who don't want AI still have a one-tap path forward. The extra
+        // "Import from link" / "Generate from dates" flows live in the
+        // toolbar's AI menu so we don't stack four actions on top of each
+        // other — the brief limits empty states to one primary + one text.
+        if canEdit {
+            if tripHasDates {
+                OuestEmptyState(
+                    symbol: "list.bullet.clipboard",
+                    title: "Plan your days",
+                    message: "Generate a first pass from your trip dates, or add days one by one.",
+                    primary: .init("Generate with AI") {
+                        HapticFeedback.light()
+                        viewModel.showAIGenerate = true
+                    },
+                    secondary: .init("Add a day manually") {
                         Task { await viewModel.addDay() }
                     }
-                    .frame(width: 200)
-                    .fadeSlideIn(isVisible: contentAppeared, delay: tripHasDates ? 0.48 : 0.35)
-                }
+                )
+            } else {
+                OuestEmptyState(
+                    symbol: "list.bullet.clipboard",
+                    title: "Plan your days",
+                    message: "Add days and fill them with activities, places, and times.",
+                    primary: .init("Add first day") {
+                        Task { await viewModel.addDay() }
+                    }
+                )
             }
-
-            Spacer()
+        } else {
+            OuestEmptyState(
+                symbol: "list.bullet.clipboard",
+                title: "No itinerary yet",
+                message: "The trip owner hasn't added any days.",
+                footnote: "You have view-only access."
+            )
         }
-        .padding(OuestTheme.Spacing.xxxl)
     }
 
     // MARK: - Skeleton Loading

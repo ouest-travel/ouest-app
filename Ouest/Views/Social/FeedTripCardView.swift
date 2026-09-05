@@ -14,6 +14,10 @@ struct FeedTripCardView: View {
     let onComment: () -> Void
     let onClone: () -> Void
 
+    /// Namespace for the iOS 18 zoom transition into `TripDetailView`.
+    /// Optional so preview / test call sites keep working.
+    var namespace: Namespace.ID? = nil
+
     @State private var likeScale: CGFloat = 1.0
 
     var body: some View {
@@ -43,6 +47,7 @@ struct FeedTripCardView: View {
         .background(OuestTheme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.xl))
         .ouestElevation(.md)
+        .zoomSource(id: feedTrip.trip.id, in: namespace)
     }
 
     // MARK: - Author Blur Pill

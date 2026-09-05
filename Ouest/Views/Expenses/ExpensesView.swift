@@ -221,59 +221,39 @@ struct ExpensesView: View {
 
     // MARK: - Empty State
 
+    @ViewBuilder
     private var emptyStateView: some View {
-        VStack(spacing: OuestTheme.Spacing.xxl) {
-            Spacer()
-
-            VStack(spacing: OuestTheme.Spacing.md) {
-                Image(systemName: "creditcard")
-                    .font(.system(size: OuestTheme.Icon.hero))
-                    .foregroundStyle(OuestTheme.Colors.inkGradient)
-                    .bouncyAppear(isVisible: contentAppeared, delay: 0)
-
-                Text(canEdit ? "Track expenses" : "No expenses yet")
-                    .font(OuestTheme.Typography.screenTitle)
-                    .fadeSlideIn(isVisible: contentAppeared, delay: 0.15)
-
-                Text(canEdit
-                     ? "Add shared expenses and split\ncosts with your travel group"
-                     : "The trip owner hasn't added\nany expenses yet")
-                    .font(.subheadline)
-                    .foregroundStyle(OuestTheme.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .fadeSlideIn(isVisible: contentAppeared, delay: 0.25)
-            }
-
-            if canEdit {
-                VStack(spacing: OuestTheme.Spacing.md) {
-                    OuestButton(title: "Add First Expense") {
-                        viewModel.resetForm()
-                        viewModel.preselectAllMembers()
-                        viewModel.showAddExpense = true
-                    }
-                    .frame(width: 220)
-
-                    Button {
-                        Task {
-                            let count = await viewModel.importEstimatesFromItinerary()
-                            if count > 0 {
-                                importedCount = count
-                                try? await Task.sleep(for: .seconds(2.5))
-                                importedCount = nil
-                            }
+        // Two branches on canEdit — the brief calls this out explicitly:
+        // a primary a view-only member cannot use is never rendered.
+        if canEdit {
+            OuestEmptyState(
+                symbol: "creditcard",
+                title: "Track shared spending",
+                message: "Add expenses here and split the cost across the group.",
+                primary: .init("Add first expense") {
+                    viewModel.resetForm()
+                    viewModel.preselectAllMembers()
+                    viewModel.showAddExpense = true
+                },
+                secondary: .init("Import from itinerary") {
+                    Task {
+                        let count = await viewModel.importEstimatesFromItinerary()
+                        if count > 0 {
+                            importedCount = count
+                            try? await Task.sleep(for: .seconds(2.5))
+                            importedCount = nil
                         }
-                    } label: {
-                        Label("Import from Itinerary", systemImage: "square.and.arrow.down")
-                            .font(.subheadline)
-                            .foregroundStyle(OuestTheme.Colors.brand)
                     }
                 }
-                .fadeSlideIn(isVisible: contentAppeared, delay: 0.35)
-            }
-
-            Spacer()
+            )
+        } else {
+            OuestEmptyState(
+                symbol: "creditcard",
+                title: "No expenses yet",
+                message: "The trip owner hasn't added any shared expenses.",
+                footnote: "You have view-only access."
+            )
         }
-        .padding(OuestTheme.Spacing.xxxl)
     }
 
     // MARK: - Skeleton Loading

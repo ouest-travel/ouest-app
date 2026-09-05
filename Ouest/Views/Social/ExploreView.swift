@@ -5,6 +5,10 @@ struct ExploreView: View {
     @State private var path = NavigationPath()
     @State private var contentAppeared = false
 
+    /// Shared namespace so tapping a feed card grows the cover into the
+    /// trip detail hero on iOS 18. Same technique as HomeView.
+    @Namespace private var feedCovers
+
     var body: some View {
         NavigationStack(path: $path) {
             Group {
@@ -42,7 +46,7 @@ struct ExploreView: View {
                 await viewModel.refreshFeed()
             }
             .navigationDestination(for: UUID.self) { tripId in
-                TripDetailView(tripId: tripId)
+                TripDetailView(tripId: tripId, zoomSourceId: tripId, zoomNamespace: feedCovers)
             }
             .navigationDestination(for: ProfileDestination.self) { destination in
                 UserProfileView(userId: destination.userId)
@@ -114,7 +118,8 @@ struct ExploreView: View {
                         onComment: { viewModel.openComments(for: feedTrip.id) },
                         onClone: {
                             Task { await viewModel.cloneTrip(feedTrip) }
-                        }
+                        },
+                        namespace: feedCovers
                     )
                     .fadeSlideIn(isVisible: contentAppeared, delay: Double(index) * 0.05)
                     .onAppear {
@@ -241,18 +246,14 @@ struct ExploreView: View {
     // MARK: - Empty States
 
     private var searchEmptyState: some View {
-        VStack(spacing: OuestTheme.Spacing.md) {
-            Spacer()
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: OuestTheme.Icon.hero))
-                .foregroundStyle(OuestTheme.Colors.textSecondary)
-            Text("No results")
-                .font(OuestTheme.Typography.cardTitle)
-            Text("Try a different search term")
-                .font(.subheadline)
-                .foregroundStyle(OuestTheme.Colors.textSecondary)
-            Spacer()
-        }
+        // Per brief: echo the query in the title so the user sees exactly
+        // what didn't match. Keeps the search-empty state distinct from
+        // "no trips" without inventing a third dialect.
+        OuestEmptyState(
+            symbol: "magnifyingglass",
+            title: "No matches for \u{201C}\(viewModel.searchQuery)\u{201D}",
+            message: "Try a different search term."
+        )
     }
 
     // MARK: - Cloning Overlay

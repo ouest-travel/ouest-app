@@ -401,46 +401,19 @@ struct HomeView: View {
                 .padding(.horizontal, OuestTheme.Spacing.lg)
                 .padding(.top, OuestTheme.Spacing.sm)
 
-            Spacer()
-
-            VStack(spacing: OuestTheme.Spacing.md) {
-                Image(systemName: "globe.americas.fill")
-                    .font(.system(size: OuestTheme.Icon.hero))
-                    .foregroundStyle(OuestTheme.Colors.inkGradient)
-                    .bouncyAppear(isVisible: cardsAppeared, delay: 0)
-
-                Text("Where to next?")
-                    .font(OuestTheme.Typography.screenTitle)
-                    .fadeSlideIn(isVisible: cardsAppeared, delay: 0.15)
-
-                Text("Your trips will appear here.\nCreate one to start planning!")
-                    .font(.subheadline)
-                    .foregroundStyle(OuestTheme.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .fadeSlideIn(isVisible: cardsAppeared, delay: 0.25)
-            }
-
-            VStack(spacing: OuestTheme.Spacing.sm) {
-                OuestButton(title: "Plan a Trip") {
+            OuestEmptyState(
+                symbol: "globe.americas.fill",
+                title: "Where to next?",
+                message: "Your trips land here once you plan one — or join a friend's with a code.",
+                primary: .init("Plan a trip") {
                     showCreateTrip = true
-                }
-                .frame(width: 200)
-                .fadeSlideIn(isVisible: cardsAppeared, delay: 0.35)
-
-                Button {
+                },
+                secondary: .init("Got an invite code?") {
                     HapticFeedback.light()
                     showJoinWithCode = true
-                } label: {
-                    Label("Got an invite code?", systemImage: "ticket")
-                        .font(OuestTheme.Typography.caption)
-                        .foregroundStyle(OuestTheme.Colors.brand)
                 }
-                .fadeSlideIn(isVisible: cardsAppeared, delay: 0.45)
-            }
-
-            Spacer()
+            )
         }
-        .padding(OuestTheme.Spacing.xxxl)
     }
 
     // MARK: - Skeleton Loading
