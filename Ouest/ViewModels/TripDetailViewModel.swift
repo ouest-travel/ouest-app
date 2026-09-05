@@ -10,7 +10,11 @@ final class TripDetailViewModel {
     var members: [TripMember] = []
     var isLoading = false
     var isSaving = false
-    var errorMessage: String?
+    // Typed error surface — brief §View-model change.
+
+    var failure: OuestError?
+
+    var failureDetail: String?
     var successMessage: String?
 
     // MARK: - Form fields (used for create + edit)
@@ -65,14 +69,18 @@ final class TripDetailViewModel {
 
     func loadTrip(id: UUID) async {
         isLoading = true
-        errorMessage = nil
+        failure = nil
+
+        failureDetail = nil
 
         do {
             currentUserId = try await SupabaseManager.client.auth.session.user.id
             trip = try await TripService.fetchTrip(id: id)
             members = try await TripService.fetchMembers(tripId: id)
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
 
         isLoading = false
@@ -82,7 +90,9 @@ final class TripDetailViewModel {
 
     func createTrip() async -> Trip? {
         isSaving = true
-        errorMessage = nil
+        failure = nil
+
+        failureDetail = nil
 
         do {
             let userId = try await SupabaseManager.client.auth.session.user.id
@@ -142,7 +152,9 @@ final class TripDetailViewModel {
             isSaving = false
             return newTrip
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             isSaving = false
             return nil
         }
@@ -153,7 +165,9 @@ final class TripDetailViewModel {
     func updateTrip() async -> Bool {
         guard let tripId = trip?.id else { return false }
         isSaving = true
-        errorMessage = nil
+        failure = nil
+
+        failureDetail = nil
 
         do {
             let userId = try await SupabaseManager.client.auth.session.user.id
@@ -199,7 +213,9 @@ final class TripDetailViewModel {
             isSaving = false
             return true
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             isSaving = false
             return false
         }
@@ -257,7 +273,9 @@ final class TripDetailViewModel {
             searchResults.removeAll { $0.id == profile.id }
             return true
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             return false
         }
     }
@@ -268,7 +286,9 @@ final class TripDetailViewModel {
             members.removeAll { $0.id == member.id }
             return true
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             return false
         }
     }
@@ -280,7 +300,9 @@ final class TripDetailViewModel {
                 members[index].role = role
             }
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
     }
 

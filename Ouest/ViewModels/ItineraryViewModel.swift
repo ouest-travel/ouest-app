@@ -11,7 +11,11 @@ final class ItineraryViewModel {
     var days: [ItineraryDay] = []
     var isLoading = false
     var isSaving = false
-    var errorMessage: String?
+    // Typed error surface — brief §View-model change.
+
+    var failure: OuestError?
+
+    var failureDetail: String?
 
     // MARK: - Navigation State
 
@@ -111,7 +115,9 @@ final class ItineraryViewModel {
 
     func loadItinerary() async {
         isLoading = days.isEmpty
-        errorMessage = nil
+        failure = nil
+
+        failureDetail = nil
 
         do {
             currentUserId = try await SupabaseManager.client.auth.session.user.id
@@ -128,7 +134,9 @@ final class ItineraryViewModel {
                 days = fetched
             }
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
 
         isLoading = false
@@ -138,7 +146,9 @@ final class ItineraryViewModel {
     func generateDaysFromTripDates() async {
         guard let start = trip.startDate, let end = trip.endDate else { return }
         isLoading = true
-        errorMessage = nil
+        failure = nil
+
+        failureDetail = nil
 
         do {
             days = try await ItineraryService.generateDaysForTrip(
@@ -148,7 +158,9 @@ final class ItineraryViewModel {
             )
             HapticFeedback.success()
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             HapticFeedback.error()
         }
 
@@ -188,7 +200,9 @@ final class ItineraryViewModel {
                 if lastAddedDayId == day.id { lastAddedDayId = nil }
             }
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             HapticFeedback.error()
         }
         isSaving = false
@@ -202,7 +216,9 @@ final class ItineraryViewModel {
                 days[index] = updated
             }
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
     }
 
@@ -212,7 +228,9 @@ final class ItineraryViewModel {
             days.removeAll { $0.id == day.id }
             HapticFeedback.success()
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             HapticFeedback.error()
         }
     }
@@ -310,7 +328,9 @@ final class ItineraryViewModel {
             isSaving = false
             return true
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             HapticFeedback.error()
             isSaving = false
             return false
@@ -325,7 +345,9 @@ final class ItineraryViewModel {
             }
             HapticFeedback.success()
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
     }
 
@@ -387,7 +409,9 @@ final class ItineraryViewModel {
             HapticFeedback.success()
             return true
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             HapticFeedback.error()
             return false
         }

@@ -66,9 +66,9 @@ struct TripMembersView: View {
             .alert(
                 "Couldn't update member",
                 isPresented: errorAlertBinding,
-                presenting: viewModel.errorMessage
+                presenting: viewModel.failureDetail
             ) { _ in
-                Button("OK", role: .cancel) { viewModel.errorMessage = nil }
+                Button("OK", role: .cancel) { viewModel.failure = nil; viewModel.failureDetail = nil }
             } message: { msg in
                 Text(msg)
             }
@@ -84,8 +84,8 @@ struct TripMembersView: View {
 
     private var errorAlertBinding: Binding<Bool> {
         Binding(
-            get: { viewModel.errorMessage != nil },
-            set: { if !$0 { viewModel.errorMessage = nil } }
+            get: { viewModel.failure != nil },
+            set: { if !$0 { viewModel.failure = nil; viewModel.failureDetail = nil } }
         )
     }
 
@@ -269,9 +269,9 @@ struct InviteMemberSheet: View {
             .alert(
                 "Couldn't send invite",
                 isPresented: errorAlertBinding,
-                presenting: viewModel.errorMessage
+                presenting: viewModel.failureDetail
             ) { _ in
-                Button("OK", role: .cancel) { viewModel.errorMessage = nil }
+                Button("OK", role: .cancel) { viewModel.failure = nil; viewModel.failureDetail = nil }
             } message: { msg in
                 Text(msg)
             }
@@ -280,8 +280,8 @@ struct InviteMemberSheet: View {
 
     private var errorAlertBinding: Binding<Bool> {
         Binding(
-            get: { viewModel.errorMessage != nil },
-            set: { if !$0 { viewModel.errorMessage = nil } }
+            get: { viewModel.failure != nil },
+            set: { if !$0 { viewModel.failure = nil; viewModel.failureDetail = nil } }
         )
     }
 

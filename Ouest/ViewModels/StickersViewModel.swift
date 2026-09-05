@@ -11,6 +11,10 @@ final class StickersViewModel {
     var isLoading = false
     var errorMessage: String?
 
+    var failure: OuestError?
+
+    var failureDetail: String?
+
     // MARK: - Private
 
     private let userId: UUID
@@ -51,10 +55,18 @@ final class StickersViewModel {
         isLoading = true
         errorMessage = nil
 
+        failure = nil
+
+        failureDetail = nil
+
         do {
             allStickers = try await StickerService.fetchStickers(userId: userId)
         } catch {
             errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             #if DEBUG
             print("[Stickers] loadStickers failed: \(error)")
             #endif

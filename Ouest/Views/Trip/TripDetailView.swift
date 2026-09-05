@@ -24,11 +24,11 @@ struct TripDetailView: View {
                 loadingSkeleton
             } else if let trip = viewModel.trip {
                 tripContent(trip)
-            } else if let error = viewModel.errorMessage {
+            } else if let failure = viewModel.failure {
                 OuestErrorState(
-                    error: OuestError(rawMessage: error),
+                    error: failure,
                     context: "this trip",
-                    detail: error,
+                    detail: viewModel.failureDetail,
                     onRecover: { Task { await viewModel.loadTrip(id: tripId) } }
                 )
             }

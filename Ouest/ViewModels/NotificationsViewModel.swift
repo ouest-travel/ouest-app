@@ -12,6 +12,10 @@ final class NotificationsViewModel {
     var notifications: [AppNotification] = []
     var isLoading = false
     var errorMessage: String?
+
+    var failure: OuestError?
+
+    var failureDetail: String?
     var unreadCount = 0
 
     // MARK: - Internal
@@ -26,6 +30,10 @@ final class NotificationsViewModel {
         isLoading = notifications.isEmpty
         errorMessage = nil
 
+        failure = nil
+
+        failureDetail = nil
+
         do {
             let userId = try await SupabaseManager.client.auth.session.user.id
             currentUserId = userId
@@ -37,6 +45,10 @@ final class NotificationsViewModel {
             unreadCount = try await fetchedCount
         } catch {
             errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
 
         isLoading = false

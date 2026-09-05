@@ -17,11 +17,11 @@ struct ExpensesView: View {
         Group {
             if viewModel.isLoading {
                 skeletonView
-            } else if let error = viewModel.errorMessage {
+            } else if let failure = viewModel.failure {
                 OuestErrorState(
-                    error: OuestError(rawMessage: error),
+                    error: failure,
                     context: "your expenses",
-                    detail: error,
+                    detail: viewModel.failureDetail,
                     onRecover: { Task { await viewModel.loadExpenses() } }
                 )
             } else if viewModel.expenses.isEmpty {

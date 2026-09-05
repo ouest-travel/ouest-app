@@ -9,6 +9,10 @@ final class TripsViewModel {
     var isLoading = false
     var errorMessage: String?
 
+    var failure: OuestError?
+
+    var failureDetail: String?
+
     /// Filtered trips by status
     var planningTrips: [Trip] { trips.filter { $0.status == .planning } }
     var activeTrips: [Trip] { trips.filter { $0.status == .active } }
@@ -31,6 +35,10 @@ final class TripsViewModel {
         isLoading = trips.isEmpty // Only show loading on first load
         errorMessage = nil
 
+        failure = nil
+
+        failureDetail = nil
+
         do {
             trips = try await TripService.fetchMyTrips()
 
@@ -43,6 +51,10 @@ final class TripsViewModel {
             }
         } catch {
             errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
 
         isLoading = false
@@ -56,6 +68,10 @@ final class TripsViewModel {
             return true
         } catch {
             errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             return false
         }
     }
@@ -71,6 +87,10 @@ final class TripsViewModel {
             }
         } catch {
             errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
     }
 }

@@ -20,7 +20,7 @@ struct EditTripView: View {
                     statusSection
                     optionsSection
 
-                    if let error = viewModel.errorMessage {
+                    if let error = viewModel.failureDetail {
                         Text(error)
                             .font(OuestTheme.Typography.caption)
                             .foregroundStyle(OuestTheme.Colors.error)

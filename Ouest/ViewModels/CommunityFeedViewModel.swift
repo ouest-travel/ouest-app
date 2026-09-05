@@ -13,6 +13,10 @@ final class CommunityFeedViewModel {
     var hasMore = true
     var errorMessage: String?
 
+    var failure: OuestError?
+
+    var failureDetail: String?
+
     // MARK: - Search
 
     var searchQuery = ""
@@ -51,6 +55,10 @@ final class CommunityFeedViewModel {
     func loadFeed() async {
         isLoading = feedTrips.isEmpty
         errorMessage = nil
+
+        failure = nil
+
+        failureDetail = nil
         currentOffset = 0
         hasMore = true
 
@@ -62,6 +70,10 @@ final class CommunityFeedViewModel {
             currentOffset = trips.count
         } catch {
             errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
 
         isLoading = false
@@ -79,6 +91,10 @@ final class CommunityFeedViewModel {
             currentOffset += trips.count
         } catch {
             errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
 
         isLoadingMore = false

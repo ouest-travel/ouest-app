@@ -35,7 +35,7 @@ struct CreateTripView: View {
                     optionsSection
                         .fadeSlideIn(isVisible: appeared, delay: 0.26)
 
-                    if let error = viewModel.errorMessage {
+                    if let error = viewModel.failureDetail {
                         Text(error)
                             .font(OuestTheme.Typography.caption)
                             .foregroundStyle(OuestTheme.Colors.error)

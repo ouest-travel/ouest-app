@@ -9,6 +9,10 @@ final class PollsViewModel {
     var isLoading = false
     var errorMessage: String?
 
+    var failure: OuestError?
+
+    var failureDetail: String?
+
     // MARK: - Form State
 
     var pollTitle = ""
@@ -43,11 +47,19 @@ final class PollsViewModel {
         isLoading = polls.isEmpty
         errorMessage = nil
 
+        failure = nil
+
+        failureDetail = nil
+
         do {
             currentUserId = try await SupabaseManager.client.auth.session.user.id
             polls = try await PollService.fetchPolls(tripId: trip.id)
         } catch {
             errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
 
         isLoading = false
@@ -59,6 +71,10 @@ final class PollsViewModel {
         guard let userId = currentUserId else { return false }
         isSaving = true
         errorMessage = nil
+
+        failure = nil
+
+        failureDetail = nil
 
         do {
             let payload = CreatePollPayload(
@@ -90,6 +106,10 @@ final class PollsViewModel {
             return true
         } catch {
             errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             isSaving = false
             return false
         }
@@ -120,6 +140,10 @@ final class PollsViewModel {
             await loadPolls()
         } catch {
             errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
     }
 
@@ -133,6 +157,10 @@ final class PollsViewModel {
             }
         } catch {
             errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
     }
 
@@ -144,6 +172,10 @@ final class PollsViewModel {
             polls.removeAll { $0.id == poll.id }
         } catch {
             errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
     }
 

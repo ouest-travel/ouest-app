@@ -16,6 +16,10 @@ final class UserProfileViewModel {
     var isLoading = false
     var errorMessage: String?
 
+    var failure: OuestError?
+
+    var failureDetail: String?
+
     // MARK: - Private
 
     private var currentUserId: UUID?
@@ -30,6 +34,10 @@ final class UserProfileViewModel {
     func loadProfile() async {
         isLoading = true
         errorMessage = nil
+
+        failure = nil
+
+        failureDetail = nil
 
         do {
             currentUserId = try await SupabaseManager.client.auth.session.user.id
@@ -57,6 +65,10 @@ final class UserProfileViewModel {
             }
         } catch {
             errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             #if DEBUG
             print("[UserProfile] loadProfile failed: \(error)")
             #endif

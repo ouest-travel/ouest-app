@@ -34,8 +34,8 @@ struct AddActivityView: View {
                     costSection
                         .fadeSlideIn(isVisible: appeared, delay: 0.25)
 
-                    if let error = viewModel.errorMessage {
-                        Text(error)
+                    if let detail = viewModel.failureDetail {
+                        Text(detail)
                             .font(OuestTheme.Typography.caption)
                             .foregroundStyle(OuestTheme.Colors.error)
                             .multilineTextAlignment(.center)

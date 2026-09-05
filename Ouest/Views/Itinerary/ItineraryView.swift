@@ -44,11 +44,11 @@ struct ItineraryView: View {
         Group {
             if viewModel.isLoading {
                 skeletonView
-            } else if let error = viewModel.errorMessage {
+            } else if let failure = viewModel.failure {
                 OuestErrorState(
-                    error: OuestError(rawMessage: error),
+                    error: failure,
                     context: "this itinerary",
-                    detail: error,
+                    detail: viewModel.failureDetail,
                     onRecover: { Task { await viewModel.loadItinerary() } }
                 )
             } else if viewModel.days.isEmpty {

@@ -11,7 +11,16 @@ final class ExpensesViewModel {
     var members: [TripMember] = []
     var isLoading = false
     var isSaving = false
-    var errorMessage: String?
+
+    // MARK: - Error surface
+    //
+    // Design brief §View-model change: the view model exposes a typed
+    // OuestError plus the raw string, not `errorMessage: String?`. Views
+    // read `failure` for the taxonomy (title, symbol, recovery action)
+    // and `failureDetail` for the debug disclosure. Keeps someone from
+    // stuffing a raw Postgres message into the view layer.
+    var failure: OuestError?
+    var failureDetail: String?
 
     // MARK: - Navigation State
 
@@ -204,7 +213,9 @@ final class ExpensesViewModel {
 
     func loadExpenses() async {
         isLoading = expenses.isEmpty
-        errorMessage = nil
+        failure = nil
+
+        failureDetail = nil
 
         do {
             currentUserId = try await SupabaseManager.client.auth.session.user.id
@@ -213,7 +224,9 @@ final class ExpensesViewModel {
             expenses = try await fetchedExpenses
             members = try await fetchedMembers
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
 
         isLoading = false
@@ -353,7 +366,9 @@ final class ExpensesViewModel {
             isSaving = false
             return true
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             HapticFeedback.error()
             isSaving = false
             return false
@@ -368,7 +383,9 @@ final class ExpensesViewModel {
             expenses.removeAll { $0.id == expense.id }
             HapticFeedback.success()
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             HapticFeedback.error()
         }
     }
@@ -381,7 +398,9 @@ final class ExpensesViewModel {
             updateSplitLocally(splitId: split.id, settled: true)
             HapticFeedback.success()
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
     }
 
@@ -391,7 +410,9 @@ final class ExpensesViewModel {
             updateSplitLocally(splitId: split.id, settled: false)
             HapticFeedback.success()
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
     }
 
@@ -454,7 +475,9 @@ final class ExpensesViewModel {
                 try await ExpensesService.unsettleSplit(id: splitId)
                 updateSplitLocally(splitId: splitId, settled: false)
             } catch {
-                errorMessage = error.localizedDescription
+                failure = OuestError(error)
+
+                failureDetail = error.localizedDescription
                 HapticFeedback.error()
                 return
             }
@@ -496,7 +519,9 @@ final class ExpensesViewModel {
                 try await ExpensesService.settleSplit(id: split.id)
                 updateSplitLocally(splitId: split.id, settled: true)
             } catch {
-                errorMessage = error.localizedDescription
+                failure = OuestError(error)
+
+                failureDetail = error.localizedDescription
                 HapticFeedback.error()
                 return
             }
@@ -512,7 +537,9 @@ final class ExpensesViewModel {
     func importEstimatesFromItinerary() async -> Int {
         guard let userId = currentUserId else { return 0 }
         isSaving = true
-        errorMessage = nil
+        failure = nil
+
+        failureDetail = nil
 
         do {
             let days = try await ItineraryService.fetchDays(tripId: trip.id)
@@ -561,7 +588,9 @@ final class ExpensesViewModel {
             isSaving = false
             return importedCount
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             HapticFeedback.error()
             isSaving = false
             return 0

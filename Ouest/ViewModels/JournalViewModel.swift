@@ -9,6 +9,10 @@ final class JournalViewModel {
     var isLoading = false
     var errorMessage: String?
 
+    var failure: OuestError?
+
+    var failureDetail: String?
+
     // MARK: - Form State
     var title = ""
     var content = ""
@@ -36,11 +40,19 @@ final class JournalViewModel {
         isLoading = true
         errorMessage = nil
 
+        failure = nil
+
+        failureDetail = nil
+
         do {
             currentUserId = try await SupabaseManager.client.auth.session.user.id
             entries = try await JournalService.fetchEntries(tripId: tripId)
         } catch {
             errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
 
         isLoading = false
@@ -52,6 +64,10 @@ final class JournalViewModel {
         guard let userId = currentUserId else { return nil }
         isSaving = true
         errorMessage = nil
+
+        failure = nil
+
+        failureDetail = nil
 
         do {
             // Upload photo if provided
@@ -86,6 +102,10 @@ final class JournalViewModel {
             return entry
         } catch {
             errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             isSaving = false
             return nil
         }
@@ -96,6 +116,10 @@ final class JournalViewModel {
     func updateEntry(id: UUID, tripId: UUID) async -> Bool {
         isSaving = true
         errorMessage = nil
+
+        failure = nil
+
+        failureDetail = nil
 
         do {
             // Upload new photo if changed
@@ -129,6 +153,10 @@ final class JournalViewModel {
             return true
         } catch {
             errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             isSaving = false
             return false
         }
@@ -142,6 +170,10 @@ final class JournalViewModel {
             entries.removeAll { $0.id == entry.id }
         } catch {
             errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
     }
 
