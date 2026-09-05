@@ -107,7 +107,7 @@ struct TripGalleryView: View {
         .padding(.vertical, OuestTheme.Spacing.sm)
         .background(.ultraThinMaterial)
         .clipShape(Capsule())
-        .shadow(OuestTheme.Shadow.md)
+        .ouestElevation(.md)
         .padding(.horizontal, OuestTheme.Spacing.lg)
     }
 

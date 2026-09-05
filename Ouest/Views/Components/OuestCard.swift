@@ -8,7 +8,7 @@ struct OuestCard<Content: View>: View {
             .padding(OuestTheme.Spacing.lg)
             .background(OuestTheme.Colors.surface)
             .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
-            .shadow(OuestTheme.Shadow.md)
+            .ouestElevation(.md)
     }
 }
 

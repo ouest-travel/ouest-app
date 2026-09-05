@@ -462,7 +462,7 @@ struct ItineraryView: View {
                             .foregroundStyle(.white)
                             .background(OuestTheme.Colors.brandGradient)
                             .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
-                            .shadow(OuestTheme.Shadow.md)
+                            .ouestElevation(.md)
                         }
                         .frame(width: 240)
                         .fadeSlideIn(isVisible: contentAppeared, delay: 0.32)
@@ -516,7 +516,7 @@ struct ItineraryView: View {
                     .padding(OuestTheme.Spacing.lg)
                     .background(OuestTheme.Colors.surface)
                     .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
-                    .shadow(OuestTheme.Shadow.md)
+                    .ouestElevation(.md)
                 }
             }
             .padding(.horizontal, OuestTheme.Spacing.lg)

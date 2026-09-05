@@ -80,7 +80,7 @@ struct MainTabView: View {
         .padding(.vertical, OuestTheme.Spacing.sm)
         .background(.ultraThinMaterial)
         .clipShape(Capsule())
-        .shadow(OuestTheme.Shadow.lg)
+        .ouestElevation(.lg)
         .padding(.horizontal, OuestTheme.Spacing.xl)
         .padding(.bottom, OuestTheme.Spacing.sm)
     }
@@ -167,7 +167,7 @@ struct MainTabView: View {
             .frame(maxWidth: .infinity)
             .background(OuestTheme.Colors.brandGradient)
             .clipShape(Capsule())
-            .shadow(OuestTheme.Shadow.md)
+            .ouestElevation(.md)
             .accessibilityLabel("AI is building your itinerary in the background")
         } else if let error = aiRun.errorMessage {
             HStack(spacing: OuestTheme.Spacing.sm) {
@@ -209,7 +209,7 @@ struct MainTabView: View {
             .frame(maxWidth: .infinity)
             .background(OuestTheme.Colors.error)
             .clipShape(Capsule())
-            .shadow(OuestTheme.Shadow.md)
+            .ouestElevation(.md)
         }
     }
 
@@ -224,7 +224,7 @@ struct MainTabView: View {
                 .frame(width: 48, height: 48)
                 .background(OuestTheme.Colors.brandGradient)
                 .clipShape(Circle())
-                .shadow(OuestTheme.Shadow.md)
+                .ouestElevation(.md)
                 .accessibilityLabel("New trip")
         }
         .buttonStyle(ScaledButtonStyle(scale: 0.9))

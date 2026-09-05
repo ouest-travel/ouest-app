@@ -314,7 +314,7 @@ struct QRCodeView: View {
         .padding(OuestTheme.Spacing.lg)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
-        .shadow(OuestTheme.Shadow.md)
+        .ouestElevation(.md)
     }
 }
 

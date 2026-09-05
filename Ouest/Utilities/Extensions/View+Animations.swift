@@ -238,7 +238,7 @@ struct SkeletonTripCard: View {
         .padding(12)
         .background(OuestTheme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
-        .shadow(OuestTheme.Shadow.md)
+        .ouestElevation(.md)
     }
 }
 

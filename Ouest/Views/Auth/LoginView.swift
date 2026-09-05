@@ -38,14 +38,16 @@ struct LoginView: View {
                     OuestTextField(
                         text: $email,
                         placeholder: "Email",
-                        keyboardType: .emailAddress
+                        keyboardType: .emailAddress,
+                        hasError: authViewModel.errorMessage != nil
                     )
                     .fadeSlideIn(isVisible: appeared, delay: 0.2)
 
                     OuestTextField(
                         text: $password,
                         placeholder: "Password",
-                        isSecure: true
+                        isSecure: true,
+                        hasError: authViewModel.errorMessage != nil
                     )
                     .fadeSlideIn(isVisible: appeared, delay: 0.25)
 

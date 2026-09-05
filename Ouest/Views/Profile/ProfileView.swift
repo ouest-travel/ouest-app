@@ -175,7 +175,7 @@ struct ProfileView: View {
             } label: {
                 AvatarView(url: profile.avatarUrl, size: 80)
                     .overlay(Circle().stroke(.white, lineWidth: 3))
-                    .shadow(OuestTheme.Shadow.lg)
+                    .ouestElevation(.lg)
             }
             .buttonStyle(.plain)
 
@@ -219,17 +219,13 @@ struct ProfileView: View {
         .frame(maxWidth: .infinity)
         .background(
             VStack(spacing: 0) {
-                LinearGradient(
-                    colors: [OuestTheme.Colors.brand, OuestTheme.Colors.brandCyan],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .frame(height: 140)
+                OuestTheme.Colors.decorGradient
+                    .frame(height: 140)
                 Color("Surface")
             }
         )
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.xl))
-        .shadow(OuestTheme.Shadow.sm)
+        .ouestElevation(.sm)
         .padding(.horizontal, OuestTheme.Spacing.lg)
     }
 

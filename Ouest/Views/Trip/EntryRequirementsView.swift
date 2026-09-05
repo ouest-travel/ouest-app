@@ -180,7 +180,7 @@ struct EntryRequirementsView: View {
         .padding(OuestTheme.Spacing.lg)
         .background(OuestTheme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
-        .shadow(OuestTheme.Shadow.md)
+        .ouestElevation(.md)
     }
 
     // MARK: - Visa Rule Badge
@@ -338,7 +338,7 @@ struct EntryRequirementsView: View {
         .padding(OuestTheme.Spacing.lg)
         .background(OuestTheme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
-        .shadow(OuestTheme.Shadow.md)
+        .ouestElevation(.md)
     }
 
     // MARK: - Needs Nationality

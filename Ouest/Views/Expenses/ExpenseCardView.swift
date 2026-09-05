@@ -66,7 +66,7 @@ struct ExpenseCardView: View {
         .padding(OuestTheme.Spacing.md)
         .background(OuestTheme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
-        .shadow(OuestTheme.Shadow.md)
+        .ouestElevation(.md)
     }
 }
 

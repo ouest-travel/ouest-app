@@ -42,7 +42,7 @@ struct FeedTripCardView: View {
         }
         .background(OuestTheme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.xl))
-        .shadow(OuestTheme.Shadow.md)
+        .ouestElevation(.md)
     }
 
     // MARK: - Author Blur Pill

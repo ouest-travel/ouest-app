@@ -78,7 +78,7 @@ struct PollsView: View {
                     .padding(OuestTheme.Spacing.lg)
                     .background(OuestTheme.Colors.surface)
                     .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
-                    .shadow(OuestTheme.Shadow.sm)
+                    .ouestElevation(.sm)
                 }
             }
             .padding(.horizontal, OuestTheme.Spacing.xl)

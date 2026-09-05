@@ -183,7 +183,7 @@ struct AddActivityView: View {
                 }
                 .background(OuestTheme.Colors.surface)
                 .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
-                .shadow(OuestTheme.Shadow.md)
+                .ouestElevation(.md)
             }
         }
     }

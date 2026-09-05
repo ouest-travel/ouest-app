@@ -88,7 +88,7 @@ struct JoinTripView: View {
             }
             .background(OuestTheme.Colors.surface)
             .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.xl))
-            .shadow(OuestTheme.Shadow.lg)
+            .ouestElevation(.lg)
             .padding(.horizontal, OuestTheme.Spacing.xxl)
             .fadeSlideIn(isVisible: contentAppeared, delay: 0.05)
 

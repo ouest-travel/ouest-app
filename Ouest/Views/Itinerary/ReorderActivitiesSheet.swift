@@ -98,7 +98,7 @@ struct ReorderActivitiesSheet: View {
         .padding(OuestTheme.Spacing.md)
         .background(OuestTheme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
-        .shadow(OuestTheme.Shadow.sm)
+        .ouestElevation(.sm)
     }
 
     // MARK: - Empty State

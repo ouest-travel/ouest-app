@@ -61,7 +61,7 @@ struct ExploreView: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, OuestTheme.Spacing.lg)
                         .padding(.vertical, OuestTheme.Spacing.sm)
-                        .background(.red.opacity(0.85))
+                        .background(OuestTheme.Colors.error)
                         .clipShape(Capsule())
                         .padding(.bottom, OuestTheme.Spacing.xxxl)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -231,7 +231,7 @@ struct ExploreView: View {
         }
         .background(OuestTheme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.xl))
-        .shadow(OuestTheme.Shadow.md)
+        .ouestElevation(.md)
         .shimmerEffect()
     }
 

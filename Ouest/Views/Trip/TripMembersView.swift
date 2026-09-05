@@ -210,7 +210,7 @@ struct InviteMemberSheet: View {
                     .padding(.vertical, 10)
                     .background(.ultraThinMaterial)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .shadow(OuestTheme.Shadow.sm)
+                    .ouestElevation(.sm)
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
                     .transition(.move(edge: .top).combined(with: .opacity))

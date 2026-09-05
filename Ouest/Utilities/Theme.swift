@@ -2,56 +2,106 @@ import SwiftUI
 
 // MARK: - Ouest Design System
 
+/// Token layer. Every colour resolves through `Assets.xcassets` so light and
+/// dark appearances stay in one place. `Color(hex:)` should live only inside
+/// colorset definitions — never in a view.
 enum OuestTheme {
 
     // MARK: - Colors
 
     enum Colors {
+        // Surfaces
+        static let background = Color("Background")
+        static let surface = Color("Surface")
+        static let surfaceRaised = Color("SurfaceRaised")
+        static let fill = Color("Fill")
+        static let border = Color("Border")
+
+        // Backwards-compat aliases — sweep in Phase 2. Both new call sites
+        // and old ones land on the correct colorset in the meantime.
+        static let surfaceSecondary = Color("Fill")
+        static let surfaceTertiary = Color("Fill")
+
+        // Text
+        static let textPrimary = Color("TextPrimary")
+        static let textSecondary = Color("TextSecondary")
+        static let textTertiary = Color("TextTertiary")
+        static let textInverse = Color.white
+
         // Brand
-        static let brand = Color(hex: 0x2563EB)            // Royal Blue
-        static let brandLight = Color(hex: 0x2563EB).opacity(0.12)
-        static let brandCyan = Color(hex: 0x38BDF8)         // Sky Blue (accent)
-        static let brandBlue = Color(hex: 0x1E40AF)         // Blue 800 (depth)
-        static let brandGradient = LinearGradient(
-            colors: [Color(hex: 0x2563EB), Color(hex: 0x38BDF8)],
+        static let brandFill = Color("BrandFill")            // button fills, ring
+        static let brandInk = Color("BrandInk")              // brand-coloured text
+        static let brandFillPressed = Color("BrandFillPressed")
+        static let brandOutline = Color("BrandOutline")
+
+        /// Alias — anywhere old code writes `Colors.brand`. Same #2563EB in
+        /// both appearances, matches the previous literal value.
+        static let brand = Color("BrandFill")
+
+        /// Faint tint used behind icons or as .accent overlay. #2563EB @ 12%.
+        static let brandLight = Color("BrandFill").opacity(0.12)
+
+        // Gradients — never assign a colour directly to a gradient stop; use
+        // one of these two.
+        static let decorGradient = LinearGradient(
+            colors: [Color("DecorGradientStart"), Color("DecorGradientEnd")],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        static let inkGradient = LinearGradient(
+            colors: [Color("InkGradientStart"), Color("InkGradientEnd")],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
 
-        // Surfaces (adaptive light/dark)
-        static let surface = Color("Surface")
-        static let surfaceSecondary = Color("SurfaceSecondary")
-        static let surfaceTertiary = Color("SurfaceTertiary")
-
-        // Text
-        static let textPrimary = Color.primary
-        static let textSecondary = Color.secondary
-        static let textInverse = Color.white
+        /// Backwards-compat alias — old call sites that ask for `brandGradient`
+        /// keep working while Phase 2 assigns each one to `decorGradient` or
+        /// `inkGradient` deliberately. Buttons should migrate to `brandFill`.
+        static let brandGradient = decorGradient
 
         // Semantic
-        static let success = Color(hex: 0x10B981)          // Emerald
-        static let warning = Color(hex: 0xF59E0B)          // Amber
-        static let error = Color(hex: 0xEF4444)            // Red 500
+        static let error = Color("Error")
+        static let errorInk = Color("ErrorInk")
+        static let errorTint = Color("ErrorTint")
+        static let successFill = Color("SuccessFill")
+        static let warningInk = Color("WarningInk")
 
-        // Trip Status
-        static let planning = Color(hex: 0xF59E0B)         // Amber
-        static let active = Color(hex: 0x10B981)           // Emerald
-        static let completed = Color(hex: 0x64748B)        // Slate 500
+        // Backwards-compat aliases — sweep in Phase 2.
+        static let success = Color("SuccessFill")
+        static let warning = Color("WarningInk")
 
-        // Deep Navy (dark mode base)
+        // Deep navy — kept for the two places that use it as a literal
+        // (LoginView gradient, splash). Not a role.
         static let deepNavy = Color(hex: 0x0C1222)
 
-        // Gradient palettes for trip cards (destination-based)
-        static let tripGradients: [[Color]] = [
-            [Color(hex: 0x2563EB), Color(hex: 0x38BDF8)],  // Royal → Sky
-            [Color(hex: 0x38BDF8), Color(hex: 0x1E40AF)],  // Sky → Blue800
-            [Color(hex: 0x10B981), Color(hex: 0x14B8A6)],  // Emerald → Teal
-            [Color(hex: 0xF59E0B), Color(hex: 0xF97316)],  // Amber → Orange
-            [Color(hex: 0x4F46E5), Color(hex: 0x2563EB)],  // Indigo → Blue
-            [Color(hex: 0x3B82F6), Color(hex: 0x06B6D4)],  // Blue → Cyan
-            [Color(hex: 0x64748B), Color(hex: 0x0C1222)],  // Slate → Navy
-            [Color(hex: 0x14B8A6), Color(hex: 0x10B981)],  // Teal → Emerald
-        ]
+        // Destination gradients — 8 pairs, each already carrying a dark
+        // variant one step deeper. Access via TripGradient(index) below.
+        static let tripGradients: [[Color]] = (0..<8).map { i in
+            [Color("TripGradient\(i)Start"), Color("TripGradient\(i)End")]
+        }
+    }
+
+    // MARK: - Status styles
+
+    /// Trip status is a pair, not a single colour. Tint carries the fill
+    /// and ink carries the text on top of that fill — bundling them stops
+    /// anyone picking one without the other.
+    struct StatusStyle: Sendable {
+        let tint: Color
+        let ink: Color
+
+        static let planning = StatusStyle(
+            tint: Color("StatusPlanningTint"),
+            ink: Color("StatusPlanningInk")
+        )
+        static let active = StatusStyle(
+            tint: Color("StatusActiveTint"),
+            ink: Color("StatusActiveInk")
+        )
+        static let completed = StatusStyle(
+            tint: Color("StatusCompletedTint"),
+            ink: Color("StatusCompletedInk")
+        )
     }
 
     // MARK: - Spacing (4pt grid)
@@ -77,13 +127,13 @@ enum OuestTheme {
         static let full: CGFloat = 999  // Capsule
     }
 
-    // MARK: - Shadows (blue-tinted)
+    // MARK: - Elevation
 
-    enum Shadow {
-        static let sm = ShadowStyle(color: Color(hex: 0x2563EB).opacity(0.04), radius: 4, y: 1)
-        static let md = ShadowStyle(color: Color(hex: 0x2563EB).opacity(0.08), radius: 12, y: 4)
-        static let lg = ShadowStyle(color: Color(hex: 0x2563EB).opacity(0.12), radius: 20, y: 6)
-        static let pressed = ShadowStyle(color: Color(hex: 0x2563EB).opacity(0.04), radius: 2, y: 1)
+    /// Appearance-aware elevation. A blue shadow at 4–12% alpha is invisible
+    /// on `#0C1222`, so dark-mode cards had no separation from the page.
+    /// Light gets a neutral shadow; dark gets a 1pt border in `Border`.
+    enum Elevation {
+        case sm, md, lg, pressed
     }
 
     // MARK: - Animation
@@ -131,23 +181,53 @@ enum OuestTheme {
     }
 }
 
-// MARK: - Shadow Style helper
+// MARK: - Elevation view modifier
 
-struct ShadowStyle {
-    let color: Color
-    let radius: CGFloat
-    let y: CGFloat
-}
+/// Apply `.ouestElevation(.md)` in place of the old `.shadow(OuestTheme.Shadow.md)`.
+/// Light appearance gets a neutral shadow; dark gets a hairline `Border` outline
+/// instead, since a low-alpha shadow disappears on the dark page.
+///
+/// The `cornerRadius` parameter matches the border to whatever shape the card
+/// already clips itself to. Defaults to `Radius.lg` (the standard card radius).
+private struct OuestElevation: ViewModifier {
+    let level: OuestTheme.Elevation
+    let cornerRadius: CGFloat
+    @Environment(\.colorScheme) private var colorScheme
 
-// MARK: - View modifier for applying shadow style
-
-extension View {
-    func shadow(_ style: ShadowStyle) -> some View {
-        self.shadow(color: style.color, radius: style.radius, x: 0, y: style.y)
+    func body(content: Content) -> some View {
+        if colorScheme == .dark {
+            // Dark: no shadow. Separate cards with a 1pt border in `Border`.
+            content.overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(OuestTheme.Colors.border, lineWidth: 1)
+                    .allowsHitTesting(false)
+            )
+        } else {
+            switch level {
+            case .sm:
+                content.shadow(color: .black.opacity(0.07), radius: 4, x: 0, y: 1)
+            case .md:
+                content.shadow(color: .black.opacity(0.07), radius: 12, x: 0, y: 4)
+            case .lg:
+                content.shadow(color: .black.opacity(0.14), radius: 20, x: 0, y: 6)
+            case .pressed:
+                content.shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
+            }
+        }
     }
 }
 
-// MARK: - Color hex initializer
+extension View {
+    /// Apply an appearance-aware elevation. Prefer this over a raw `.shadow`.
+    /// Pass `cornerRadius` to match your card's clip shape so the dark-mode
+    /// hairline border sits on the same silhouette; defaults to `Radius.lg`.
+    func ouestElevation(_ level: OuestTheme.Elevation, cornerRadius: CGFloat = OuestTheme.Radius.lg) -> some View {
+        modifier(OuestElevation(level: level, cornerRadius: cornerRadius))
+    }
+}
+
+// MARK: - Color hex initializer (kept for the two literal call sites and
+// for the transition; new code should use Assets.xcassets colorsets).
 
 extension Color {
     init(hex: UInt, opacity: Double = 1.0) {

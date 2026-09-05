@@ -354,7 +354,7 @@ struct TripDetailView: View {
                 .background(color.opacity(0.12))
                 .foregroundStyle(color)
                 .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
-                .shadow(OuestTheme.Shadow.sm)
+                .ouestElevation(.sm)
 
             Text(label)
                 .font(OuestTheme.Typography.micro)
@@ -417,7 +417,7 @@ struct TripDetailView: View {
                         NavigationLink(value: ProfileDestination(userId: member.userId)) {
                             VStack(spacing: OuestTheme.Spacing.xs) {
                                 AvatarView(url: member.profile?.avatarUrl, size: 48)
-                                    .shadow(OuestTheme.Shadow.sm)
+                                    .ouestElevation(.sm)
                                 Text(member.profile?.fullName?.components(separatedBy: " ").first ?? "?")
                                     .font(OuestTheme.Typography.micro)
                                     .foregroundStyle(OuestTheme.Colors.textPrimary)
