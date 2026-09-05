@@ -14,7 +14,6 @@
 		9E81ED6AAC63CA893D1E95AE /* StickersCollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7DCCE02623FD07BBDB8A54D /* StickersCollectionView.swift */; };
 		26B473C2E142F2888B0612EF /* StickerDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7225CF6FF84925347F6CB67F /* StickerDetailView.swift */; };
 		E75B332A692842AA30F08FAF /* StickerMedalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2EF0BFFA6D9841521C1439C /* StickerMedalView.swift */; };
-		010AF9C2190C208CADA90941 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77AE0754D05E053779AEA16A /* EmptyStateView.swift */; };
 		022182BBD5521DEC1A9F2B08 /* EditTripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B5F5E5D2C2D5276C6BDB832 /* EditTripView.swift */; };
 		3294576A0FC147BD3017C55F /* GalleryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B463C5773141641023C3E576 /* GalleryService.swift */; };
 		427F0B0ADC55153DDCFA111A /* PhotoDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C60E0A897CBB8CE82C3E562 /* PhotoDetailView.swift */; };
@@ -89,7 +88,6 @@
 		7F567BBCAEF6CE97A92E65CD /* ExpenseModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AAB52CD63F3D8601C1A4258 /* ExpenseModelTests.swift */; };
 		807B76729FA3C2E4A3DBC9FB /* Activity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EBB2799E6366193CDB16466 /* Activity.swift */; };
 		87904E8AF3932235359F72E4 /* AuthServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7632576DB97B7B51BD4DABE /* AuthServiceTests.swift */; };
-		8AE4C82B5C339832A831F2A5 /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A0B3F20A09687C202B8D50 /* ErrorView.swift */; };
 		8C09AB25F698869BA1D9C803 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80A6FE65E2EF16888306AEB7 /* ExploreView.swift */; };
 		8D3679DD26E0E31C48C259C3 /* View+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AFDA635CF662A4CB4B27143 /* View+Extensions.swift */; };
 		8FFFDB3862B9BF8EDA476511 /* EntryRequirementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D57406D4CDD5CE2F41A5721 /* EntryRequirementTests.swift */; };
@@ -103,7 +101,6 @@
 		A0A539B51888AE8B38A21D87 /* JournalViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8E2FE2508AC3B61537C66BA /* JournalViewModel.swift */; };
 		A3BFEA4E38CFEF42A31C430A /* TripInviteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B659CCBE58BC10DB726B40F1 /* TripInviteTests.swift */; };
 		A594008FCA85A5927A34AD97 /* TripsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54F43E21F21F3EC55CB64D48 /* TripsViewModelTests.swift */; };
-		A9ECFD759750E74784B9AC53 /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 397854801594D36C025C2BDA /* LoadingView.swift */; };
 		AB905DA25B43915F4D495983 /* Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD3B364293BB2ABF0739899 /* Profile.swift */; };
 		AC8AC0C72DB597A5D24BD5E7 /* ForgotPasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80F152390B340DA30C3C3A44 /* ForgotPasswordView.swift */; };
 		E1F2A3B4C5D6708192A3B4C5 /* NewPasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E2D3C4B5A67890A1B2C3D4 /* NewPasswordView.swift */; };
@@ -215,7 +212,6 @@
 		3678A63F971B4089EA2721D1 /* JournalEntryDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalEntryDetailView.swift; sourceTree = "<group>"; };
 		39536D2843EB9AAF3DEB5380 /* QRCodeGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeGenerator.swift; sourceTree = "<group>"; };
 		396C949CC555685A9D120F62 /* EntryRequirementsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryRequirementsViewModel.swift; sourceTree = "<group>"; };
-		397854801594D36C025C2BDA /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
 		3AFDA635CF662A4CB4B27143 /* View+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+Extensions.swift"; sourceTree = "<group>"; };
 		3D13D36FFE00E1F68E84A206 /* ItineraryViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItineraryViewModelTests.swift; sourceTree = "<group>"; };
 		3D49EB06A24452EDC9A07D9E /* ExpenseCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpenseCardView.swift; sourceTree = "<group>"; };
@@ -253,7 +249,6 @@
 		748084841F7F82623081CD48 /* Ouest.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Ouest.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		750916AED18AA4DAEA04C952 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		76FD61D0FFD5A1A72F01E6A5 /* NotificationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationTests.swift; sourceTree = "<group>"; };
-		77AE0754D05E053779AEA16A /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
 		78D087D69BC4DEA66B32E0C5 /* FeedTripCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedTripCardView.swift; sourceTree = "<group>"; };
 		7950DEBD6E369436C8EF1509 /* ShareTripSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareTripSheet.swift; sourceTree = "<group>"; };
 		7B5F5E5D2C2D5276C6BDB832 /* EditTripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditTripView.swift; sourceTree = "<group>"; };
@@ -311,7 +306,6 @@
 		DE248B4B6BD7442F1D87B75A /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		DF7A3072C0E47FD159428B53 /* TripMember.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripMember.swift; sourceTree = "<group>"; };
 		E4213CC4264EEE12B0D445A9 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
-		E6A0B3F20A09687C202B8D50 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
 		E7869EA8609C840CB289885E /* TripDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripDetailViewModel.swift; sourceTree = "<group>"; };
 		E93DE51B3BD9D49DA2751472 /* CommentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommentsView.swift; sourceTree = "<group>"; };
 		EB82C13CA932B539E0DA4979 /* AddExpenseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddExpenseView.swift; sourceTree = "<group>"; };
@@ -434,9 +428,6 @@
 			children = (
 				7DD881F42F0C2A0924F7314E /* AvatarView.swift */,
 				C02CEB2F76E574D12107FB1F /* FullScreenAvatarView.swift */,
-				77AE0754D05E053779AEA16A /* EmptyStateView.swift */,
-				E6A0B3F20A09687C202B8D50 /* ErrorView.swift */,
-				397854801594D36C025C2BDA /* LoadingView.swift */,
 				BF4E5DDCBDA105B7DE84A8B9 /* NationalityPickerView.swift */,
 				EB906B1EA5BAB038D8EE16FB /* OuestButton.swift */,
 				404D729B581F8B721C76679F /* OuestCard.swift */,
@@ -950,12 +941,10 @@
 				BC8B407A319B42174293CC6A /* DeepLinkRouter.swift in Sources */,
 				76ACCADC9901D63AB28EF0F5 /* EditProfileView.swift in Sources */,
 				022182BBD5521DEC1A9F2B08 /* EditTripView.swift in Sources */,
-				010AF9C2190C208CADA90941 /* EmptyStateView.swift in Sources */,
 				7C34E5074EB806047A050530 /* EntryRequirement.swift in Sources */,
 				27391E2495C5A7F394D3B105 /* EntryRequirementService.swift in Sources */,
 				9601162B43DEC03AC5D6BAE8 /* EntryRequirementsView.swift in Sources */,
 				2F19F5D452F5C312C99C86FA /* EntryRequirementsViewModel.swift in Sources */,
-				8AE4C82B5C339832A831F2A5 /* ErrorView.swift in Sources */,
 				50D5733C85AD41BF917C1EE4 /* Expense.swift in Sources */,
 				B3AC2909E96E55F908BB6F7D /* ExpenseCardView.swift in Sources */,
 				A1B2C3D40000000000000001 /* CurrencyService.swift in Sources */,
@@ -986,7 +975,6 @@
 				0AE03E7A2FC7F4E108782507 /* JournalService.swift in Sources */,
 				EC4F0F5061D7A41CF82784CA /* JournalView.swift in Sources */,
 				A0A539B51888AE8B38A21D87 /* JournalViewModel.swift in Sources */,
-				A9ECFD759750E74784B9AC53 /* LoadingView.swift in Sources */,
 				BD64BF6C99BBA6F9C8D9084A /* LoginView.swift in Sources */,
 				136C2931919D81BA4737E0E9 /* MainTabView.swift in Sources */,
 				64F6B7166855B87019602A38 /* NationalityPickerView.swift in Sources */,

@@ -27,7 +27,6 @@ enum OuestError: Equatable, Sendable {
     /// `localizedDescription` — the same technique EditProfileView uses to
     /// tell a unique-code collision (23505) from other Postgres errors.
     init(_ error: Error) {
-        let text = error.localizedDescription.lowercased()
         if let urlError = error as? URLError {
             switch urlError.code {
             case .notConnectedToInternet, .networkConnectionLost, .timedOut,
@@ -42,13 +41,22 @@ enum OuestError: Equatable, Sendable {
                 return
             }
         }
+        self = OuestError(rawMessage: error.localizedDescription)
+    }
+
+    /// Classify from a raw message string. View models today expose a
+    /// `errorMessage: String?` — until Phase 4c migrates them to typed
+    /// errors, screens use this initializer to reach OuestErrorState
+    /// with the same substring rules `init(_:Error)` applies.
+    init(rawMessage: String) {
+        let text = rawMessage.lowercased()
         if text.contains("not found") || text.contains("no rows") || text.contains("pgrst116") {
             self = .notFound
-        } else if text.contains("permission") || text.contains("row-level security") || text.contains("policy") {
+        } else if text.contains("permission") || text.contains("row-level security") || text.contains("policy") || text.contains("rls") {
             self = .noPermission
-        } else if text.contains("offline") || text.contains("network") || text.contains("connection") {
+        } else if text.contains("offline") || text.contains("network") || text.contains("connection") || text.contains("internet") {
             self = .offline
-        } else if text.contains("server") || text.contains("500") || text.contains("503") {
+        } else if text.contains("server") || text.contains("500") || text.contains("503") || text.contains("502") {
             self = .serverError
         } else {
             self = .unknown

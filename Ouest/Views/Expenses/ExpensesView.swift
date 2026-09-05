@@ -18,9 +18,12 @@ struct ExpensesView: View {
             if viewModel.isLoading {
                 skeletonView
             } else if let error = viewModel.errorMessage {
-                ErrorView(message: error) {
-                    Task { await viewModel.loadExpenses() }
-                }
+                OuestErrorState(
+                    error: OuestError(rawMessage: error),
+                    context: "your expenses",
+                    detail: error,
+                    onRecover: { Task { await viewModel.loadExpenses() } }
+                )
             } else if viewModel.expenses.isEmpty {
                 emptyStateView
             } else {

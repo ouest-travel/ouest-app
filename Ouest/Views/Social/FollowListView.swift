@@ -23,9 +23,12 @@ struct FollowListView: View {
                     Spacer()
                 }
             } else if let error = errorMessage {
-                ErrorView(message: error) {
-                    Task { await load() }
-                }
+                OuestErrorState(
+                    error: OuestError(rawMessage: error),
+                    context: "this list",
+                    detail: error,
+                    onRecover: { Task { await load() } }
+                )
             } else if profiles.isEmpty {
                 emptyState
             } else {

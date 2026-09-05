@@ -86,11 +86,11 @@ struct PollsView: View {
     // MARK: - Empty State
 
     private var emptyState: some View {
-        EmptyStateView(
-            icon: "chart.bar",
-            title: "No Polls Yet",
+        OuestEmptyState(
+            symbol: "chart.bar",
+            title: canEdit ? "Decide together" : "No polls yet",
             message: canEdit
-                ? "Create a poll to help your group decide together."
+                ? "Create a poll to gather votes from the group."
                 : "The trip owner hasn't created any polls yet."
         )
     }

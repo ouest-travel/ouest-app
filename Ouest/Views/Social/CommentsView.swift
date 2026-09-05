@@ -43,9 +43,12 @@ struct CommentsView: View {
                     if isLoading {
                         loadingView
                     } else if let error = errorMessage, comments.isEmpty {
-                        ErrorView(message: error) {
-                            Task { await loadComments() }
-                        }
+                        OuestErrorState(
+                            error: OuestError(rawMessage: error),
+                            context: "the comments",
+                            detail: error,
+                            onRecover: { Task { await loadComments() } }
+                        )
                     } else if comments.isEmpty {
                         emptyState
                     } else {

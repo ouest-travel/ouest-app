@@ -25,9 +25,12 @@ struct TripDetailView: View {
             } else if let trip = viewModel.trip {
                 tripContent(trip)
             } else if let error = viewModel.errorMessage {
-                ErrorView(message: error) {
-                    Task { await viewModel.loadTrip(id: tripId) }
-                }
+                OuestErrorState(
+                    error: OuestError(rawMessage: error),
+                    context: "this trip",
+                    detail: error,
+                    onRecover: { Task { await viewModel.loadTrip(id: tripId) } }
+                )
             }
         }
         .navigationBarTitleDisplayMode(.inline)

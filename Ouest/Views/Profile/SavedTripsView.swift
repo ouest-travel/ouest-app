@@ -13,14 +13,17 @@ struct SavedTripsView: View {
             if isLoading {
                 loadingView
             } else if let error = errorMessage, savedTrips.isEmpty {
-                ErrorView(message: error) {
-                    Task { await loadSavedTrips() }
-                }
+                OuestErrorState(
+                    error: OuestError(rawMessage: error),
+                    context: "your saved trips",
+                    detail: error,
+                    onRecover: { Task { await loadSavedTrips() } }
+                )
             } else if savedTrips.isEmpty {
-                EmptyStateView(
-                    icon: "bookmark",
-                    title: "No Saved Trips",
-                    message: "Bookmark trips from Explore to save them for later"
+                OuestEmptyState(
+                    symbol: "bookmark",
+                    title: "Save trips for later",
+                    message: "Bookmark a trip in Explore and it will show up here."
                 )
             } else {
                 tripsList

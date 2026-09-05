@@ -23,9 +23,12 @@ struct UserProfileView: View {
             if viewModel.isLoading {
                 loadingView
             } else if let error = viewModel.errorMessage, viewModel.profile == nil {
-                ErrorView(message: error) {
-                    Task { await viewModel.loadProfile() }
-                }
+                OuestErrorState(
+                    error: OuestError(rawMessage: error),
+                    context: "this profile",
+                    detail: error,
+                    onRecover: { Task { await viewModel.loadProfile() } }
+                )
             } else if let profile = viewModel.profile {
                 profileContent(profile)
             }

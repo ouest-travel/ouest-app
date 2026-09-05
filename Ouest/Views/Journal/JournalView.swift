@@ -134,11 +134,11 @@ struct JournalView: View {
     // MARK: - Empty State
 
     private var emptyState: some View {
-        EmptyStateView(
-            icon: "book",
-            title: "No Entries Yet",
+        OuestEmptyState(
+            symbol: "book",
+            title: canEdit ? "Capture the trip" : "No entries yet",
             message: canEdit
-                ? "Start capturing your travel memories — photos, thoughts, and moments from your trip."
+                ? "Photos, thoughts, and moments from your trip land here."
                 : "The trip owner hasn't added any journal entries yet."
         )
     }

@@ -11,16 +11,19 @@ struct ExploreView: View {
                 if viewModel.isLoading {
                     loadingView
                 } else if let error = viewModel.errorMessage, viewModel.feedTrips.isEmpty {
-                    ErrorView(message: error) {
-                        Task { await viewModel.loadFeed() }
-                    }
+                    OuestErrorState(
+                        error: OuestError(rawMessage: error),
+                        context: "the feed",
+                        detail: error,
+                        onRecover: { Task { await viewModel.loadFeed() } }
+                    )
                 } else if viewModel.filteredTrips.isEmpty && viewModel.searchedUsers.isEmpty && !viewModel.searchQuery.isEmpty && !viewModel.isSearchingUsers {
                     searchEmptyState
                 } else if viewModel.feedTrips.isEmpty {
-                    EmptyStateView(
-                        icon: "safari",
-                        title: "No Trips Yet",
-                        message: "Be the first to share a trip with the community!"
+                    OuestEmptyState(
+                        symbol: "safari",
+                        title: "Discover community trips",
+                        message: "Shared trips from the community land here. Be the first to post one."
                     )
                 } else {
                     feedList

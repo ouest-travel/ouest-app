@@ -120,10 +120,10 @@ struct NotificationsView: View {
     // MARK: - Empty State
 
     private var emptyState: some View {
-        EmptyStateView(
-            icon: "bell",
-            title: "No Activity",
-            message: "You'll see trip updates, likes, and comments here."
+        OuestEmptyState(
+            symbol: "bell",
+            title: "You're all caught up",
+            message: "Trip updates, likes, and comments will show up here."
         )
     }
 
@@ -291,9 +291,12 @@ private struct TripSectionLoader<Content: View>: View {
             if let trip {
                 content(trip, canEdit)
             } else if let errorMessage {
-                ErrorView(message: errorMessage) {
-                    Task { await load() }
-                }
+                OuestErrorState(
+                    error: OuestError(rawMessage: errorMessage),
+                    context: "this trip",
+                    detail: errorMessage,
+                    onRecover: { Task { await load() } }
+                )
             } else {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

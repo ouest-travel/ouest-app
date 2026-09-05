@@ -223,11 +223,11 @@ struct TripGalleryView: View {
     // MARK: - Empty State
 
     private var emptyState: some View {
-        EmptyStateView(
-            icon: "photo.on.rectangle",
-            title: "No Photos Yet",
+        OuestEmptyState(
+            symbol: "photo.on.rectangle",
+            title: canEdit ? "Share the trip" : "No photos yet",
             message: canEdit
-                ? "Start adding photos from your trip — tap the + button to upload."
+                ? "Tap the + button to add photos from your trip."
                 : "No photos have been shared for this trip yet."
         )
     }
