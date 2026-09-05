@@ -7,7 +7,7 @@ struct ErrorView: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 40))
+                .font(.system(size: OuestTheme.Icon.hero))
                 .foregroundStyle(.orange)
 
             Text(message)
@@ -26,4 +26,9 @@ struct ErrorView: View {
 
 #Preview {
     ErrorView(message: "Something went wrong", retryAction: {})
+}
+
+#Preview("Dark") {
+    ErrorView(message: "Something went wrong", retryAction: {})
+        .preferredColorScheme(.dark)
 }

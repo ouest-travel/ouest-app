@@ -49,3 +49,13 @@ struct OuestTextField: View {
     }
     .padding()
 }
+
+#Preview("Dark") {
+    VStack(spacing: 16) {
+        OuestTextField(text: .constant(""), placeholder: "Email")
+        OuestTextField(text: .constant(""), placeholder: "Password", isSecure: true)
+        OuestTextField(text: .constant("Error"), placeholder: "Error field", hasError: true)
+    }
+    .padding()
+    .preferredColorScheme(.dark)
+}

@@ -1,9 +1,17 @@
 import SwiftUI
 
+/// Navigation destination for follow lists
+struct FollowListDestination: Hashable {
+    let userId: UUID
+    let listType: FollowListView.ListType
+}
+
 struct UserProfileView: View {
     let userId: UUID
     @State private var viewModel: UserProfileViewModel
     @State private var contentAppeared = false
+    @State private var equippedStickers: [UserSticker] = []
+    @State private var showAvatarViewer = false
 
     init(userId: UUID) {
         self.userId = userId
@@ -23,8 +31,18 @@ struct UserProfileView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(for: FollowListDestination.self) { dest in
+            FollowListView(userId: dest.userId, listType: dest.listType)
+        }
+        .fullScreenCover(isPresented: $showAvatarViewer) {
+            FullScreenAvatarView(
+                url: viewModel.profile?.avatarUrl,
+                name: viewModel.profile?.fullName
+            )
+        }
         .task {
             await viewModel.loadProfile()
+            equippedStickers = (try? await StickerService.fetchEquippedStickers(userId: userId)) ?? []
             withAnimation(OuestTheme.Anim.smooth) {
                 contentAppeared = true
             }
@@ -33,30 +51,54 @@ struct UserProfileView: View {
 
     // MARK: - Profile Content
 
+    /// Whether this profile's details are hidden (private + not following + not own profile)
+    private var isProfileLocked: Bool {
+        guard let profile = viewModel.profile else { return false }
+        return profile.isPrivate && !viewModel.isFollowing && !viewModel.isOwnProfile
+    }
+
     private func profileContent(_ profile: Profile) -> some View {
         ScrollView {
             VStack(spacing: OuestTheme.Spacing.xl) {
-                // Profile header
-                profileHeader(profile)
+                // Profile card (gradient + avatar + name + stats + interests)
+                profileCard(profile)
                     .fadeSlideIn(isVisible: contentAppeared, delay: 0)
 
-                // Travel interests
-                if let interests = profile.travelInterests, !interests.isEmpty {
-                    interestTags(interests)
-                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.1)
+                // Follow button (outside card for prominence)
+                if !viewModel.isOwnProfile {
+                    OuestButton(
+                        title: viewModel.isFollowing ? "Following" : "Follow",
+                        style: viewModel.isFollowing ? .secondary : .primary
+                    ) {
+                        viewModel.toggleFollow()
+                    }
+                    .frame(width: 200)
+                    .fadeSlideIn(isVisible: contentAppeared, delay: 0.1)
                 }
 
-                // Stats + Follow button
-                statsSection
-                    .fadeSlideIn(isVisible: contentAppeared, delay: 0.15)
-
-                // Public trips
-                if !viewModel.publicTrips.isEmpty {
-                    tripsSection
-                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.2)
+                if isProfileLocked {
+                    // Private profile — show lock message
+                    privateProfileNotice
+                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.15)
                 } else {
-                    noTripsSection
-                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.2)
+                    // Bio (outside card)
+                    if let bio = profile.bio, !bio.isEmpty {
+                        Text(bio)
+                            .font(.subheadline)
+                            .foregroundStyle(OuestTheme.Colors.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(2)
+                            .fadeSlideIn(isVisible: contentAppeared, delay: 0.12)
+                    }
+
+                    // Public trips
+                    if !viewModel.publicTrips.isEmpty {
+                        tripsSection
+                            .fadeSlideIn(isVisible: contentAppeared, delay: 0.2)
+                    } else {
+                        noTripsSection
+                            .fadeSlideIn(isVisible: contentAppeared, delay: 0.2)
+                    }
                 }
             }
             .padding(.horizontal, OuestTheme.Spacing.lg)
@@ -65,99 +107,150 @@ struct UserProfileView: View {
         }
     }
 
-    // MARK: - Profile Header
+    // MARK: - Private Profile Notice
 
-    private func profileHeader(_ profile: Profile) -> some View {
+    private var privateProfileNotice: some View {
         VStack(spacing: OuestTheme.Spacing.md) {
-            AvatarView(url: profile.avatarUrl, size: 80)
-                .shadow(OuestTheme.Shadow.md)
+            Image(systemName: "lock.fill")
+                .font(.title)
+                .foregroundStyle(OuestTheme.Colors.textSecondary)
+            Text("This profile is private")
+                .font(OuestTheme.Typography.cardTitle)
+                .foregroundStyle(OuestTheme.Colors.textPrimary)
+            Text("Follow this traveler to see their trips and interests.")
+                .font(.subheadline)
+                .foregroundStyle(OuestTheme.Colors.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(OuestTheme.Spacing.xxxl)
+    }
 
-            VStack(spacing: OuestTheme.Spacing.xs) {
-                Text(profile.fullName ?? "Traveler")
-                    .font(OuestTheme.Typography.screenTitle)
+    // MARK: - Profile Card
 
-                if let handle = profile.handle {
-                    Text("@\(handle)")
-                        .font(.subheadline)
-                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+    private func profileCard(_ profile: Profile) -> some View {
+        VStack(spacing: 0) {
+            // Empty space sitting over the gradient area — with sticker overlay
+            ZStack(alignment: .topTrailing) {
+                Spacer()
+                    .frame(height: 100)
+                    .frame(maxWidth: .infinity)
+
+                // Equipped stickers (read-only display)
+                if !equippedStickers.isEmpty {
+                    stickerCluster
+                        .padding(.top, 12)
+                        .padding(.trailing, 12)
                 }
             }
 
-            if let bio = profile.bio, !bio.isEmpty {
-                Text(bio)
-                    .font(.subheadline)
-                    .foregroundStyle(OuestTheme.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(2)
+            // Avatar straddling the gradient / surface boundary — tappable
+            Button {
+                if profile.avatarUrl != nil {
+                    showAvatarViewer = true
+                }
+            } label: {
+                AvatarView(url: profile.avatarUrl, size: 80)
+                    .overlay(Circle().stroke(.white, lineWidth: 3))
+                    .ouestElevation(.lg)
             }
+            .buttonStyle(.plain)
 
-            if let nationality = profile.nationality, !nationality.isEmpty {
-                HStack(spacing: OuestTheme.Spacing.xs) {
-                    Text(flag(for: nationality))
-                    Text(nationality)
-                        .font(OuestTheme.Typography.caption)
-                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+            // Profile info on surface
+            VStack(spacing: OuestTheme.Spacing.md) {
+                VStack(spacing: OuestTheme.Spacing.xs) {
+                    Text(profile.fullName ?? "Traveler")
+                        .font(OuestTheme.Typography.screenTitle)
+                        .foregroundStyle(OuestTheme.Colors.textPrimary)
+
+                    if let handle = profile.handle {
+                        Text("@\(handle)")
+                            .font(.subheadline)
+                            .foregroundStyle(OuestTheme.Colors.textSecondary)
+                    }
+                }
+
+                // Stats row
+                HStack(spacing: OuestTheme.Spacing.xxl) {
+                    cardStatItem(value: viewModel.publicTrips.count, label: "Trips")
+
+                    NavigationLink(value: FollowListDestination(userId: userId, listType: .followers)) {
+                        cardStatItem(value: viewModel.followerCount, label: "Followers")
+                    }
+                    .buttonStyle(.plain)
+
+                    NavigationLink(value: FollowListDestination(userId: userId, listType: .following)) {
+                        cardStatItem(value: viewModel.followingCount, label: "Following")
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                // Interest tags inside card (only for non-locked profiles)
+                if !isProfileLocked, let interests = profile.travelInterests, !interests.isEmpty {
+                    interestTags(interests)
+                }
+            }
+            .padding(.top, OuestTheme.Spacing.md)
+            .padding(.bottom, OuestTheme.Spacing.xl)
+        }
+        .frame(maxWidth: .infinity)
+        .background(
+            VStack(spacing: 0) {
+                OuestTheme.Colors.decorGradient
+                    .frame(height: 140)
+                Color("Surface")
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.xl))
+        .ouestElevation(.sm)
+    }
+
+    // MARK: - Sticker Cluster
+
+    private var stickerCluster: some View {
+        let rotations: [Double] = [-6, 4, -3, 7]
+        return HStack(spacing: -8) {
+            ForEach(Array(equippedStickers.prefix(4).enumerated()), id: \.element.id) { index, sticker in
+                if let type = sticker.type {
+                    StickerBadgeView(stickerType: type, isUnlocked: true, size: .small)
+                        .rotationEffect(.degrees(rotations[index % rotations.count]))
                 }
             }
         }
     }
 
-    // MARK: - Interest Tags
+    // MARK: - Interest Tags (Filled)
 
     private func interestTags(_ interests: [String]) -> some View {
-        VStack(alignment: .leading, spacing: OuestTheme.Spacing.sm) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: OuestTheme.Spacing.sm) {
-                    ForEach(interests, id: \.self) { interest in
-                        if let ti = TravelInterest(rawValue: interest) {
-                            HStack(spacing: OuestTheme.Spacing.xs) {
-                                Image(systemName: ti.icon)
-                                    .font(.caption)
-                                Text(ti.label)
-                                    .font(OuestTheme.Typography.caption)
-                            }
-                            .foregroundStyle(ti.color)
-                            .padding(.horizontal, OuestTheme.Spacing.md)
-                            .padding(.vertical, OuestTheme.Spacing.xs)
-                            .background(ti.color.opacity(0.12))
-                            .clipShape(Capsule())
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: OuestTheme.Spacing.sm) {
+                ForEach(interests, id: \.self) { interest in
+                    if let ti = TravelInterest(rawValue: interest) {
+                        HStack(spacing: OuestTheme.Spacing.xs) {
+                            Image(systemName: ti.icon)
+                                .font(.caption)
+                            Text(ti.label)
+                                .font(OuestTheme.Typography.caption)
+                                .fontWeight(.medium)
                         }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, OuestTheme.Spacing.md)
+                        .padding(.vertical, OuestTheme.Spacing.xs)
+                        .background(ti.color)
+                        .clipShape(Capsule())
                     }
                 }
             }
+            .padding(.horizontal, OuestTheme.Spacing.lg)
         }
     }
 
-    // MARK: - Stats Section
-
-    private var statsSection: some View {
-        VStack(spacing: OuestTheme.Spacing.md) {
-            HStack(spacing: OuestTheme.Spacing.xxl) {
-                statItem(value: viewModel.publicTrips.count, label: "Trips")
-                statItem(value: viewModel.followerCount, label: "Followers")
-                statItem(value: viewModel.followingCount, label: "Following")
-            }
-
-            if !viewModel.isOwnProfile {
-                OuestButton(
-                    title: viewModel.isFollowing ? "Following" : "Follow",
-                    style: viewModel.isFollowing ? .secondary : .primary
-                ) {
-                    viewModel.toggleFollow()
-                }
-                .frame(width: 200)
-            }
-        }
-        .padding(OuestTheme.Spacing.lg)
-        .background(OuestTheme.Colors.surfaceSecondary)
-        .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
-    }
-
-    private func statItem(value: Int, label: String) -> some View {
+    private func cardStatItem(value: Int, label: String) -> some View {
         VStack(spacing: 2) {
             Text("\(value)")
                 .font(OuestTheme.Typography.cardTitle)
                 .fontWeight(.bold)
+                .foregroundStyle(OuestTheme.Colors.textPrimary)
             Text(label)
                 .font(OuestTheme.Typography.micro)
                 .foregroundStyle(OuestTheme.Colors.textSecondary)
@@ -214,16 +307,6 @@ struct UserProfileView: View {
         }
     }
 
-    // MARK: - Helpers
-
-    /// Convert a country code to flag emoji
-    private func flag(for countryCode: String) -> String {
-        let code = countryCode.uppercased()
-        guard code.count == 2 else { return "" }
-        return code.unicodeScalars.reduce("") { result, scalar in
-            result + String(UnicodeScalar(scalar.value + 0x1F1A5)!)
-        }
-    }
 }
 
 #Preview {

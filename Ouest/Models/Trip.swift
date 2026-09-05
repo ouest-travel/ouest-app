@@ -113,6 +113,7 @@ struct CreateTripPayload: Codable, Sendable {
     let isPublic: Bool
     let budget: Double?
     let currency: String?
+    let countryCodes: [String]?
 
     enum CodingKeys: String, CodingKey {
         case title, destination, description, status, budget, currency
@@ -121,6 +122,7 @@ struct CreateTripPayload: Codable, Sendable {
         case startDate = "start_date"
         case endDate = "end_date"
         case isPublic = "is_public"
+        case countryCodes = "country_codes"
     }
 }
 
@@ -137,6 +139,7 @@ struct UpdateTripPayload: Codable, Sendable {
     var isPublic: Bool?
     var budget: Double?
     var currency: String?
+    var countryCodes: [String]?
 
     enum CodingKeys: String, CodingKey {
         case title, destination, description, status, budget, currency
@@ -144,5 +147,6 @@ struct UpdateTripPayload: Codable, Sendable {
         case startDate = "start_date"
         case endDate = "end_date"
         case isPublic = "is_public"
+        case countryCodes = "country_codes"
     }
 }

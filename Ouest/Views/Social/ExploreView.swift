@@ -2,10 +2,11 @@ import SwiftUI
 
 struct ExploreView: View {
     @State private var viewModel = CommunityFeedViewModel()
+    @State private var path = NavigationPath()
     @State private var contentAppeared = false
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
                 if viewModel.isLoading {
                     loadingView
@@ -13,7 +14,7 @@ struct ExploreView: View {
                     ErrorView(message: error) {
                         Task { await viewModel.loadFeed() }
                     }
-                } else if viewModel.filteredTrips.isEmpty && !viewModel.searchQuery.isEmpty {
+                } else if viewModel.filteredTrips.isEmpty && viewModel.searchedUsers.isEmpty && !viewModel.searchQuery.isEmpty && !viewModel.isSearchingUsers {
                     searchEmptyState
                 } else if viewModel.feedTrips.isEmpty {
                     EmptyStateView(
@@ -31,11 +32,17 @@ struct ExploreView: View {
                 placement: .navigationBarDrawer(displayMode: .always),
                 prompt: "Search trips, destinations, travelers…"
             )
+            .onChange(of: viewModel.searchQuery) {
+                viewModel.searchUsers()
+            }
             .refreshable {
                 await viewModel.refreshFeed()
             }
             .navigationDestination(for: UUID.self) { tripId in
                 TripDetailView(tripId: tripId)
+            }
+            .navigationDestination(for: ProfileDestination.self) { destination in
+                UserProfileView(userId: destination.userId)
             }
             .sheet(isPresented: $viewModel.showComments) {
                 if let tripId = viewModel.selectedCommentTripId {
@@ -43,9 +50,22 @@ struct ExploreView: View {
                         .presentationDetents([.medium, .large])
                 }
             }
-            .overlay {
+            .overlay(alignment: .bottom) {
                 if viewModel.isCloning {
                     cloningOverlay
+                }
+
+                if let error = viewModel.interactionError {
+                    Text(error)
+                        .font(OuestTheme.Typography.caption)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, OuestTheme.Spacing.lg)
+                        .padding(.vertical, OuestTheme.Spacing.sm)
+                        .background(OuestTheme.Colors.error)
+                        .clipShape(Capsule())
+                        .padding(.bottom, OuestTheme.Spacing.xxxl)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .animation(OuestTheme.Anim.smooth, value: error)
                 }
             }
             .task {
@@ -64,9 +84,28 @@ struct ExploreView: View {
     private var feedList: some View {
         ScrollView {
             LazyVStack(spacing: OuestTheme.Spacing.lg) {
+
+                // MARK: People Results
+                if !viewModel.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    peopleSection
+                }
+
+                // MARK: Trip Results
+                if !viewModel.filteredTrips.isEmpty && !viewModel.searchedUsers.isEmpty && !viewModel.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    HStack {
+                        Text("Trips")
+                            .font(OuestTheme.Typography.sectionTitle)
+                            .foregroundStyle(OuestTheme.Colors.textSecondary)
+                        Spacer()
+                    }
+                    .padding(.top, OuestTheme.Spacing.xs)
+                }
+
                 ForEach(Array(viewModel.filteredTrips.enumerated()), id: \.element.id) { index, feedTrip in
                     FeedTripCardView(
                         feedTrip: feedTrip,
+                        onProfileTap: { path.append(ProfileDestination(userId: feedTrip.creatorProfile.id)) },
+                        onTripTap: { path.append(feedTrip.trip.id) },
                         onLike: { viewModel.toggleLike(feedTrip) },
                         onSave: { viewModel.toggleSave(feedTrip) },
                         onComment: { viewModel.openComments(for: feedTrip.id) },
@@ -94,6 +133,57 @@ struct ExploreView: View {
         }
     }
 
+    // MARK: - People Section
+
+    private var peopleSection: some View {
+        VStack(alignment: .leading, spacing: OuestTheme.Spacing.sm) {
+            if !viewModel.searchedUsers.isEmpty || viewModel.isSearchingUsers {
+                HStack {
+                    Text("People")
+                        .font(OuestTheme.Typography.sectionTitle)
+                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+                    Spacer()
+                    if viewModel.isSearchingUsers {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                }
+            }
+
+            ForEach(viewModel.searchedUsers) { profile in
+                Button {
+                    path.append(ProfileDestination(userId: profile.id))
+                } label: {
+                    HStack(spacing: OuestTheme.Spacing.md) {
+                        AvatarView(url: profile.avatarUrl, size: 44)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(profile.fullName ?? "Traveler")
+                                .font(OuestTheme.Typography.cardTitle)
+                                .foregroundStyle(OuestTheme.Colors.textPrimary)
+
+                            if let handle = profile.handle {
+                                Text("@\(handle)")
+                                    .font(OuestTheme.Typography.caption)
+                                    .foregroundStyle(OuestTheme.Colors.textSecondary)
+                            }
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(OuestTheme.Colors.textSecondary)
+                    }
+                    .padding(OuestTheme.Spacing.md)
+                    .background(OuestTheme.Colors.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
     // MARK: - Loading
 
     private var loadingView: some View {
@@ -110,30 +200,18 @@ struct ExploreView: View {
 
     private var feedCardSkeleton: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Author header skeleton
-            HStack(spacing: OuestTheme.Spacing.sm) {
-                Circle()
+            // Cover skeleton (with pill placeholder at top-left)
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: 0)
                     .fill(OuestTheme.Colors.surfaceSecondary)
-                    .frame(width: 36, height: 36)
+                    .frame(height: 200)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(OuestTheme.Colors.surfaceSecondary)
-                        .frame(width: 120, height: 14)
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(OuestTheme.Colors.surfaceSecondary)
-                        .frame(width: 80, height: 10)
-                }
-
-                Spacer()
+                // Author pill skeleton
+                Capsule()
+                    .fill(OuestTheme.Colors.surfaceTertiary)
+                    .frame(width: 120, height: 30)
+                    .padding(OuestTheme.Spacing.md)
             }
-            .padding(.horizontal, OuestTheme.Spacing.md)
-            .padding(.vertical, OuestTheme.Spacing.sm)
-
-            // Cover skeleton
-            RoundedRectangle(cornerRadius: 0)
-                .fill(OuestTheme.Colors.surfaceSecondary)
-                .frame(height: 200)
 
             // Action bar skeleton
             HStack(spacing: OuestTheme.Spacing.xl) {
@@ -153,7 +231,7 @@ struct ExploreView: View {
         }
         .background(OuestTheme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.xl))
-        .shadow(OuestTheme.Shadow.md)
+        .ouestElevation(.md)
         .shimmerEffect()
     }
 
@@ -163,7 +241,7 @@ struct ExploreView: View {
         VStack(spacing: OuestTheme.Spacing.md) {
             Spacer()
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 36))
+                .font(.system(size: OuestTheme.Icon.hero))
                 .foregroundStyle(OuestTheme.Colors.textSecondary)
             Text("No results")
                 .font(OuestTheme.Typography.cardTitle)

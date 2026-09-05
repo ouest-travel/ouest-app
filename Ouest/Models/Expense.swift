@@ -83,9 +83,20 @@ struct Expense: Codable, Identifiable, Sendable {
     var description: String?
     var amount: Double
     var currency: String?
+    /// Amount as the payer actually keyed it in, before conversion to trip
+    /// currency. Non-nil only when the expense was entered in a currency
+    /// other than the trip's. Together with `originalCurrency` + `fxRate`,
+    /// this lets the UI display the receipt-matching figure even though
+    /// `amount`/splits are stored in trip currency.
+    var originalAmount: Double?
+    var originalCurrency: String?
+    /// Rate used to convert 1 unit of `originalCurrency` to `currency` at
+    /// entry time. Frozen — never re-quoted.
+    var fxRate: Double?
     var category: ExpenseCategory
     var date: Date?
     var splitType: SplitType
+    var receiptUrl: String?
     let createdAt: Date?
     var updatedAt: Date?
 
@@ -98,7 +109,11 @@ struct Expense: Codable, Identifiable, Sendable {
         case id, title, description, amount, currency, category, date, splits
         case tripId = "trip_id"
         case paidBy = "paid_by"
+        case originalAmount = "original_amount"
+        case originalCurrency = "original_currency"
+        case fxRate = "fx_rate"
         case splitType = "split_type"
+        case receiptUrl = "receipt_url"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case paidByProfile = "paid_by_profile"
@@ -109,17 +124,22 @@ struct Expense: Codable, Identifiable, Sendable {
     init(
         id: UUID = UUID(), tripId: UUID, paidBy: UUID, title: String,
         description: String? = nil, amount: Double, currency: String? = nil,
+        originalAmount: Double? = nil, originalCurrency: String? = nil, fxRate: Double? = nil,
         category: ExpenseCategory = .other, date: Date? = nil,
-        splitType: SplitType = .equal, createdAt: Date? = nil, updatedAt: Date? = nil,
+        splitType: SplitType = .equal, receiptUrl: String? = nil,
+        createdAt: Date? = nil, updatedAt: Date? = nil,
         splits: [ExpenseSplit]? = nil, paidByProfile: Profile? = nil
     ) {
         self.id = id; self.tripId = tripId; self.paidBy = paidBy
         self.title = title; self.description = description
         self.amount = amount; self.currency = currency
+        self.originalAmount = originalAmount
+        self.originalCurrency = originalCurrency
+        self.fxRate = fxRate
         self.category = category; self.date = date
-        self.splitType = splitType; self.createdAt = createdAt
-        self.updatedAt = updatedAt; self.splits = splits
-        self.paidByProfile = paidByProfile
+        self.splitType = splitType; self.receiptUrl = receiptUrl
+        self.createdAt = createdAt; self.updatedAt = updatedAt
+        self.splits = splits; self.paidByProfile = paidByProfile
     }
 
     // MARK: - Custom decoder for optional nested arrays
@@ -133,9 +153,13 @@ struct Expense: Codable, Identifiable, Sendable {
         description = try container.decodeIfPresent(String.self, forKey: .description)
         amount = try container.decode(Double.self, forKey: .amount)
         currency = try container.decodeIfPresent(String.self, forKey: .currency)
+        originalAmount = try container.decodeIfPresent(Double.self, forKey: .originalAmount)
+        originalCurrency = try container.decodeIfPresent(String.self, forKey: .originalCurrency)
+        fxRate = try container.decodeIfPresent(Double.self, forKey: .fxRate)
         category = try container.decode(ExpenseCategory.self, forKey: .category)
         date = try container.decodeIfPresent(Date.self, forKey: .date)
         splitType = try container.decode(SplitType.self, forKey: .splitType)
+        receiptUrl = try container.decodeIfPresent(String.self, forKey: .receiptUrl)
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt)
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt)
         splits = try? container.decode([ExpenseSplit].self, forKey: .splits)
@@ -150,6 +174,16 @@ struct Expense: Codable, Identifiable, Sendable {
         formatter.numberStyle = .currency
         formatter.currencyCode = currency ?? "USD"
         return formatter.string(from: NSNumber(value: amount)) ?? "$\(amount)"
+    }
+
+    /// "$50.00 USD" when the expense was entered in a non-trip currency,
+    /// otherwise nil. Use to render a subtitle alongside `formattedAmount`.
+    var formattedOriginalAmount: String? {
+        guard let originalAmount, let originalCurrency else { return nil }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = originalCurrency
+        return formatter.string(from: NSNumber(value: originalAmount)) ?? "\(originalAmount) \(originalCurrency)"
     }
 
     /// Formatted date: "Mar 15, 2025"
@@ -280,6 +314,33 @@ struct Settlement: Identifiable, Sendable {
     }
 }
 
+/// Groups already-settled splits by (debtor, payer) so the Balances view can
+/// show one row per pair with an aggregate amount + a single Undo action —
+/// mirrors how `markSettlementPaid` batches direct splits when settling.
+struct SettledGroup: Identifiable, Sendable {
+    let debtorId: UUID
+    let debtorName: String
+    let debtorAvatarUrl: String?
+    let payerId: UUID
+    let payerName: String
+    let payerAvatarUrl: String?
+    let amount: Double
+    /// IDs of the underlying splits — used by unsettleGroup to reverse them.
+    let splitIds: [UUID]
+    /// The latest settled_at across the grouped splits, for "settled 3h ago"
+    /// display.
+    let latestSettledAt: Date?
+
+    var id: String { "\(debtorId)-\(payerId)" }
+
+    var formattedAmount: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "USD"
+        return formatter.string(from: NSNumber(value: amount)) ?? "$\(amount)"
+    }
+}
+
 // MARK: - Create Expense Payload
 
 struct CreateExpensePayload: Codable, Sendable {
@@ -289,15 +350,23 @@ struct CreateExpensePayload: Codable, Sendable {
     let description: String?
     let amount: Double
     let currency: String?
+    var originalAmount: Double? = nil
+    var originalCurrency: String? = nil
+    var fxRate: Double? = nil
     let category: ExpenseCategory
     let date: Date?
     let splitType: SplitType
+    var receiptUrl: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case title, description, amount, currency, category, date
         case tripId = "trip_id"
         case paidBy = "paid_by"
+        case originalAmount = "original_amount"
+        case originalCurrency = "original_currency"
+        case fxRate = "fx_rate"
         case splitType = "split_type"
+        case receiptUrl = "receipt_url"
     }
 }
 
@@ -308,13 +377,21 @@ struct UpdateExpensePayload: Codable, Sendable {
     var description: String?
     var amount: Double?
     var currency: String?
+    var originalAmount: Double?
+    var originalCurrency: String?
+    var fxRate: Double?
     var category: ExpenseCategory?
     var date: Date?
     var splitType: SplitType?
+    var receiptUrl: String?
 
     enum CodingKeys: String, CodingKey {
         case title, description, amount, currency, category, date
+        case originalAmount = "original_amount"
+        case originalCurrency = "original_currency"
+        case fxRate = "fx_rate"
         case splitType = "split_type"
+        case receiptUrl = "receipt_url"
     }
 }
 

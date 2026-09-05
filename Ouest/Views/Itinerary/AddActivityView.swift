@@ -114,6 +114,7 @@ struct AddActivityView: View {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(OuestTheme.Colors.textSecondary)
                     }
+                    .accessibilityLabel("Clear selected place")
                 }
                 .padding(OuestTheme.Spacing.md)
                 .background(OuestTheme.Colors.brandLight)
@@ -182,7 +183,7 @@ struct AddActivityView: View {
                 }
                 .background(OuestTheme.Colors.surface)
                 .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
-                .shadow(OuestTheme.Shadow.md)
+                .ouestElevation(.md)
             }
         }
     }
@@ -310,7 +311,7 @@ struct AddActivityView: View {
 
 // MARK: - MKPlacemark Address Helper
 
-private extension MKPlacemark {
+extension MKPlacemark {
     var formattedAddress: String? {
         let components = [locality, administrativeArea, country].compactMap { $0 }
         return components.isEmpty ? nil : components.joined(separator: ", ")

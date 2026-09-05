@@ -16,3 +16,8 @@ struct LoadingView: View {
 #Preview {
     LoadingView()
 }
+
+#Preview("Dark") {
+    LoadingView()
+        .preferredColorScheme(.dark)
+}

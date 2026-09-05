@@ -10,7 +10,7 @@ struct EmptyStateView: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: icon)
-                .font(.system(size: 48))
+                .font(.system(size: OuestTheme.Icon.hero))
                 .foregroundStyle(.secondary)
 
             VStack(spacing: 4) {
@@ -40,4 +40,15 @@ struct EmptyStateView: View {
         actionTitle: "Create Trip",
         action: {}
     )
+}
+
+#Preview("Dark") {
+    EmptyStateView(
+        icon: "airplane",
+        title: "No Trips Yet",
+        message: "Create your first trip to get started",
+        actionTitle: "Create Trip",
+        action: {}
+    )
+    .preferredColorScheme(.dark)
 }

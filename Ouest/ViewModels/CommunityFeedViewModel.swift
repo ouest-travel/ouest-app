@@ -16,6 +16,9 @@ final class CommunityFeedViewModel {
     // MARK: - Search
 
     var searchQuery = ""
+    var searchedUsers: [Profile] = []
+    var isSearchingUsers = false
+    private var searchTask: Task<Void, Never>?
 
     var filteredTrips: [FeedTrip] {
         let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -27,6 +30,9 @@ final class CommunityFeedViewModel {
             || $0.creatorProfile.handle?.lowercased().contains(query) == true
         }
     }
+
+    /// Brief error shown as a toast for interaction failures (like/save)
+    var interactionError: String?
 
     // MARK: - Navigation
 
@@ -89,7 +95,12 @@ final class CommunityFeedViewModel {
 
     func toggleLike(_ feedTrip: FeedTrip) {
         guard let userId = currentUserId,
-              let index = feedTrips.firstIndex(where: { $0.id == feedTrip.id }) else { return }
+              let index = feedTrips.firstIndex(where: { $0.id == feedTrip.id }) else {
+            #if DEBUG
+            print("[CommunityFeed] toggleLike guard failed — userId: \(currentUserId?.uuidString ?? "nil"), trip found: \(feedTrips.contains { $0.id == feedTrip.id })")
+            #endif
+            return
+        }
 
         let wasLiked = feedTrips[index].isLiked
         feedTrips[index].isLiked = !wasLiked
@@ -109,6 +120,10 @@ final class CommunityFeedViewModel {
                     feedTrips[idx].isLiked = wasLiked
                     feedTrips[idx].likeCount += wasLiked ? 1 : -1
                 }
+                showInteractionError("Couldn't update like")
+                #if DEBUG
+                print("[CommunityFeed] toggleLike failed: \(error)")
+                #endif
             }
         }
     }
@@ -117,7 +132,12 @@ final class CommunityFeedViewModel {
 
     func toggleSave(_ feedTrip: FeedTrip) {
         guard let userId = currentUserId,
-              let index = feedTrips.firstIndex(where: { $0.id == feedTrip.id }) else { return }
+              let index = feedTrips.firstIndex(where: { $0.id == feedTrip.id }) else {
+            #if DEBUG
+            print("[CommunityFeed] toggleSave guard failed — userId: \(currentUserId?.uuidString ?? "nil")")
+            #endif
+            return
+        }
 
         let wasSaved = feedTrips[index].isSaved
         feedTrips[index].isSaved = !wasSaved
@@ -135,6 +155,10 @@ final class CommunityFeedViewModel {
                 if let idx = feedTrips.firstIndex(where: { $0.id == feedTrip.id }) {
                     feedTrips[idx].isSaved = wasSaved
                 }
+                showInteractionError("Couldn't save trip")
+                #if DEBUG
+                print("[CommunityFeed] toggleSave failed: \(error)")
+                #endif
             }
         }
     }
@@ -161,6 +185,50 @@ final class CommunityFeedViewModel {
     func openComments(for tripId: UUID) {
         selectedCommentTripId = tripId
         showComments = true
+    }
+
+    // MARK: - User Search
+
+    func searchUsers() {
+        searchTask?.cancel()
+
+        let raw = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else {
+            searchedUsers = []
+            isSearchingUsers = false
+            return
+        }
+
+        // Strip leading "@" so "@mya" searches for "mya"
+        let query = raw.hasPrefix("@") ? String(raw.dropFirst()) : raw
+        guard !query.isEmpty else {
+            searchedUsers = []
+            isSearchingUsers = false
+            return
+        }
+
+        isSearchingUsers = true
+
+        searchTask = Task {
+            // Debounce 300ms
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+
+            do {
+                let results = try await TripService.searchProfiles(query: query)
+                guard !Task.isCancelled else { return }
+                // Filter out the current user
+                searchedUsers = results.filter { $0.id != currentUserId }
+            } catch {
+                guard !Task.isCancelled else { return }
+                searchedUsers = []
+                #if DEBUG
+                print("[CommunityFeed] searchUsers failed: \(error)")
+                #endif
+            }
+
+            isSearchingUsers = false
+        }
     }
 
     // MARK: - Private: Build Feed
@@ -220,6 +288,24 @@ final class CommunityFeedViewModel {
         _ type: T.Type,
         _ block: @Sendable () async throws -> T
     ) async -> T? {
-        try? await block()
+        do {
+            return try await block()
+        } catch {
+            #if DEBUG
+            print("[CommunityFeed] safeFetch(\(T.self)) failed: \(error)")
+            #endif
+            return nil
+        }
+    }
+
+    private func showInteractionError(_ message: String) {
+        HapticFeedback.error()
+        interactionError = message
+        Task {
+            try? await Task.sleep(for: .seconds(2.5))
+            if interactionError == message {
+                interactionError = nil
+            }
+        }
     }
 }

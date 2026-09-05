@@ -4,12 +4,19 @@ struct HomeView: View {
     @Environment(AuthViewModel.self) private var authViewModel
     @State private var viewModel = TripsViewModel()
     @State private var showCreateTrip = false
+    @State private var showJoinWithCode = false
     @State private var cardsAppeared = false
 
     // Context menu state
     @State private var tripToDelete: Trip?
     @State private var tripToEdit: Trip?
+    @State private var tripToShare: Trip?
     @State private var showPastTrips = false
+
+    /// Shared namespace for the card → detail zoom transition (iOS 18+).
+    /// Each `TripCardView` cover marks itself as a source keyed by trip.id,
+    /// and the pushed `TripDetailView` uses the same id to grow into place.
+    @Namespace private var tripCovers
 
     var body: some View {
         NavigationStack {
@@ -25,9 +32,20 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        HapticFeedback.light()
-                        showCreateTrip = true
+                    Menu {
+                        Button {
+                            HapticFeedback.light()
+                            showCreateTrip = true
+                        } label: {
+                            Label("Create New Trip", systemImage: "plus.circle")
+                        }
+
+                        Button {
+                            HapticFeedback.light()
+                            showJoinWithCode = true
+                        } label: {
+                            Label("Join With Code", systemImage: "ticket")
+                        }
                     } label: {
                         Image(systemName: "plus")
                             .fontWeight(.semibold)
@@ -36,11 +54,9 @@ struct HomeView: View {
                 }
             }
             .refreshable {
-                cardsAppeared = false
+                // Cards stay in place; pull-to-refresh shouldn't replay the
+                // full entrance animation.
                 await viewModel.fetchTrips()
-                withAnimation(OuestTheme.Anim.smooth) {
-                    cardsAppeared = true
-                }
             }
             .task {
                 await viewModel.fetchTrips()
@@ -55,8 +71,19 @@ struct HomeView: View {
                         Task { await viewModel.fetchTrips() }
                     }
             }
+            .sheet(isPresented: $showJoinWithCode) {
+                JoinWithCodeSheet()
+                    .environment(authViewModel)
+                    .onDisappear {
+                        // Refresh trips in case user joined a new one
+                        Task { await viewModel.fetchTrips() }
+                    }
+            }
             .sheet(item: $tripToEdit) { trip in
                 editTripSheet(for: trip)
+            }
+            .sheet(item: $tripToShare) { trip in
+                ShareTripSheet(trip: trip)
             }
             .alert("Delete Trip", isPresented: deleteAlertBinding) {
                 Button("Cancel", role: .cancel) {
@@ -66,7 +93,7 @@ struct HomeView: View {
                     if let trip = tripToDelete {
                         Task {
                             HapticFeedback.success()
-                            await viewModel.deleteTrip(trip)
+                            _ = await viewModel.deleteTrip(trip)
                         }
                     }
                     tripToDelete = nil
@@ -104,27 +131,71 @@ struct HomeView: View {
 
     private var greetingHeader: some View {
         VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
-            Text(greetingText)
+            // Functional label
+            Text("My Trips")
                 .font(.subheadline)
                 .foregroundStyle(OuestTheme.Colors.textSecondary)
+                .warmReveal(isVisible: cardsAppeared, delay: 0)
 
-            if let name = authViewModel.currentUser?.fullName?.components(separatedBy: " ").first {
-                Text("My Trips, \(name)")
-                    .font(OuestTheme.Typography.screenTitle)
-            } else {
-                Text("My Trips")
-                    .font(OuestTheme.Typography.screenTitle)
+            // Hero greeting
+            Text(personalGreeting)
+                .font(OuestTheme.Typography.heroTitle)
+                .foregroundStyle(OuestTheme.Colors.textPrimary)
+                .warmReveal(isVisible: cardsAppeared, delay: 0.12)
+
+            // Name + time-of-day icon
+            if let firstName {
+                HStack(spacing: OuestTheme.Spacing.sm) {
+                    Text(firstName)
+                        .font(OuestTheme.Typography.screenTitle)
+                        .foregroundStyle(OuestTheme.Colors.inkGradient)
+
+                    Image(systemName: greetingIcon)
+                        .font(.system(size: 20))
+                        .foregroundStyle(greetingIconGradient)
+                        .bouncyAppear(isVisible: cardsAppeared, delay: 0.35)
+                }
+                .warmReveal(isVisible: cardsAppeared, delay: 0.22)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var greetingText: String {
+    // MARK: - Greeting Helpers
+
+    private var firstName: String? {
+        authViewModel.currentUser?.fullName?.components(separatedBy: " ").first
+    }
+
+    private var personalGreeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        let base: String
+        switch hour {
+        case 5..<12:  base = "Good morning"
+        case 12..<17: base = "Good afternoon"
+        default:      base = "Good evening"
+        }
+        return firstName != nil ? "\(base)," : base
+    }
+
+    private var greetingIcon: String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
-        case 5..<12: return "Good morning"
-        case 12..<17: return "Good afternoon"
-        default: return "Good evening"
+        case 5..<12:  return "sun.max.fill"
+        case 12..<17: return "sun.horizon.fill"
+        default:      return "moon.stars.fill"
+        }
+    }
+
+    private var greetingIconGradient: LinearGradient {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<12:
+            return LinearGradient(colors: [.orange, .yellow], startPoint: .top, endPoint: .bottom)
+        case 12..<17:
+            return LinearGradient(colors: [.orange, .pink], startPoint: .top, endPoint: .bottom)
+        default:
+            return LinearGradient(colors: [.indigo, .purple], startPoint: .top, endPoint: .bottom)
         }
     }
 
@@ -135,7 +206,6 @@ struct HomeView: View {
             LazyVStack(spacing: OuestTheme.Spacing.lg) {
                 // Greeting + title header
                 greetingHeader
-                    .fadeSlideIn(isVisible: cardsAppeared, delay: 0)
 
                 // Featured upcoming trip
                 if let upcoming = viewModel.upcomingTrip {
@@ -144,7 +214,8 @@ struct HomeView: View {
                             TripCardView(
                                 trip: upcoming,
                                 style: .featured,
-                                members: viewModel.membersForTrip(upcoming)
+                                members: viewModel.membersForTrip(upcoming),
+                                namespace: tripCovers
                             )
                         }
                         .buttonStyle(ScaledButtonStyle(scale: 0.98))
@@ -172,10 +243,18 @@ struct HomeView: View {
             }
             .padding(.horizontal, OuestTheme.Spacing.lg)
             .padding(.top, OuestTheme.Spacing.sm)
-            .padding(.bottom, OuestTheme.Spacing.xxxl)
+            .padding(.bottom, OuestTheme.Layout.tabBarInset)
         }
+        .background(
+            LinearGradient(
+                colors: [OuestTheme.Colors.surface, OuestTheme.Colors.surfaceSecondary],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+        )
         .navigationDestination(for: UUID.self) { tripId in
-            TripDetailView(tripId: tripId)
+            TripDetailView(tripId: tripId, zoomSourceId: tripId, zoomNamespace: tripCovers)
                 .environment(authViewModel)
         }
     }
@@ -187,7 +266,8 @@ struct HomeView: View {
                     TripCardView(
                         trip: trip,
                         style: .standard,
-                        members: viewModel.membersForTrip(trip)
+                        members: viewModel.membersForTrip(trip),
+                        namespace: tripCovers
                     )
                 }
                 .buttonStyle(ScaledButtonStyle(scale: 0.98))
@@ -255,12 +335,10 @@ struct HomeView: View {
 
     @ViewBuilder
     private func tripContextMenu(for trip: Trip) -> some View {
-        // Share
-        ShareLink(
-            item: shareText(for: trip),
-            subject: Text(trip.title),
-            message: Text("Check out my trip!")
-        ) {
+        // Share — opens full share sheet with invite link + QR code
+        Button {
+            tripToShare = trip
+        } label: {
             Label("Share Trip", systemImage: "square.and.arrow.up")
         }
 
@@ -302,15 +380,6 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Share Text
-
-    private func shareText(for trip: Trip) -> String {
-        var text = "Check out my trip: \(trip.title) — \(trip.destination)"
-        if let dates = trip.dateRangeText {
-            text += ", \(dates)"
-        }
-        return text
-    }
 
     private func sectionHeader(_ title: String, icon: String) -> some View {
         HStack(spacing: 6) {
@@ -331,14 +400,13 @@ struct HomeView: View {
             greetingHeader
                 .padding(.horizontal, OuestTheme.Spacing.lg)
                 .padding(.top, OuestTheme.Spacing.sm)
-                .fadeSlideIn(isVisible: cardsAppeared, delay: 0)
 
             Spacer()
 
             VStack(spacing: OuestTheme.Spacing.md) {
                 Image(systemName: "globe.americas.fill")
-                    .font(.system(size: 56))
-                    .foregroundStyle(OuestTheme.Colors.brandGradient)
+                    .font(.system(size: OuestTheme.Icon.hero))
+                    .foregroundStyle(OuestTheme.Colors.inkGradient)
                     .bouncyAppear(isVisible: cardsAppeared, delay: 0)
 
                 Text("Where to next?")
@@ -352,11 +420,23 @@ struct HomeView: View {
                     .fadeSlideIn(isVisible: cardsAppeared, delay: 0.25)
             }
 
-            OuestButton(title: "Plan a Trip") {
-                showCreateTrip = true
+            VStack(spacing: OuestTheme.Spacing.sm) {
+                OuestButton(title: "Plan a Trip") {
+                    showCreateTrip = true
+                }
+                .frame(width: 200)
+                .fadeSlideIn(isVisible: cardsAppeared, delay: 0.35)
+
+                Button {
+                    HapticFeedback.light()
+                    showJoinWithCode = true
+                } label: {
+                    Label("Got an invite code?", systemImage: "ticket")
+                        .font(OuestTheme.Typography.caption)
+                        .foregroundStyle(OuestTheme.Colors.brand)
+                }
+                .fadeSlideIn(isVisible: cardsAppeared, delay: 0.45)
             }
-            .frame(width: 200)
-            .fadeSlideIn(isVisible: cardsAppeared, delay: 0.35)
 
             Spacer()
         }
@@ -368,8 +448,13 @@ struct HomeView: View {
     private var skeletonLoadingView: some View {
         ScrollView {
             VStack(spacing: OuestTheme.Spacing.lg) {
-                // Greeting header
-                greetingHeader
+                // Greeting skeleton
+                VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
+                    SkeletonView(width: 70, height: 14)
+                    SkeletonView(width: 200, height: 30)
+                    SkeletonView(width: 90, height: 24)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 // Skeleton featured card
                 SkeletonView(height: 220)

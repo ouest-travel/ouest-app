@@ -40,3 +40,12 @@ struct AvatarView: View {
         AvatarView(url: nil, size: 64)
     }
 }
+
+#Preview("Dark") {
+    HStack {
+        AvatarView(url: nil, size: 32)
+        AvatarView(url: nil, size: 48)
+        AvatarView(url: nil, size: 64)
+    }
+    .preferredColorScheme(.dark)
+}

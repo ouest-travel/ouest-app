@@ -16,16 +16,18 @@ struct LoginView: View {
 
                 // Logo
                 VStack(spacing: OuestTheme.Spacing.sm) {
-                    Image(systemName: "airplane.departure")
-                        .font(.system(size: 48))
-                        .foregroundStyle(OuestTheme.Colors.brandGradient)
+                    Image("OuestLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 80, height: 80)
+                        .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
                         .bouncyAppear(isVisible: appeared, delay: 0)
 
                     Text("Ouest")
                         .font(OuestTheme.Typography.heroTitle)
                         .fadeSlideIn(isVisible: appeared, delay: 0.1)
 
-                    Text("Plan. Share. Explore.")
+                    Text("Simplify, Trip & Track")
                         .font(.subheadline)
                         .foregroundStyle(OuestTheme.Colors.textSecondary)
                         .fadeSlideIn(isVisible: appeared, delay: 0.15)
@@ -36,14 +38,16 @@ struct LoginView: View {
                     OuestTextField(
                         text: $email,
                         placeholder: "Email",
-                        keyboardType: .emailAddress
+                        keyboardType: .emailAddress,
+                        hasError: authViewModel.errorMessage != nil
                     )
                     .fadeSlideIn(isVisible: appeared, delay: 0.2)
 
                     OuestTextField(
                         text: $password,
                         placeholder: "Password",
-                        isSecure: true
+                        isSecure: true,
+                        hasError: authViewModel.errorMessage != nil
                     )
                     .fadeSlideIn(isVisible: appeared, delay: 0.25)
 
@@ -77,6 +81,39 @@ struct LoginView: View {
                     .foregroundStyle(OuestTheme.Colors.textSecondary)
                 }
                 .fadeSlideIn(isVisible: appeared, delay: 0.3)
+
+                // Divider
+                HStack(spacing: OuestTheme.Spacing.md) {
+                    Rectangle()
+                        .fill(OuestTheme.Colors.surfaceTertiary)
+                        .frame(height: 1)
+                    Text("or")
+                        .font(.caption)
+                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+                    Rectangle()
+                        .fill(OuestTheme.Colors.surfaceTertiary)
+                        .frame(height: 1)
+                }
+                .fadeSlideIn(isVisible: appeared, delay: 0.32)
+
+                // Apple Sign In
+                Button {
+                    HapticFeedback.light()
+                    Task { await authViewModel.signInWithApple() }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "apple.logo")
+                            .font(.system(size: 18))
+                        Text("Sign in with Apple")
+                            .font(.body.weight(.medium))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(.black)
+                    .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+                }
+                .fadeSlideIn(isVisible: appeared, delay: 0.34)
 
                 Spacer()
 

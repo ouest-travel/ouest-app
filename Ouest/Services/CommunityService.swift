@@ -177,6 +177,30 @@ enum CommunityService {
         return follows.count
     }
 
+    /// Fetch full profile list of a user's followers
+    static func fetchFollowers(userId: UUID) async throws -> [Profile] {
+        let follows: [FollowWithProfile] = try await SupabaseManager.client
+            .from("follows")
+            .select("*, profile:profiles!follows_follower_id_fkey(*)")
+            .eq("following_id", value: userId)
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+        return follows.compactMap(\.profile)
+    }
+
+    /// Fetch full profile list of users someone is following
+    static func fetchFollowing(userId: UUID) async throws -> [Profile] {
+        let follows: [FollowWithProfile] = try await SupabaseManager.client
+            .from("follows")
+            .select("*, profile:profiles!follows_following_id_fkey(*)")
+            .eq("follower_id", value: userId)
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+        return follows.compactMap(\.profile)
+    }
+
     // MARK: - Bookmarks
 
     static func saveTrip(tripId: UUID, userId: UUID) async throws {
@@ -236,7 +260,8 @@ enum CommunityService {
             status: .planning,
             isPublic: false,
             budget: source.budget,
-            currency: source.currency
+            currency: source.currency,
+            countryCodes: source.countryCodes
         )
         let newTrip = try await TripService.createTrip(payload)
 

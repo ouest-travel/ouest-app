@@ -18,14 +18,23 @@ struct EditProfileView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var avatarPreview: Image?
     @State private var avatarData: Data?
+    @State private var removeAvatar = false
 
     // MARK: - UI State
 
     @State private var isSaving = false
+    /// Generic / cross-field error shown at the bottom of the form (e.g. network).
     @State private var errorMessage: String?
+    /// Per-field error messages — shown inline under the offending field, and
+    /// turn that field's border red. Cleared when the user starts typing again.
+    @State private var nameError: String?
+    @State private var handleError: String?
     @State private var contentAppeared = false
 
     private let bioMaxLength = 300
+    /// Handles must be 3–20 chars, lowercase letters / digits / underscores.
+    /// Matches the convention we already enforce server-side via the trigger.
+    private static let handleRegex = #"^[a-z0-9_]{3,20}$"#
 
     private var isFormValid: Bool {
         !fullName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -84,6 +93,10 @@ struct EditProfileView: View {
 
     // MARK: - Avatar Section
 
+    private var hasAvatar: Bool {
+        avatarPreview != nil || (!removeAvatar && authViewModel.currentUser?.avatarUrl != nil)
+    }
+
     private var avatarSection: some View {
         VStack(spacing: OuestTheme.Spacing.md) {
             sectionHeader(icon: "camera.fill", title: "Profile Photo")
@@ -97,7 +110,7 @@ struct EditProfileView: View {
                             .frame(width: 100, height: 100)
                             .clipShape(Circle())
                     } else {
-                        AvatarView(url: authViewModel.currentUser?.avatarUrl, size: 100)
+                        AvatarView(url: removeAvatar ? nil : authViewModel.currentUser?.avatarUrl, size: 100)
                     }
 
                     // Camera badge
@@ -112,6 +125,21 @@ struct EditProfileView: View {
                         .offset(x: 4, y: 4)
                 }
             }
+
+            if hasAvatar {
+                Button(role: .destructive) {
+                    HapticFeedback.selection()
+                    withAnimation(OuestTheme.Anim.quick) {
+                        avatarPreview = nil
+                        avatarData = nil
+                        selectedPhoto = nil
+                        removeAvatar = true
+                    }
+                } label: {
+                    Label("Remove Photo", systemImage: "trash")
+                        .font(OuestTheme.Typography.caption)
+                }
+            }
         }
     }
 
@@ -122,41 +150,61 @@ struct EditProfileView: View {
             sectionHeader(icon: "person.fill", title: "Personal Info")
 
             VStack(spacing: OuestTheme.Spacing.md) {
-                OuestTextField(text: $fullName, placeholder: "Full name")
+                VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
+                    OuestTextField(
+                        text: $fullName,
+                        placeholder: "Full name",
+                        hasError: nameError != nil
+                    )
+                    .onChange(of: fullName) { _, _ in nameError = nil }
 
-                HStack(spacing: OuestTheme.Spacing.xs) {
-                    Text("@")
-                        .font(.body)
-                        .foregroundStyle(OuestTheme.Colors.textSecondary)
-                        .frame(width: 24)
-
-                    TextField("handle", text: $handle)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .font(.body)
+                    if let nameError {
+                        fieldError(nameError)
+                    }
                 }
-                .padding(.horizontal, OuestTheme.Spacing.md)
-                .frame(height: 50)
-                .background(OuestTheme.Colors.surfaceSecondary)
-                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.sm))
 
-                HStack(spacing: OuestTheme.Spacing.xs) {
-                    Image(systemName: "flag.fill")
-                        .font(.body)
-                        .foregroundStyle(OuestTheme.Colors.textSecondary)
-                        .frame(width: 24)
+                VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
+                    HStack(spacing: OuestTheme.Spacing.xs) {
+                        Text("@")
+                            .font(.body)
+                            .foregroundStyle(OuestTheme.Colors.textSecondary)
+                            .frame(width: 24)
 
-                    TextField("Country code (e.g. US, GB, FR)", text: $nationality)
-                        .textInputAutocapitalization(.characters)
-                        .autocorrectionDisabled()
-                        .font(.body)
+                        TextField("handle", text: $handle)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .font(.body)
+                    }
+                    .padding(.horizontal, OuestTheme.Spacing.md)
+                    .frame(height: 50)
+                    .background(OuestTheme.Colors.surfaceSecondary)
+                    .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.sm))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: OuestTheme.Radius.sm)
+                            .stroke(
+                                handleError != nil ? OuestTheme.Colors.error : Color.clear,
+                                lineWidth: 1.5
+                            )
+                    }
+                    .animation(OuestTheme.Anim.quick, value: handleError)
+                    .onChange(of: handle) { _, _ in handleError = nil }
+
+                    if let handleError {
+                        fieldError(handleError)
+                    }
                 }
-                .padding(.horizontal, OuestTheme.Spacing.md)
-                .frame(height: 50)
-                .background(OuestTheme.Colors.surfaceSecondary)
-                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.sm))
+
+                NationalityPickerField(selectedCode: $nationality)
             }
         }
+    }
+
+    /// Compact inline error label shown directly under an invalid field.
+    private func fieldError(_ message: String) -> some View {
+        Label(message, systemImage: "exclamationmark.circle.fill")
+            .font(OuestTheme.Typography.micro)
+            .foregroundStyle(OuestTheme.Colors.error)
+            .transition(.opacity)
     }
 
     // MARK: - Bio Section
@@ -282,21 +330,43 @@ struct EditProfileView: View {
     // MARK: - Save Profile
 
     private func saveProfile() async {
-        isSaving = true
+        // Clear any previous errors so they don't linger across attempts.
         errorMessage = nil
+        nameError = nil
+        handleError = nil
+
+        // 1. Client-side validation. Catch obvious mistakes before the round trip
+        //    so the user sees the problem on the field they need to fix.
+        let trimmedName = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedHandle = handle.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        if trimmedName.isEmpty {
+            nameError = "Name can't be empty."
+            HapticFeedback.error()
+            return
+        }
+        if !trimmedHandle.isEmpty,
+           trimmedHandle.range(of: Self.handleRegex, options: .regularExpression) == nil {
+            handleError = "Use 3–20 letters, numbers, or underscores."
+            HapticFeedback.error()
+            return
+        }
+
+        isSaving = true
 
         do {
-            // Upload avatar if changed
+            // Handle avatar changes
             var avatarUrl = authViewModel.currentUser?.avatarUrl
-            if let data = avatarData, let userId = authViewModel.currentUser?.id {
+            if removeAvatar, let userId = authViewModel.currentUser?.id {
+                try await StorageService.deleteProfileAvatar(userId: userId)
+                avatarUrl = nil
+            } else if let data = avatarData, let userId = authViewModel.currentUser?.id {
                 avatarUrl = try await StorageService.uploadProfileAvatar(data: data, userId: userId)
             }
 
             let payload = UpdateProfilePayload(
-                fullName: fullName.trimmingCharacters(in: .whitespacesAndNewlines),
-                handle: handle.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().isEmpty
-                    ? nil
-                    : handle.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+                fullName: trimmedName,
+                handle: trimmedHandle.isEmpty ? nil : trimmedHandle,
                 bio: bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     ? nil
                     : bio.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -311,11 +381,38 @@ struct EditProfileView: View {
             HapticFeedback.success()
             dismiss()
         } catch {
-            errorMessage = error.localizedDescription
+            // 2. Server-side error — map known patterns to the offending field
+            //    so the user sees the red border + reason on the actual input.
+            applySaveError(error)
             HapticFeedback.error()
         }
 
         isSaving = false
+    }
+
+    /// Inspect a save error and route it to the right field (or the generic
+    /// error label) with a human-readable explanation.
+    private func applySaveError(_ error: Error) {
+        let desc = error.localizedDescription.lowercased()
+
+        // Postgres unique_violation (code 23505) surfaces in localizedDescription
+        // as "duplicate key value violates unique constraint …". The only column
+        // a user can collide on via this form is `handle`, so any unique-violation
+        // here is almost certainly the handle.
+        if desc.contains("duplicate key") || desc.contains("unique constraint") {
+            handleError = "That handle is already taken — try another."
+            return
+        }
+
+        if desc.contains("offline") || desc.contains("internet")
+            || desc.contains("network connection") {
+            errorMessage = "No internet connection. Try again when you're online."
+            return
+        }
+
+        // Fall back to the raw description so we still tell the user *something*
+        // useful instead of silently failing.
+        errorMessage = error.localizedDescription
     }
 }
 

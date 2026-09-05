@@ -5,6 +5,11 @@ struct TripCardView: View {
     var style: CardStyle = .standard
     var members: [TripMemberPreview] = []
 
+    /// Namespace for the iOS 18 zoom transition into `TripDetailView`.
+    /// Optional so previews and any callers that don't set up the namespace
+    /// keep working — the modifier is only applied when a namespace is given.
+    var namespace: Namespace.ID? = nil
+
     enum CardStyle {
         case standard   // Regular list card
         case featured   // Hero card for upcoming trip
@@ -25,9 +30,9 @@ struct TripCardView: View {
         ZStack(alignment: .bottomLeading) {
             coverImage(height: 220)
 
-            // Gradient overlay
+            // Gradient overlay (75% deep navy)
             LinearGradient(
-                colors: [.clear, .black.opacity(0.7)],
+                colors: [.clear, OuestTheme.Colors.deepNavy.opacity(0.75)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -72,7 +77,8 @@ struct TripCardView: View {
         }
         .frame(height: 220)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.xl))
-        .shadow(OuestTheme.Shadow.lg)
+        .ouestElevation(.lg)
+        .zoomSource(id: trip.id, in: namespace)
     }
 
     // MARK: - Standard List Card
@@ -121,7 +127,8 @@ struct TripCardView: View {
         .padding(OuestTheme.Spacing.md)
         .background(OuestTheme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
-        .shadow(OuestTheme.Shadow.md)
+        .ouestElevation(.md)
+        .zoomSource(id: trip.id, in: namespace)
     }
 
     // MARK: - Member Avatar Stack
@@ -187,6 +194,11 @@ struct TripCardView: View {
                 placeholderGradient
             }
         }
+        // maxWidth: .infinity prevents a panoramic cover image from forcing
+        // the cell wider than its proposed width. .scaledToFill() preserves
+        // aspect ratio at the given height, so a wide image would otherwise
+        // have an intrinsic width larger than the row.
+        .frame(maxWidth: .infinity)
         .frame(height: height)
         .clipped()
     }
@@ -204,10 +216,26 @@ struct TripCardView: View {
         }
     }
 
-    /// Generate a consistent gradient based on the destination name
+    /// Generate a consistent gradient based on the destination name.
+    ///
+    /// Uses FNV-1a over the destination's UTF-8 bytes so the mapping is stable
+    /// across process launches. `String.hashValue` is seeded per process on
+    /// Swift, which meant a cover-less trip would change gradient every cold
+    /// start — jarring, and one of the bugs called out in the design brief.
     private var destinationColors: [Color] {
-        let hash = abs(trip.destination.hashValue)
-        return OuestTheme.Colors.tripGradients[hash % OuestTheme.Colors.tripGradients.count]
+        let bucket = Self.fnv1a(trip.destination) % UInt64(OuestTheme.Colors.tripGradients.count)
+        return OuestTheme.Colors.tripGradients[Int(bucket)]
+    }
+
+    /// 64-bit FNV-1a — stable, tiny, no dependencies. We only need a well-
+    /// distributed bucket assignment, not a cryptographic hash.
+    private static func fnv1a(_ string: String) -> UInt64 {
+        var hash: UInt64 = 0xcbf29ce484222325
+        for byte in string.utf8 {
+            hash ^= UInt64(byte)
+            hash &*= 0x100000001b3
+        }
+        return hash
     }
 
     private var statusBadge: some View {
@@ -217,18 +245,18 @@ struct TripCardView: View {
             Text(trip.status.label)
                 .font(OuestTheme.Typography.micro)
         }
-        .foregroundStyle(statusColor)
+        .foregroundStyle(statusStyle.ink)
         .padding(.horizontal, OuestTheme.Spacing.sm)
         .padding(.vertical, OuestTheme.Spacing.xxs)
-        .background(statusColor.opacity(0.12))
+        .background(statusStyle.tint)
         .clipShape(Capsule())
     }
 
-    private var statusColor: Color {
+    private var statusStyle: OuestTheme.StatusStyle {
         switch trip.status {
-        case .planning: OuestTheme.Colors.planning
-        case .active: OuestTheme.Colors.active
-        case .completed: OuestTheme.Colors.completed
+        case .planning: .planning
+        case .active: .active
+        case .completed: .completed
         }
     }
 }
