@@ -13,6 +13,11 @@ struct HomeView: View {
     @State private var tripToShare: Trip?
     @State private var showPastTrips = false
 
+    /// Shared namespace for the card → detail zoom transition (iOS 18+).
+    /// Each `TripCardView` cover marks itself as a source keyed by trip.id,
+    /// and the pushed `TripDetailView` uses the same id to grow into place.
+    @Namespace private var tripCovers
+
     var body: some View {
         NavigationStack {
             Group {
@@ -49,11 +54,9 @@ struct HomeView: View {
                 }
             }
             .refreshable {
-                cardsAppeared = false
+                // Cards stay in place; pull-to-refresh shouldn't replay the
+                // full entrance animation.
                 await viewModel.fetchTrips()
-                withAnimation(OuestTheme.Anim.smooth) {
-                    cardsAppeared = true
-                }
             }
             .task {
                 await viewModel.fetchTrips()
@@ -211,7 +214,8 @@ struct HomeView: View {
                             TripCardView(
                                 trip: upcoming,
                                 style: .featured,
-                                members: viewModel.membersForTrip(upcoming)
+                                members: viewModel.membersForTrip(upcoming),
+                                namespace: tripCovers
                             )
                         }
                         .buttonStyle(ScaledButtonStyle(scale: 0.98))
@@ -250,7 +254,7 @@ struct HomeView: View {
             .ignoresSafeArea()
         )
         .navigationDestination(for: UUID.self) { tripId in
-            TripDetailView(tripId: tripId)
+            TripDetailView(tripId: tripId, zoomSourceId: tripId, zoomNamespace: tripCovers)
                 .environment(authViewModel)
         }
     }
@@ -262,7 +266,8 @@ struct HomeView: View {
                     TripCardView(
                         trip: trip,
                         style: .standard,
-                        members: viewModel.membersForTrip(trip)
+                        members: viewModel.membersForTrip(trip),
+                        namespace: tripCovers
                     )
                 }
                 .buttonStyle(ScaledButtonStyle(scale: 0.98))

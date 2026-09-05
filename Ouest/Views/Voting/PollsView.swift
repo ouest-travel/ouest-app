@@ -51,11 +51,8 @@ struct PollsView: View {
             }
         }
         .refreshable {
-            contentAppeared = false
+            // Content stays in place; pull-to-refresh shouldn't replay the entrance.
             await viewModel.loadPolls()
-            withAnimation(OuestTheme.Anim.smooth) {
-                contentAppeared = true
-            }
         }
     }
 

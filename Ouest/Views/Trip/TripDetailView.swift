@@ -2,6 +2,13 @@ import SwiftUI
 
 struct TripDetailView: View {
     let tripId: UUID
+
+    /// Source id + namespace for the iOS 18 zoom transition from the card.
+    /// Both optional so callers that don't opt into the transition (or
+    /// previews) keep working — `.zoomDestination` is a no-op on nil.
+    var zoomSourceId: UUID? = nil
+    var zoomNamespace: Namespace.ID? = nil
+
     @Environment(AuthViewModel.self) private var authViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = TripDetailViewModel()
@@ -27,6 +34,7 @@ struct TripDetailView: View {
         .navigationDestination(for: ProfileDestination.self) { dest in
             UserProfileView(userId: dest.userId)
         }
+        .zoomDestination(id: zoomSourceId, in: zoomNamespace)
         .task {
             await viewModel.loadTrip(id: tripId)
             withAnimation(OuestTheme.Anim.smooth) {

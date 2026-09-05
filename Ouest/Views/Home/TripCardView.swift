@@ -5,6 +5,11 @@ struct TripCardView: View {
     var style: CardStyle = .standard
     var members: [TripMemberPreview] = []
 
+    /// Namespace for the iOS 18 zoom transition into `TripDetailView`.
+    /// Optional so previews and any callers that don't set up the namespace
+    /// keep working — the modifier is only applied when a namespace is given.
+    var namespace: Namespace.ID? = nil
+
     enum CardStyle {
         case standard   // Regular list card
         case featured   // Hero card for upcoming trip
@@ -73,6 +78,7 @@ struct TripCardView: View {
         .frame(height: 220)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.xl))
         .ouestElevation(.lg)
+        .zoomSource(id: trip.id, in: namespace)
     }
 
     // MARK: - Standard List Card
@@ -122,6 +128,7 @@ struct TripCardView: View {
         .background(OuestTheme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
         .ouestElevation(.md)
+        .zoomSource(id: trip.id, in: namespace)
     }
 
     // MARK: - Member Avatar Stack

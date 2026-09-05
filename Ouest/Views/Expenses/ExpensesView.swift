@@ -85,11 +85,8 @@ struct ExpensesView: View {
             }
         }
         .refreshable {
-            contentAppeared = false
+            // Content stays in place; pull-to-refresh shouldn't replay the entrance.
             await viewModel.loadExpenses()
-            withAnimation(OuestTheme.Anim.smooth) {
-                contentAppeared = true
-            }
         }
         .sheet(isPresented: $viewModel.showAddExpense) {
             AddExpenseView(viewModel: viewModel)

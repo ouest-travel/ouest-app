@@ -138,11 +138,8 @@ struct ItineraryView: View {
             }
         }
         .refreshable {
-            contentAppeared = false
+            // Content stays in place; pull-to-refresh shouldn't replay the entrance.
             await viewModel.loadItinerary()
-            withAnimation(OuestTheme.Anim.smooth) {
-                contentAppeared = true
-            }
         }
         .sheet(isPresented: $viewModel.showAddActivity) {
             if let day = viewModel.selectedDay {

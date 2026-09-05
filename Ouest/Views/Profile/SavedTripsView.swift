@@ -39,11 +39,8 @@ struct SavedTripsView: View {
             }
         }
         .refreshable {
-            contentAppeared = false
+            // Content stays in place; pull-to-refresh shouldn't replay the entrance.
             await loadSavedTrips()
-            withAnimation(OuestTheme.Anim.smooth) {
-                contentAppeared = true
-            }
         }
     }
 

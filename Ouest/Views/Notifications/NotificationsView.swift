@@ -89,11 +89,8 @@ struct NotificationsView: View {
                 }
             }
             .refreshable {
-                contentAppeared = false
+                // Content stays in place; pull-to-refresh shouldn't replay the entrance.
                 await viewModel.loadNotifications()
-                withAnimation(OuestTheme.Anim.smooth) {
-                    contentAppeared = true
-                }
             }
         }
     }
