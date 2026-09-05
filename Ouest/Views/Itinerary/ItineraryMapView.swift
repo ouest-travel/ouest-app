@@ -158,7 +158,7 @@ struct ItineraryMapView: View {
 
                 // Category icon badge in bottom-right
                 Image(systemName: category.icon)
-                    .font(.system(size: 7, weight: .bold))
+                    .font(.caption2.weight(.bold)) // was 7pt — below SF Symbol legibility
                     .foregroundStyle(color)
                     .frame(width: 13, height: 13)
                     .background(Circle().fill(.white))
@@ -320,7 +320,7 @@ struct ItineraryMapView: View {
     private var emptyMapView: some View {
         VStack(spacing: OuestTheme.Spacing.lg) {
             Image(systemName: "map")
-                .font(.system(size: 48))
+                .font(.system(size: OuestTheme.Icon.hero))
                 .foregroundStyle(OuestTheme.Colors.textSecondary.opacity(0.4))
 
             Text("No locations yet")

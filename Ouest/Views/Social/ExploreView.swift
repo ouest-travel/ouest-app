@@ -241,7 +241,7 @@ struct ExploreView: View {
         VStack(spacing: OuestTheme.Spacing.md) {
             Spacer()
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 36))
+                .font(.system(size: OuestTheme.Icon.hero))
                 .foregroundStyle(OuestTheme.Colors.textSecondary)
             Text("No results")
                 .font(OuestTheme.Typography.cardTitle)

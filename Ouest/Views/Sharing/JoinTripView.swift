@@ -188,7 +188,7 @@ struct JoinTripView: View {
         return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
             .overlay {
                 Image(systemName: "airplane")
-                    .font(.system(size: 32))
+                    .font(OuestTheme.Icon.feature)
                     .foregroundStyle(.white.opacity(0.2))
             }
     }
@@ -201,7 +201,7 @@ struct JoinTripView: View {
 
             VStack(spacing: OuestTheme.Spacing.lg) {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 60))
+                    .font(.system(size: OuestTheme.Icon.hero))
                     .foregroundStyle(OuestTheme.Colors.success)
 
                 Text("You're in!")
@@ -240,7 +240,7 @@ struct JoinTripView: View {
 
             VStack(spacing: OuestTheme.Spacing.lg) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 48))
+                    .font(.system(size: OuestTheme.Icon.hero))
                     .foregroundStyle(OuestTheme.Colors.warning)
 
                 Text("Couldn't Join")

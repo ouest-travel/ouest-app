@@ -48,8 +48,8 @@ struct AIProgressView: View {
                     .shimmerEffect()
 
                 Image(systemName: icon)
-                    .font(.system(size: 48))
-                    .foregroundStyle(OuestTheme.Colors.brandGradient)
+                    .font(.system(size: OuestTheme.Icon.hero))
+                    .foregroundStyle(OuestTheme.Colors.inkGradient)
                     .symbolEffect(.pulse, options: .repeating)
             }
 

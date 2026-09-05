@@ -36,7 +36,7 @@ struct MainTabView: View {
             if aiRun.isRunning || aiRun.errorMessage != nil {
                 aiRunBubble
                     .padding(.horizontal, OuestTheme.Spacing.md)
-                    .padding(.bottom, 84) // Clear the floating tab bar
+                    .padding(.bottom, OuestTheme.Layout.tabBarInset)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
@@ -99,7 +99,7 @@ struct MainTabView: View {
             VStack(spacing: 3) {
                 ZStack {
                     Image(systemName: selectedTab == tabValue ? tab.filledIcon : tab.icon)
-                        .font(.system(size: 20))
+                        .font(OuestTheme.Icon.control)
                         .foregroundStyle(selectedTab == tabValue ? OuestTheme.Colors.brand : OuestTheme.Colors.textSecondary)
 
                     // Notification badge
@@ -165,7 +165,7 @@ struct MainTabView: View {
             .padding(.horizontal, OuestTheme.Spacing.lg)
             .padding(.vertical, OuestTheme.Spacing.sm)
             .frame(maxWidth: .infinity)
-            .background(OuestTheme.Colors.brandGradient)
+            .background(OuestTheme.Colors.brandFill) // 15pt white label needs solid fill for contrast
             .clipShape(Capsule())
             .ouestElevation(.md)
             .accessibilityLabel("AI is building your itinerary in the background")
@@ -219,10 +219,10 @@ struct MainTabView: View {
             showCreateTrip = true
         } label: {
             Image(systemName: "plus")
-                .font(.system(size: 20, weight: .semibold))
+                .font(OuestTheme.Icon.control.weight(.semibold))
                 .foregroundStyle(.white)
                 .frame(width: 48, height: 48)
-                .background(OuestTheme.Colors.brandGradient)
+                .background(OuestTheme.Colors.decorGradient) // no label — decorative gradient is safe
                 .clipShape(Circle())
                 .ouestElevation(.md)
                 .accessibilityLabel("New trip")

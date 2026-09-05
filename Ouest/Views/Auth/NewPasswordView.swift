@@ -22,7 +22,7 @@ struct NewPasswordView: View {
         VStack(spacing: 32) {
             VStack(spacing: 8) {
                 Image(systemName: "lock.rotation")
-                    .font(.system(size: 48))
+                    .font(.system(size: OuestTheme.Icon.hero))
                     .foregroundStyle(OuestTheme.Colors.brand)
 
                 Text("Set a New Password")

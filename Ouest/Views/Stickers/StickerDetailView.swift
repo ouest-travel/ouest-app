@@ -81,7 +81,7 @@ struct StickerDetailView: View {
                 .background(
                     isEquipped
                         ? AnyShapeStyle(Color("SurfaceSecondary"))
-                        : AnyShapeStyle(OuestTheme.Colors.brandGradient)
+                        : AnyShapeStyle(OuestTheme.Colors.decorGradient)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
             }

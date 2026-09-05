@@ -24,3 +24,17 @@ struct OuestCard<Content: View>: View {
     }
     .padding()
 }
+
+#Preview("Dark") {
+    OuestCard {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Trip to Tokyo")
+                .font(.headline)
+            Text("March 15 - March 25")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
+    .padding()
+    .preferredColorScheme(.dark)
+}

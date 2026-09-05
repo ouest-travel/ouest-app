@@ -107,7 +107,7 @@ struct ReorderActivitiesSheet: View {
         VStack(spacing: OuestTheme.Spacing.lg) {
             Spacer()
             Image(systemName: "list.bullet")
-                .font(.system(size: 40))
+                .font(.system(size: OuestTheme.Icon.hero))
                 .foregroundStyle(OuestTheme.Colors.textSecondary.opacity(0.4))
             Text("No activities to reorder")
                 .font(OuestTheme.Typography.cardTitle)

@@ -110,7 +110,7 @@ struct AIImportView: View {
             HStack(spacing: OuestTheme.Spacing.sm) {
                 Image(systemName: "wand.and.stars")
                     .font(.title2)
-                    .foregroundStyle(OuestTheme.Colors.brandGradient)
+                    .foregroundStyle(OuestTheme.Colors.inkGradient)
                 Text("Paste anything")
                     .font(OuestTheme.Typography.screenTitle)
                     .foregroundStyle(OuestTheme.Colors.textPrimary)

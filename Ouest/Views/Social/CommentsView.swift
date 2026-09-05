@@ -270,7 +270,7 @@ struct CommentsView: View {
         VStack(spacing: OuestTheme.Spacing.md) {
             Spacer()
             Image(systemName: "bubble.right")
-                .font(.system(size: 36))
+                .font(.system(size: OuestTheme.Icon.hero))
                 .foregroundStyle(OuestTheme.Colors.textSecondary)
             Text("No comments yet")
                 .font(OuestTheme.Typography.cardTitle)

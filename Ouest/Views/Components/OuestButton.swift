@@ -40,7 +40,7 @@ struct OuestButton: View {
 
     private var backgroundStyle: AnyShapeStyle {
         switch style {
-        case .primary: AnyShapeStyle(OuestTheme.Colors.brandGradient)
+        case .primary: AnyShapeStyle(OuestTheme.Colors.brandFill)
         case .secondary: AnyShapeStyle(OuestTheme.Colors.surfaceTertiary)
         case .destructive: AnyShapeStyle(OuestTheme.Colors.error)
         }
@@ -63,4 +63,15 @@ struct OuestButton: View {
         OuestButton(title: "Delete", style: .destructive, action: {})
     }
     .padding()
+}
+
+#Preview("Dark") {
+    VStack(spacing: 16) {
+        OuestButton(title: "Primary", action: {})
+        OuestButton(title: "Secondary", style: .secondary, action: {})
+        OuestButton(title: "Loading", isLoading: true, action: {})
+        OuestButton(title: "Delete", style: .destructive, action: {})
+    }
+    .padding()
+    .preferredColorScheme(.dark)
 }

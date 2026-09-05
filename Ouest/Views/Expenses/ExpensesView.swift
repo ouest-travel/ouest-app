@@ -106,7 +106,7 @@ struct ExpensesView: View {
                     .padding(.vertical, OuestTheme.Spacing.sm)
                     .background(OuestTheme.Colors.success.opacity(0.9))
                     .clipShape(Capsule())
-                    .padding(.bottom, OuestTheme.Spacing.xxxl)
+                    .padding(.bottom, OuestTheme.Layout.tabBarInset)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .animation(OuestTheme.Anim.smooth, value: importedCount)
             }
@@ -151,7 +151,7 @@ struct ExpensesView: View {
             }
             .padding(.horizontal, OuestTheme.Spacing.lg)
             .padding(.top, OuestTheme.Spacing.sm)
-            .padding(.bottom, OuestTheme.Spacing.xxxl)
+            .padding(.bottom, OuestTheme.Layout.tabBarInset)
         }
     }
 
@@ -227,8 +227,8 @@ struct ExpensesView: View {
 
             VStack(spacing: OuestTheme.Spacing.md) {
                 Image(systemName: "creditcard")
-                    .font(.system(size: 48))
-                    .foregroundStyle(OuestTheme.Colors.brandGradient)
+                    .font(.system(size: OuestTheme.Icon.hero))
+                    .foregroundStyle(OuestTheme.Colors.inkGradient)
                     .bouncyAppear(isVisible: contentAppeared, delay: 0)
 
                 Text(canEdit ? "Track expenses" : "No expenses yet")

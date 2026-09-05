@@ -103,7 +103,7 @@ struct AIGenerateView: View {
             HStack(spacing: OuestTheme.Spacing.sm) {
                 Image(systemName: "sparkles")
                     .font(.title2)
-                    .foregroundStyle(OuestTheme.Colors.brandGradient)
+                    .foregroundStyle(OuestTheme.Colors.inkGradient)
                 Text("Skip the blank page")
                     .font(OuestTheme.Typography.screenTitle)
                     .foregroundStyle(OuestTheme.Colors.textPrimary)
@@ -212,7 +212,7 @@ struct AIGenerateView: View {
             .foregroundStyle(isSelected ? .white : OuestTheme.Colors.textPrimary)
             .background {
                 Capsule()
-                    .fill(isSelected ? AnyShapeStyle(OuestTheme.Colors.brandGradient) : AnyShapeStyle(OuestTheme.Colors.surfaceSecondary))
+                    .fill(isSelected ? AnyShapeStyle(OuestTheme.Colors.decorGradient) : AnyShapeStyle(OuestTheme.Colors.surfaceSecondary))
             }
             .overlay {
                 Capsule()

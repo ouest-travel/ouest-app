@@ -426,8 +426,8 @@ struct ItineraryView: View {
 
             VStack(spacing: OuestTheme.Spacing.md) {
                 Image(systemName: "list.bullet.clipboard")
-                    .font(.system(size: 48))
-                    .foregroundStyle(OuestTheme.Colors.brandGradient)
+                    .font(.system(size: OuestTheme.Icon.hero))
+                    .foregroundStyle(OuestTheme.Colors.inkGradient)
                     .bouncyAppear(isVisible: contentAppeared, delay: 0)
 
                 Text(canEdit ? "Plan your days" : "No itinerary yet")
@@ -460,7 +460,7 @@ struct ItineraryView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
                             .foregroundStyle(.white)
-                            .background(OuestTheme.Colors.brandGradient)
+                            .background(OuestTheme.Colors.brandFill) // white label needs solid fill
                             .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
                             .ouestElevation(.md)
                         }

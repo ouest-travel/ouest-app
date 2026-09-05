@@ -242,7 +242,7 @@ struct TripDetailView: View {
         return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
             .overlay {
                 Image(systemName: "airplane")
-                    .font(.system(size: 40))
+                    .font(.system(size: OuestTheme.Icon.hero))
                     .foregroundStyle(.white.opacity(0.2))
             }
     }
@@ -424,7 +424,7 @@ struct TripDetailView: View {
                                     .lineLimit(1)
                                 if member.role == .owner {
                                     Image(systemName: "crown.fill")
-                                        .font(.system(size: 8))
+                                        .font(.caption2) // was 8pt — below SF Symbol legibility
                                         .foregroundStyle(.orange)
                                 }
                             }

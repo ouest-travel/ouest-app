@@ -100,7 +100,7 @@ struct SignUpView: View {
             Spacer()
 
             Image(systemName: "envelope.badge.fill")
-                .font(.system(size: 64))
+                .font(.system(size: OuestTheme.Icon.hero))
                 .foregroundStyle(.green)
 
             VStack(spacing: 8) {

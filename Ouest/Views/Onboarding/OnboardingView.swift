@@ -266,7 +266,7 @@ struct OnboardingView: View {
             Spacer()
 
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 64))
+                .font(.system(size: OuestTheme.Icon.hero))
                 .foregroundStyle(OuestTheme.Colors.success)
 
             VStack(spacing: OuestTheme.Spacing.sm) {

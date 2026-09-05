@@ -29,8 +29,8 @@ struct JoinWithCodeSheet: View {
                         .fill(OuestTheme.Colors.brandLight)
                         .frame(width: 88, height: 88)
                     Image(systemName: "ticket.fill")
-                        .font(.system(size: 38))
-                        .foregroundStyle(OuestTheme.Colors.brandGradient)
+                        .font(.system(size: OuestTheme.Icon.hero))
+                        .foregroundStyle(OuestTheme.Colors.inkGradient)
                 }
                 .padding(.bottom, OuestTheme.Spacing.xl)
 

@@ -120,11 +120,16 @@ struct FullScreenAvatarView: View {
             .overlay {
                 Image(systemName: "person.fill")
                     .foregroundStyle(Color(.systemGray))
-                    .font(.system(size: 80))
+                    .font(.system(size: OuestTheme.Icon.hero))
             }
     }
 }
 
 #Preview {
     FullScreenAvatarView(url: nil, name: "Preview User")
+}
+
+#Preview("Dark") {
+    FullScreenAvatarView(url: nil, name: "Preview User")
+        .preferredColorScheme(.dark)
 }

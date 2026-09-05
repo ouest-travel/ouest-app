@@ -54,11 +54,6 @@ enum OuestTheme {
             endPoint: .bottomTrailing
         )
 
-        /// Backwards-compat alias — old call sites that ask for `brandGradient`
-        /// keep working while Phase 2 assigns each one to `decorGradient` or
-        /// `inkGradient` deliberately. Buttons should migrate to `brandFill`.
-        static let brandGradient = decorGradient
-
         // Semantic
         static let error = Color("Error")
         static let errorInk = Color("ErrorInk")
@@ -125,6 +120,44 @@ enum OuestTheme {
         static let lg: CGFloat = 20     // refined from 16
         static let xl: CGFloat = 24     // refined from 20
         static let full: CGFloat = 999  // Capsule
+    }
+
+    // MARK: - Layout
+
+    /// Semantic layout intents. Sits above `Spacing` — `Spacing.lg` is a
+    /// raw 16pt, `Layout.pageGutter` is "the horizontal breathing room
+    /// around a screen's content." Same number, different meaning; the
+    /// name makes site-level choices reviewable.
+    enum Layout {
+        /// Horizontal breathing room at the edges of a screen's content.
+        static let pageGutter: CGFloat = 16
+        /// Padding inside a card or panel.
+        static let cardPadding: CGFloat = 16
+        /// Vertical gap between cards in the same section.
+        static let stackGap: CGFloat = 12
+        /// Vertical gap between sections on the same screen.
+        static let sectionGap: CGFloat = 28
+        /// Bottom padding every tab's scroll view needs so the last row
+        /// doesn't run under the floating tab bar + AI-run bubble.
+        static let tabBarInset: CGFloat = 96
+        /// Height every control (button, text field) already agrees on.
+        static let controlHeight: CGFloat = 50
+    }
+
+    // MARK: - Icons
+
+    /// Four Dynamic-Type-aware icon sizes. Prefer these over
+    /// `.font(.system(size:))`, which ignores the user's text-size setting
+    /// and is why icons stayed frozen while everything else scaled.
+    enum Icon {
+        /// Beside body text — inline glyph or badge.
+        static let inline: Font = .body
+        /// Tab-bar and toolbar controls. 20pt at default size.
+        static let control: Font = .title3
+        /// Section marks, feature callouts. 34pt at default size.
+        static let feature: Font = .largeTitle
+        /// Empty-state art only. Capped on purpose — see brief §Icons.
+        static let hero: CGFloat = 56
     }
 
     // MARK: - Elevation

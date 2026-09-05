@@ -349,8 +349,8 @@ struct EntryRequirementsView: View {
 
             VStack(spacing: OuestTheme.Spacing.md) {
                 Image(systemName: "person.text.rectangle")
-                    .font(.system(size: 48))
-                    .foregroundStyle(OuestTheme.Colors.brandGradient)
+                    .font(.system(size: OuestTheme.Icon.hero))
+                    .foregroundStyle(OuestTheme.Colors.inkGradient)
 
                 Text("Set Your Nationality")
                     .font(OuestTheme.Typography.screenTitle)
@@ -379,8 +379,8 @@ struct EntryRequirementsView: View {
 
             VStack(spacing: OuestTheme.Spacing.md) {
                 Image(systemName: "globe.americas.fill")
-                    .font(.system(size: 48))
-                    .foregroundStyle(OuestTheme.Colors.brandGradient)
+                    .font(.system(size: OuestTheme.Icon.hero))
+                    .foregroundStyle(OuestTheme.Colors.inkGradient)
 
                 Text("Add Destinations")
                     .font(OuestTheme.Typography.screenTitle)

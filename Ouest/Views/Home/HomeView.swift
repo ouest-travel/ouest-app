@@ -145,7 +145,7 @@ struct HomeView: View {
                 HStack(spacing: OuestTheme.Spacing.sm) {
                     Text(firstName)
                         .font(OuestTheme.Typography.screenTitle)
-                        .foregroundStyle(OuestTheme.Colors.brandGradient)
+                        .foregroundStyle(OuestTheme.Colors.inkGradient)
 
                     Image(systemName: greetingIcon)
                         .font(.system(size: 20))
@@ -239,7 +239,7 @@ struct HomeView: View {
             }
             .padding(.horizontal, OuestTheme.Spacing.lg)
             .padding(.top, OuestTheme.Spacing.sm)
-            .padding(.bottom, OuestTheme.Spacing.xxxl)
+            .padding(.bottom, OuestTheme.Layout.tabBarInset)
         }
         .background(
             LinearGradient(
@@ -400,8 +400,8 @@ struct HomeView: View {
 
             VStack(spacing: OuestTheme.Spacing.md) {
                 Image(systemName: "globe.americas.fill")
-                    .font(.system(size: 56))
-                    .foregroundStyle(OuestTheme.Colors.brandGradient)
+                    .font(.system(size: OuestTheme.Icon.hero))
+                    .foregroundStyle(OuestTheme.Colors.inkGradient)
                     .bouncyAppear(isVisible: cardsAppeared, delay: 0)
 
                 Text("Where to next?")
