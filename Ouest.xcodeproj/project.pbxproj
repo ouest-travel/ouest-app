@@ -50,6 +50,9 @@
 		39A0E3A385DFC486E3B0F432 /* TripDateRangePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB697F8C1D520EA34A1BD94 /* TripDateRangePicker.swift */; };
 		3E1A0CAF8A0975BE85D5D012 /* ItineraryMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8321E58626DD54970C40CDCD /* ItineraryMapView.swift */; };
 		4455C306F6B353902EE9F213 /* OuestCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 404D729B581F8B721C76679F /* OuestCard.swift */; };
+		A1B2C3D40000000000000010 /* OuestEmptyState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000011 /* OuestEmptyState.swift */; };
+		A1B2C3D40000000000000012 /* OuestErrorState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000013 /* OuestErrorState.swift */; };
+		A1B2C3D40000000000000014 /* OuestToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000015 /* OuestToast.swift */; };
 		45F635ACD00D4774CDF7EDA8 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 863416E959E9B98060F6A2A2 /* SplashView.swift */; };
 		4745CCAA6C85C36DD1FAB061 /* FollowListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 808BF1C0E300F017C9613F81 /* FollowListView.swift */; };
 		47D625EA1EF09F167B6C9158 /* Validators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4225F980CD876EF1F5D9A4 /* Validators.swift */; };
@@ -218,6 +221,9 @@
 		3D49EB06A24452EDC9A07D9E /* ExpenseCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpenseCardView.swift; sourceTree = "<group>"; };
 		3D6AB9755262B27C5327E8B3 /* UserProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileView.swift; sourceTree = "<group>"; };
 		404D729B581F8B721C76679F /* OuestCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OuestCard.swift; sourceTree = "<group>"; };
+		A1B2C3D40000000000000011 /* OuestEmptyState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OuestEmptyState.swift; sourceTree = "<group>"; };
+		A1B2C3D40000000000000013 /* OuestErrorState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OuestErrorState.swift; sourceTree = "<group>"; };
+		A1B2C3D40000000000000015 /* OuestToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OuestToast.swift; sourceTree = "<group>"; };
 		43B90E8D67BEA6495681AC22 /* PollsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollsView.swift; sourceTree = "<group>"; };
 		441D81C05C14347E28C0914C /* OuestUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OuestUITests.swift; sourceTree = "<group>"; };
 		442807461ADF736D6C3E0EDD /* Date+Relative.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Relative.swift"; sourceTree = "<group>"; };
@@ -434,7 +440,10 @@
 				BF4E5DDCBDA105B7DE84A8B9 /* NationalityPickerView.swift */,
 				EB906B1EA5BAB038D8EE16FB /* OuestButton.swift */,
 				404D729B581F8B721C76679F /* OuestCard.swift */,
+				A1B2C3D40000000000000011 /* OuestEmptyState.swift */,
+				A1B2C3D40000000000000013 /* OuestErrorState.swift */,
 				7BB7BB942DEEF21FF3A8E41A /* OuestTextField.swift */,
+				A1B2C3D40000000000000015 /* OuestToast.swift */,
 				AAB697F8C1D520EA34A1BD94 /* TripDateRangePicker.swift */,
 			);
 			path = Components;
@@ -988,7 +997,10 @@
 				C3CC7CDDD48172665E8317C0 /* OuestApp.swift in Sources */,
 				FE5DCAFD7A9347802DC6B656 /* OuestButton.swift in Sources */,
 				4455C306F6B353902EE9F213 /* OuestCard.swift in Sources */,
+				A1B2C3D40000000000000010 /* OuestEmptyState.swift in Sources */,
+				A1B2C3D40000000000000012 /* OuestErrorState.swift in Sources */,
 				581F64E8F5A561E461436A47 /* OuestTextField.swift in Sources */,
+				A1B2C3D40000000000000014 /* OuestToast.swift in Sources */,
 				427F0B0ADC55153DDCFA111A /* PhotoDetailView.swift in Sources */,
 				CBA9EC433D3B61C309F8042C /* Poll.swift in Sources */,
 				F8C244B414BC409641FB84B0 /* PollCardView.swift in Sources */,

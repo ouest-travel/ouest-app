@@ -183,6 +183,7 @@ private struct AppearModifier: ViewModifier {
 private struct ShimmerModifier: ViewModifier {
     @State private var phase: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
         content
@@ -195,7 +196,10 @@ private struct ShimmerModifier: ViewModifier {
                         LinearGradient(
                             colors: [
                                 .clear,
-                                Color.white.opacity(0.4),
+                                // Dark uses 12% white per the design brief;
+                                // 40% was overpowering on the near-black
+                                // page and made skeletons visibly strobe.
+                                Color.white.opacity(colorScheme == .dark ? 0.12 : 0.4),
                                 .clear,
                             ],
                             startPoint: .leading,
