@@ -7,7 +7,6 @@ final class PollsViewModel {
 
     var polls: [Poll] = []
     var isLoading = false
-    var errorMessage: String?
 
     var failure: OuestError?
 
@@ -45,7 +44,6 @@ final class PollsViewModel {
 
     func loadPolls() async {
         isLoading = polls.isEmpty
-        errorMessage = nil
 
         failure = nil
 
@@ -55,7 +53,6 @@ final class PollsViewModel {
             currentUserId = try await SupabaseManager.client.auth.session.user.id
             polls = try await PollService.fetchPolls(tripId: trip.id)
         } catch {
-            errorMessage = error.localizedDescription
 
             failure = OuestError(error)
 
@@ -70,7 +67,6 @@ final class PollsViewModel {
     func createPoll() async -> Bool {
         guard let userId = currentUserId else { return false }
         isSaving = true
-        errorMessage = nil
 
         failure = nil
 
@@ -105,7 +101,6 @@ final class PollsViewModel {
             isSaving = false
             return true
         } catch {
-            errorMessage = error.localizedDescription
 
             failure = OuestError(error)
 
@@ -139,7 +134,6 @@ final class PollsViewModel {
             // Re-fetch to get updated vote data
             await loadPolls()
         } catch {
-            errorMessage = error.localizedDescription
 
             failure = OuestError(error)
 
@@ -156,7 +150,6 @@ final class PollsViewModel {
                 polls[index] = updated
             }
         } catch {
-            errorMessage = error.localizedDescription
 
             failure = OuestError(error)
 
@@ -171,7 +164,6 @@ final class PollsViewModel {
             try await PollService.deletePoll(id: poll.id)
             polls.removeAll { $0.id == poll.id }
         } catch {
-            errorMessage = error.localizedDescription
 
             failure = OuestError(error)
 

@@ -16,7 +16,7 @@ struct JoinTripView: View {
                     successView(tripId: tripId)
                 } else if let preview = viewModel.preview {
                     previewView(preview)
-                } else if let error = viewModel.errorMessage {
+                } else if let error = viewModel.failureDetail {
                     errorView(error)
                 }
             }
@@ -143,7 +143,7 @@ struct JoinTripView: View {
                 .padding(.horizontal, OuestTheme.Spacing.xxl)
                 .fadeSlideIn(isVisible: contentAppeared, delay: 0.15)
 
-                if let error = viewModel.errorMessage {
+                if let error = viewModel.failureDetail {
                     Text(error)
                         .font(OuestTheme.Typography.caption)
                         .foregroundStyle(OuestTheme.Colors.error)

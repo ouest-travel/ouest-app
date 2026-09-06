@@ -7,7 +7,6 @@ final class JournalViewModel {
     // MARK: - List State
     var entries: [JournalEntry] = []
     var isLoading = false
-    var errorMessage: String?
 
     var failure: OuestError?
 
@@ -38,7 +37,6 @@ final class JournalViewModel {
 
     func loadEntries(tripId: UUID) async {
         isLoading = true
-        errorMessage = nil
 
         failure = nil
 
@@ -48,7 +46,6 @@ final class JournalViewModel {
             currentUserId = try await SupabaseManager.client.auth.session.user.id
             entries = try await JournalService.fetchEntries(tripId: tripId)
         } catch {
-            errorMessage = error.localizedDescription
 
             failure = OuestError(error)
 
@@ -63,7 +60,6 @@ final class JournalViewModel {
     func createEntry(tripId: UUID) async -> JournalEntry? {
         guard let userId = currentUserId else { return nil }
         isSaving = true
-        errorMessage = nil
 
         failure = nil
 
@@ -101,7 +97,6 @@ final class JournalViewModel {
             isSaving = false
             return entry
         } catch {
-            errorMessage = error.localizedDescription
 
             failure = OuestError(error)
 
@@ -115,7 +110,6 @@ final class JournalViewModel {
 
     func updateEntry(id: UUID, tripId: UUID) async -> Bool {
         isSaving = true
-        errorMessage = nil
 
         failure = nil
 
@@ -152,7 +146,6 @@ final class JournalViewModel {
             isSaving = false
             return true
         } catch {
-            errorMessage = error.localizedDescription
 
             failure = OuestError(error)
 
@@ -169,7 +162,6 @@ final class JournalViewModel {
             try await JournalService.deleteEntry(id: entry.id)
             entries.removeAll { $0.id == entry.id }
         } catch {
-            errorMessage = error.localizedDescription
 
             failure = OuestError(error)
 

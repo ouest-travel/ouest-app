@@ -11,7 +11,6 @@ final class CommunityFeedViewModel {
     var isLoading = false
     var isLoadingMore = false
     var hasMore = true
-    var errorMessage: String?
 
     var failure: OuestError?
 
@@ -54,7 +53,6 @@ final class CommunityFeedViewModel {
 
     func loadFeed() async {
         isLoading = feedTrips.isEmpty
-        errorMessage = nil
 
         failure = nil
 
@@ -69,7 +67,6 @@ final class CommunityFeedViewModel {
             hasMore = trips.count == pageSize
             currentOffset = trips.count
         } catch {
-            errorMessage = error.localizedDescription
 
             failure = OuestError(error)
 
@@ -90,7 +87,6 @@ final class CommunityFeedViewModel {
             hasMore = trips.count == pageSize
             currentOffset += trips.count
         } catch {
-            errorMessage = error.localizedDescription
 
             failure = OuestError(error)
 
@@ -189,7 +185,6 @@ final class CommunityFeedViewModel {
             _ = try await CommunityService.cloneTrip(sourceTripId: feedTrip.id, newOwnerId: userId)
             HapticFeedback.success()
         } catch {
-            errorMessage = "Failed to clone trip: \(error.localizedDescription)"
             HapticFeedback.error()
         }
 

@@ -7,7 +7,6 @@ final class JoinTripViewModel {
     var preview: InvitePreview?
     var isLoading = false
     var isJoining = false
-    var errorMessage: String?
 
     var failure: OuestError?
 
@@ -17,7 +16,6 @@ final class JoinTripViewModel {
     /// Load the invite preview (trip info) without joining.
     func loadPreview(code: String) async {
         isLoading = true
-        errorMessage = nil
 
         failure = nil
 
@@ -25,7 +23,6 @@ final class JoinTripViewModel {
         do {
             preview = try await TripService.validateInvite(code: code)
         } catch {
-            errorMessage = error.localizedDescription
 
             failure = OuestError(error)
 
@@ -37,7 +34,6 @@ final class JoinTripViewModel {
     /// Join the trip via invite code. On success, sets `joinedTripId`.
     func joinTrip(code: String) async {
         isJoining = true
-        errorMessage = nil
 
         failure = nil
 
@@ -45,7 +41,6 @@ final class JoinTripViewModel {
         do {
             joinedTripId = try await TripService.joinViaInvite(code: code)
         } catch {
-            errorMessage = error.localizedDescription
 
             failure = OuestError(error)
 

@@ -22,11 +22,11 @@ struct UserProfileView: View {
         Group {
             if viewModel.isLoading {
                 loadingView
-            } else if let error = viewModel.errorMessage, viewModel.profile == nil {
+            } else if let failure = viewModel.failure, viewModel.profile == nil {
                 OuestErrorState(
-                    error: OuestError(rawMessage: error),
+                    error: failure,
                     context: "this profile",
-                    detail: error,
+                    detail: viewModel.failureDetail,
                     onRecover: { Task { await viewModel.loadProfile() } }
                 )
             } else if let profile = viewModel.profile {

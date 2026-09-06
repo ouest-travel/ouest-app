@@ -34,7 +34,7 @@ struct AddJournalEntryView: View {
                     moodSection
                         .fadeSlideIn(isVisible: contentAppeared, delay: 0.20)
 
-                    if let error = viewModel.errorMessage {
+                    if let error = viewModel.failureDetail {
                         Text(error)
                             .font(OuestTheme.Typography.caption)
                             .foregroundStyle(OuestTheme.Colors.error)
@@ -272,7 +272,8 @@ struct AddJournalEntryView: View {
                 }
             }
         } catch {
-            viewModel.errorMessage = "Failed to load image"
+            viewModel.failure = .unknown
+            viewModel.failureDetail = "Failed to load image"
         }
     }
 

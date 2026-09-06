@@ -9,7 +9,6 @@ final class StickersViewModel {
 
     var allStickers: [UserSticker] = []
     var isLoading = false
-    var errorMessage: String?
 
     var failure: OuestError?
 
@@ -53,7 +52,6 @@ final class StickersViewModel {
 
     func loadStickers() async {
         isLoading = true
-        errorMessage = nil
 
         failure = nil
 
@@ -62,7 +60,6 @@ final class StickersViewModel {
         do {
             allStickers = try await StickerService.fetchStickers(userId: userId)
         } catch {
-            errorMessage = error.localizedDescription
 
             failure = OuestError(error)
 
@@ -83,7 +80,6 @@ final class StickersViewModel {
 
         // Enforce max 4 equipped
         if newEquipped && equippedCount >= 4 {
-            errorMessage = "Maximum 4 stickers can be shown on your profile"
             HapticFeedback.error()
             return
         }
@@ -102,7 +98,6 @@ final class StickersViewModel {
                 if let idx = allStickers.firstIndex(where: { $0.id == sticker.id }) {
                     allStickers[idx].equipped = !newEquipped
                 }
-                errorMessage = "Failed to update sticker"
                 HapticFeedback.error()
                 #if DEBUG
                 print("[Stickers] toggleEquip failed: \(error)")

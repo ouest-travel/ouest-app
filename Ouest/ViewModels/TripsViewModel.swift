@@ -7,7 +7,6 @@ final class TripsViewModel {
     var trips: [Trip] = []
     var tripMembers: [UUID: [TripMemberPreview]] = [:]
     var isLoading = false
-    var errorMessage: String?
 
     var failure: OuestError?
 
@@ -33,7 +32,6 @@ final class TripsViewModel {
 
     func fetchTrips() async {
         isLoading = trips.isEmpty // Only show loading on first load
-        errorMessage = nil
 
         failure = nil
 
@@ -50,7 +48,6 @@ final class TripsViewModel {
                 tripMembers = Dictionary(grouping: allMembers, by: \.tripId)
             }
         } catch {
-            errorMessage = error.localizedDescription
 
             failure = OuestError(error)
 
@@ -67,7 +64,6 @@ final class TripsViewModel {
             tripMembers.removeValue(forKey: trip.id)
             return true
         } catch {
-            errorMessage = error.localizedDescription
 
             failure = OuestError(error)
 
@@ -86,7 +82,6 @@ final class TripsViewModel {
                 trips[index] = updated
             }
         } catch {
-            errorMessage = error.localizedDescription
 
             failure = OuestError(error)
 

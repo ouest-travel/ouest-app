@@ -14,11 +14,11 @@ struct ExploreView: View {
             Group {
                 if viewModel.isLoading {
                     loadingView
-                } else if let error = viewModel.errorMessage, viewModel.feedTrips.isEmpty {
+                } else if let failure = viewModel.failure, viewModel.feedTrips.isEmpty {
                     OuestErrorState(
-                        error: OuestError(rawMessage: error),
+                        error: failure,
                         context: "the feed",
-                        detail: error,
+                        detail: viewModel.failureDetail,
                         onRecover: { Task { await viewModel.loadFeed() } }
                     )
                 } else if viewModel.filteredTrips.isEmpty && viewModel.searchedUsers.isEmpty && !viewModel.searchQuery.isEmpty && !viewModel.isSearchingUsers {

@@ -14,7 +14,6 @@ final class UserProfileViewModel {
     var followingCount = 0
     var isFollowing = false
     var isLoading = false
-    var errorMessage: String?
 
     var failure: OuestError?
 
@@ -33,7 +32,6 @@ final class UserProfileViewModel {
 
     func loadProfile() async {
         isLoading = true
-        errorMessage = nil
 
         failure = nil
 
@@ -64,7 +62,6 @@ final class UserProfileViewModel {
                 tripMembers = Dictionary(grouping: members, by: \.tripId)
             }
         } catch {
-            errorMessage = error.localizedDescription
 
             failure = OuestError(error)
 

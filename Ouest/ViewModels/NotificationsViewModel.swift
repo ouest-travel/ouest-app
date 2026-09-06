@@ -11,7 +11,6 @@ final class NotificationsViewModel {
 
     var notifications: [AppNotification] = []
     var isLoading = false
-    var errorMessage: String?
 
     var failure: OuestError?
 
@@ -28,7 +27,6 @@ final class NotificationsViewModel {
 
     func loadNotifications() async {
         isLoading = notifications.isEmpty
-        errorMessage = nil
 
         failure = nil
 
@@ -44,7 +42,6 @@ final class NotificationsViewModel {
             notifications = try await fetchedNotifications
             unreadCount = try await fetchedCount
         } catch {
-            errorMessage = error.localizedDescription
 
             failure = OuestError(error)
 
