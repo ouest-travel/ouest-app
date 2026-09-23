@@ -16,7 +16,7 @@ enum ExpenseCategory: String, Codable, CaseIterable, Sendable {
         switch self {
         case .food: "Food"
         case .transport: "Transport"
-        case .accommodation: "Accommodation"
+        case .accommodation: "Stay"
         case .activity: "Activity"
         case .shopping: "Shopping"
         case .entertainment: "Entertainment"

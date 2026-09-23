@@ -16,7 +16,7 @@ enum ActivityCategory: String, Codable, CaseIterable, Sendable {
         case .food: "Food"
         case .transport: "Transport"
         case .activity: "Activity"
-        case .accommodation: "Accommodation"
+        case .accommodation: "Stay"
         case .other: "Other"
         }
     }

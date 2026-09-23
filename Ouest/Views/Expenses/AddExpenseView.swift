@@ -183,6 +183,7 @@ struct AddExpenseView: View {
                 .datePickerStyle(.compact)
                 .labelsHidden()
                 .padding(OuestTheme.Spacing.md)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .background(OuestTheme.Colors.surfaceSecondary)
                 .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
         }
