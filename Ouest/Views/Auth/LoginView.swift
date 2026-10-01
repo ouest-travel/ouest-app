@@ -41,6 +41,8 @@ struct LoginView: View {
                         keyboardType: .emailAddress,
                         hasError: authViewModel.errorMessage != nil
                     )
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
                     .fadeSlideIn(isVisible: appeared, delay: 0.2)
 
                     OuestTextField(

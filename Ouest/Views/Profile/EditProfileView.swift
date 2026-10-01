@@ -156,6 +156,7 @@ struct EditProfileView: View {
                         placeholder: "Full name",
                         hasError: nameError != nil
                     )
+                    .textInputAutocapitalization(.words)
                     .onChange(of: fullName) { _, _ in nameError = nil }
 
                     if let nameError {

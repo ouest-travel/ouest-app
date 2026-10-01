@@ -15,10 +15,12 @@ struct OuestTextField: View {
                 SecureField(placeholder, text: $text)
                     .focused($isFocused)
             } else {
+                // Autocapitalization and autocorrection intentionally left at
+                // SwiftUI defaults (.sentences + on). Fields that need a
+                // different behavior — email, handle, invite code — apply
+                // the modifier at the call site.
                 TextField(placeholder, text: $text)
                     .keyboardType(keyboardType)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
                     .focused($isFocused)
             }
         }

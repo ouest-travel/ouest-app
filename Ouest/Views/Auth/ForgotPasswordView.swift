@@ -45,6 +45,8 @@ struct ForgotPasswordView: View {
                         placeholder: "Email",
                         keyboardType: .emailAddress
                     )
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
 
                     if let error = authViewModel.errorMessage {
                         Text(error)

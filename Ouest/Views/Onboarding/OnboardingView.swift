@@ -158,6 +158,7 @@ struct OnboardingView: View {
                 VStack(spacing: OuestTheme.Spacing.md) {
                     // Full name field
                     OuestTextField(text: $fullName, placeholder: "Full name")
+                        .textInputAutocapitalization(.words)
 
                     // Handle field
                     HStack(spacing: OuestTheme.Spacing.xs) {

@@ -40,12 +40,15 @@ struct SignUpView: View {
 
             VStack(spacing: 16) {
                 OuestTextField(text: $fullName, placeholder: "Full Name")
+                    .textInputAutocapitalization(.words)
 
                 OuestTextField(
                     text: $email,
                     placeholder: "Email",
                     keyboardType: .emailAddress
                 )
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
 
                 OuestTextField(
                     text: $password,
