@@ -70,7 +70,8 @@ enum ItineraryService {
         startDate: Date,
         endDate: Date
     ) async throws -> [ItineraryDay] {
-        let calendar = Calendar.current
+        var calendar = Calendar.current
+        calendar.timeZone = TimeZone(identifier: "UTC")!
         var payloads: [CreateDayPayload] = []
         var current = calendar.startOfDay(for: startDate)
         let end = calendar.startOfDay(for: endDate)
@@ -125,6 +126,21 @@ enum ItineraryService {
             .delete()
             .eq("id", value: id)
             .execute()
+    }
+
+    /// Batch-update dayNumber and date for reordering days
+    static func reorderDays(_ updates: [(id: UUID, dayNumber: Int, date: Date?)]) async throws {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+
+        for update in updates {
+            let payload = UpdateDayOrderPayload(dayNumber: update.dayNumber, date: update.date)
+            try await SupabaseManager.client
+                .from("itinerary_days")
+                .update(payload)
+                .eq("id", value: update.id)
+                .execute()
+        }
     }
 
     /// Batch-update sort_order for reordering activities within a day

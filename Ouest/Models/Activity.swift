@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import MapKit
 
 // MARK: - Activity Category
 
@@ -15,7 +16,7 @@ enum ActivityCategory: String, Codable, CaseIterable, Sendable {
         case .food: "Food"
         case .transport: "Transport"
         case .activity: "Activity"
-        case .accommodation: "Accommodation"
+        case .accommodation: "Stay"
         case .other: "Other"
         }
     }
@@ -37,6 +38,21 @@ enum ActivityCategory: String, Codable, CaseIterable, Sendable {
         case .activity: .green
         case .accommodation: .purple
         case .other: .gray
+        }
+    }
+
+    /// Infer category from MapKit point-of-interest category
+    static func from(pointOfInterest: MKPointOfInterestCategory?) -> ActivityCategory {
+        guard let poi = pointOfInterest else { return .activity }
+        switch poi {
+        case .restaurant, .cafe, .bakery, .brewery, .foodMarket, .winery:
+            return .food
+        case .hotel:
+            return .accommodation
+        case .publicTransport, .airport, .carRental, .evCharger, .gasStation, .parking:
+            return .transport
+        default:
+            return .activity
         }
     }
 }

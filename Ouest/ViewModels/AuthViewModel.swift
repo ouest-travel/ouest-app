@@ -1,3 +1,4 @@
+import AuthenticationServices
 import Foundation
 import Observation
 
@@ -8,6 +9,11 @@ final class AuthViewModel {
     var currentUser: Profile?
     var errorMessage: String?
     var needsEmailConfirmation = false
+    var needsOnboarding = false
+    /// True when the current session was established via a password-recovery
+    /// callback — the user must set a new password before doing anything else.
+    /// ContentView routes to NewPasswordView while this is true.
+    var isPasswordRecovery = false
 
     func restoreSession() async {
         isLoading = true
@@ -19,6 +25,85 @@ final class AuthViewModel {
             await loadProfile(userId: session.user.id)
         } catch {
             isAuthenticated = false
+        }
+    }
+
+    /// Complete a signUp / magic-link / password-recovery flow by handing the
+    /// callback URL to Supabase. The client parses tokens (PKCE code or
+    /// implicit access token) off the URL, persists the session in Keychain,
+    /// and returns it. On success we flip UI state so ContentView transitions
+    /// from LoginView to onboarding / main / new-password as appropriate.
+    func handleAuthCallback(url: URL) async {
+        isLoading = true
+        defer { isLoading = false }
+
+        // Supabase encodes the flow type on the callback URL — `type=recovery`
+        // for password-reset links, `type=signup` for email confirmations.
+        // Check BEFORE consuming the URL so we can pick the right destination
+        // regardless of which branch (implicit fragment vs PKCE query) it
+        // arrived on.
+        let isRecovery = Self.callbackType(from: url) == "recovery"
+
+        do {
+            let session = try await SupabaseManager.client.auth.session(from: url)
+            isAuthenticated = true
+            needsEmailConfirmation = false
+
+            if isRecovery {
+                // Route to NewPasswordView. Do NOT load profile / trigger
+                // onboarding — this session's only job is to accept a new
+                // password, then the user re-enters the normal flow.
+                isPasswordRecovery = true
+                return
+            }
+
+            await loadProfile(userId: session.user.id)
+            // A freshly-confirmed account needs onboarding. If loadProfile
+            // discovers the user already has a handle (rare here — this path
+            // is a fresh confirmation — but future-proof for magic-link
+            // sign-ins on existing accounts), don't force onboarding.
+            if currentUser?.handle == nil {
+                needsOnboarding = true
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Extract Supabase's `type` param from a callback URL. It lives in the
+    /// query string on PKCE flows and in the URL fragment on implicit flows —
+    /// check both so recovery detection works regardless of project config.
+    private static func callbackType(from url: URL) -> String? {
+        if let q = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?.first(where: { $0.name == "type" })?.value, !q.isEmpty {
+            return q
+        }
+        if let fragment = url.fragment {
+            var comps = URLComponents()
+            comps.query = fragment
+            return comps.queryItems?.first(where: { $0.name == "type" })?.value
+        }
+        return nil
+    }
+
+    /// Finalize a password-recovery flow by writing the new password and
+    /// returning the user to the normal authenticated state. On success,
+    /// clears `isPasswordRecovery` so ContentView routes back to Main / Onboarding.
+    func updatePassword(newPassword: String) async {
+        errorMessage = nil
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            try await AuthService.updatePassword(newPassword)
+            isPasswordRecovery = false
+            // Load the profile now that we're past recovery so Main renders
+            // with the user's data on first frame.
+            if let userId = try? await SupabaseManager.client.auth.session.user.id {
+                await loadProfile(userId: userId)
+            }
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 
@@ -55,9 +140,56 @@ final class AuthViewModel {
                 // Logged in immediately (email confirmation disabled)
                 isAuthenticated = true
                 await loadProfile(userId: session.user.id)
+                needsOnboarding = true
             } else {
                 // Email confirmation required
                 needsEmailConfirmation = true
+            }
+        } catch let error as AuthError {
+            errorMessage = error.errorDescription
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: - Apple Sign In
+
+    private let appleSignInCoordinator = AppleSignInCoordinator()
+
+    func signInWithApple() async {
+        errorMessage = nil
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            // 1. Present native Apple Sign In sheet and get credentials
+            let appleResult = try await appleSignInCoordinator.signIn()
+
+            // 2. Exchange Apple identity token with Supabase
+            let session = try await AuthService.signInWithApple(
+                idToken: appleResult.identityToken,
+                nonce: appleResult.nonce
+            )
+
+            isAuthenticated = true
+            await loadProfile(userId: session.user.id)
+
+            // 3. Update profile with Apple-provided name if available and profile name is empty
+            if let fullName = appleResult.fullName,
+               currentUser?.fullName == nil || currentUser?.fullName?.isEmpty == true
+            {
+                let payload = UpdateProfilePayload(fullName: fullName)
+                try? await updateProfile(payload)
+            }
+
+            // 4. Show onboarding for first-time Apple sign-in users
+            if currentUser?.handle == nil && currentUser?.travelInterests == nil {
+                needsOnboarding = true
+            }
+        } catch let error as AppleSignInError {
+            // .cancelled has nil errorDescription — only show real errors
+            if let message = error.errorDescription {
+                errorMessage = message
             }
         } catch let error as AuthError {
             errorMessage = error.errorDescription
@@ -72,6 +204,7 @@ final class AuthViewModel {
             isAuthenticated = false
             currentUser = nil
             needsEmailConfirmation = false
+            isPasswordRecovery = false
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -84,6 +217,12 @@ final class AuthViewModel {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    // MARK: - Onboarding
+
+    func completeOnboarding() {
+        needsOnboarding = false
     }
 
     // MARK: - Profile Management
@@ -109,12 +248,19 @@ final class AuthViewModel {
     }
 
     private func loadProfile(userId: UUID) async {
-        do {
-            currentUser = try await AuthService.fetchProfile(userId: userId)
-        } catch {
-            // Profile may not exist yet if trigger hasn't fired
-            currentUser = nil
+        // Retry a few times — the DB trigger that creates the profile row
+        // may not have fired yet for brand-new signups.
+        for attempt in 0..<4 {
+            do {
+                currentUser = try await AuthService.fetchProfile(userId: userId)
+                return
+            } catch {
+                if attempt < 3 {
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                }
+            }
         }
+        currentUser = nil
     }
 
     // MARK: - Dev Sign-In (DEBUG only)

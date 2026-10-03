@@ -12,6 +12,8 @@ settings:
     GENERATE_INFOPLIST_FILE: true
     MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: 1
+    DEVELOPMENT_TEAM: 764FLZ7S8Z
+    CODE_SIGN_STYLE: Automatic
 
 packages:
   Supabase:
@@ -36,6 +38,12 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Ouest
         INFOPLIST_KEY_UILaunchScreen_Generation: true
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
+    entitlements:
+      path: Ouest/Ouest.entitlements
+      properties:
+        aps-environment: development
+        com.apple.developer.applesignin:
+          - Default
     dependencies:
       - package: Supabase
     info:
@@ -47,9 +55,19 @@ targets:
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         SUPABASE_URL: $(SUPABASE_URL)
         SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
         SUPABASE_SERVICE_ROLE_KEY: $(SUPABASE_SERVICE_ROLE_KEY)
+        RAPIDAPI_KEY: $(RAPIDAPI_KEY)
+        CFBundleURLTypes:
+          - CFBundleURLName: com.ouest.app
+            CFBundleURLSchemes:
+              - ouest
 
   OuestTests:
     type: bundle.unit-test

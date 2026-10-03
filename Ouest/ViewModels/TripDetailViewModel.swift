@@ -10,7 +10,11 @@ final class TripDetailViewModel {
     var members: [TripMember] = []
     var isLoading = false
     var isSaving = false
-    var errorMessage: String?
+    // Typed error surface — brief §View-model change.
+
+    var failure: OuestError?
+
+    var failureDetail: String?
     var successMessage: String?
 
     // MARK: - Form fields (used for create + edit)
@@ -25,11 +29,18 @@ final class TripDetailViewModel {
     var budgetText = ""
     var currency = "USD"
     var hasBudget = false
+    var countryCodes: [String] = []
 
     // MARK: - Members search
     var searchQuery = ""
     var searchResults: [Profile] = []
     var isSearching = false
+
+    // MARK: - Invite state
+    var invites: [TripInvite] = []
+    var activeInvite: TripInvite?
+    var isGeneratingInvite = false
+    var inviteError: String?
 
     /// Current user's role in this trip
     var myRole: MemberRole? {
@@ -40,20 +51,36 @@ final class TripDetailViewModel {
         myRole?.canEdit ?? false
     }
 
+    /// Whether the current user is a member of this trip
+    var isMember: Bool {
+        myRole != nil
+    }
+
     private var currentUserId: UUID?
+
+    /// Lightweight init for standalone sharing (e.g., from HomeView context menu).
+    /// Sets trip and resolves current user without a full network load.
+    func prepareForSharing(trip: Trip) async {
+        self.trip = trip
+        self.currentUserId = try? await SupabaseManager.client.auth.session.user.id
+    }
 
     // MARK: - Load Trip
 
     func loadTrip(id: UUID) async {
         isLoading = true
-        errorMessage = nil
+        failure = nil
+
+        failureDetail = nil
 
         do {
             currentUserId = try await SupabaseManager.client.auth.session.user.id
             trip = try await TripService.fetchTrip(id: id)
             members = try await TripService.fetchMembers(tripId: id)
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
 
         isLoading = false
@@ -63,7 +90,9 @@ final class TripDetailViewModel {
 
     func createTrip() async -> Trip? {
         isSaving = true
-        errorMessage = nil
+        failure = nil
+
+        failureDetail = nil
 
         do {
             let userId = try await SupabaseManager.client.auth.session.user.id
@@ -91,7 +120,8 @@ final class TripDetailViewModel {
                 status: .planning,
                 isPublic: isPublic,
                 budget: hasBudget ? Double(budgetText) : nil,
-                currency: hasBudget ? currency : nil
+                currency: hasBudget ? currency : nil,
+                countryCodes: countryCodes.isEmpty ? nil : countryCodes
             )
 
             let newTrip = try await TripService.createTrip(payload)
@@ -111,7 +141,7 @@ final class TripDetailViewModel {
 
             // Auto-generate itinerary days if trip has dates
             if hasDates {
-                try? await ItineraryService.generateDaysForTrip(
+                _ = try? await ItineraryService.generateDaysForTrip(
                     tripId: newTrip.id,
                     startDate: startDate,
                     endDate: endDate
@@ -122,7 +152,9 @@ final class TripDetailViewModel {
             isSaving = false
             return newTrip
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             isSaving = false
             return nil
         }
@@ -133,7 +165,9 @@ final class TripDetailViewModel {
     func updateTrip() async -> Bool {
         guard let tripId = trip?.id else { return false }
         isSaving = true
-        errorMessage = nil
+        failure = nil
+
+        failureDetail = nil
 
         do {
             let userId = try await SupabaseManager.client.auth.session.user.id
@@ -157,7 +191,8 @@ final class TripDetailViewModel {
                 endDate: hasDates ? endDate : nil,
                 isPublic: isPublic,
                 budget: hasBudget ? Double(budgetText) : nil,
-                currency: hasBudget ? currency : nil
+                currency: hasBudget ? currency : nil,
+                countryCodes: countryCodes.isEmpty ? nil : countryCodes
             )
 
             let oldTrip = trip
@@ -167,7 +202,7 @@ final class TripDetailViewModel {
             if hasDates && (oldTrip?.startDate == nil || oldTrip?.endDate == nil) {
                 let existingDays = try await ItineraryService.fetchDays(tripId: tripId)
                 if existingDays.isEmpty {
-                    try? await ItineraryService.generateDaysForTrip(
+                    _ = try? await ItineraryService.generateDaysForTrip(
                         tripId: tripId,
                         startDate: startDate,
                         endDate: endDate
@@ -178,7 +213,9 @@ final class TripDetailViewModel {
             isSaving = false
             return true
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             isSaving = false
             return false
         }
@@ -197,6 +234,7 @@ final class TripDetailViewModel {
         hasBudget = trip.budget != nil && trip.budget! > 0
         budgetText = trip.budget.map { String(format: "%.0f", $0) } ?? ""
         currency = trip.currency ?? "USD"
+        countryCodes = trip.countryCodes ?? []
     }
 
     // MARK: - Members
@@ -235,7 +273,9 @@ final class TripDetailViewModel {
             searchResults.removeAll { $0.id == profile.id }
             return true
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             return false
         }
     }
@@ -246,7 +286,9 @@ final class TripDetailViewModel {
             members.removeAll { $0.id == member.id }
             return true
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
             return false
         }
     }
@@ -258,7 +300,72 @@ final class TripDetailViewModel {
                 members[index].role = role
             }
         } catch {
-            errorMessage = error.localizedDescription
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
+        }
+    }
+
+    // MARK: - Invite Links
+
+    func fetchInvites() async {
+        guard let tripId = trip?.id else { return }
+        do {
+            invites = try await TripService.fetchInvites(tripId: tripId)
+            activeInvite = invites.first(where: { $0.isValid })
+        } catch {
+            inviteError = error.localizedDescription
+        }
+    }
+
+    func generateInvite(role: MemberRole = .viewer) async {
+        guard let tripId = trip?.id, let userId = currentUserId else { return }
+        isGeneratingInvite = true
+        inviteError = nil
+        defer { isGeneratingInvite = false }
+
+        // Up to 2 attempts, but ONLY retry on a unique-code collision — any
+        // other error (network, auth, RLS) fails fast so we don't burn our
+        // one retry on a non-collision then surface a stale error message.
+        // 23505 surfaces in localizedDescription as "duplicate key value
+        // violates unique constraint …" — same detection style as
+        // EditProfileView.applySaveError.
+        for attempt in 0..<2 {
+            do {
+                let payload = CreateInvitePayload(
+                    tripId: tripId,
+                    createdBy: userId,
+                    code: TripService.generateInviteCode(),
+                    role: role,
+                    expiresAt: nil,
+                    maxUses: 0
+                )
+                let invite = try await TripService.createInvite(payload)
+                invites.insert(invite, at: 0)
+                activeInvite = invite
+                return
+            } catch {
+                let desc = error.localizedDescription.lowercased()
+                let isCollision = desc.contains("duplicate key")
+                    || desc.contains("unique constraint")
+                if isCollision && attempt == 0 {
+                    continue  // Roll a new code and try once more.
+                }
+                inviteError = isCollision
+                    ? "Couldn't generate a unique code. Please try again."
+                    : error.localizedDescription
+                return
+            }
+        }
+    }
+
+    func revokeInvite(_ invite: TripInvite) async {
+        do {
+            try await TripService.revokeInvite(id: invite.id)
+            // Refetch to get updated state
+            await fetchInvites()
+        } catch {
+            inviteError = error.localizedDescription
         }
     }
 }
