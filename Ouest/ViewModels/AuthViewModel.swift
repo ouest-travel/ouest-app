@@ -279,7 +279,18 @@ final class AuthViewModel {
 
     // MARK: - Onboarding
 
+    /// Flip the onboarding gate off. Guarded against being called while the
+    /// profile is still missing identity fields — the rest of the app
+    /// (profile card, @mentions, follower graph, feed authorship) assumes
+    /// handle is non-nil, so a user who skipped step 1 and reached this
+    /// method would end up in a broken state. If handle is missing we
+    /// surface an error and keep the gate closed so the user has to
+    /// finish the Profile step first.
     func completeOnboarding() {
+        guard currentUser?.handle?.isEmpty == false else {
+            errorMessage = "Pick a name and handle before continuing."
+            return
+        }
         needsOnboarding = false
     }
 

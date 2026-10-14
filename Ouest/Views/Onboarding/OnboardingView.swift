@@ -26,18 +26,43 @@ struct OnboardingView: View {
 
     @State private var isSaving = false
     @State private var appeared = false
+    /// Surface for handle-collision + server errors so saveAndFinish can
+    /// refuse to advance without silently losing the user's data.
+    @State private var onboardingError: String?
 
     private let totalSteps = 4
 
+    /// Handles must be 3–20 chars, lowercase letters / digits / underscores.
+    /// Matches the server-side rule enforced in EditProfileView and the
+    /// Supabase handle trigger.
+    private static let handleRegex = #"^[a-z0-9_]{3,20}$"#
+
+    /// Core identity fields that MUST be set before a user can leave onboarding.
+    /// Full name must be non-blank after trimming. Handle must match the
+    /// regex above. These are the fields the rest of the app assumes are
+    /// non-nil (profile card, @mentions, follower graph, feed authorship).
+    private var isProfileStepValid: Bool {
+        let name = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let h = handle.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !name.isEmpty, !h.isEmpty else { return false }
+        return h.range(of: Self.handleRegex, options: .regularExpression) != nil
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            // Skip button — visible on profile & interests steps
-            if currentStep == 1 || currentStep == 2 {
+            // Skip is only ever allowed on the Interests step. The Profile
+            // step (name + handle) is identity, not personalization — the
+            // rest of the app assumes those fields exist, so we gate hard
+            // instead of letting users bypass. Interests are optional.
+            if currentStep == 2 {
                 HStack {
                     Spacer()
                     Button("Skip") {
                         HapticFeedback.selection()
-                        authViewModel.completeOnboarding()
+                        // Still runs saveAndFinish so name + handle from
+                        // step 1 are persisted — we only skip the interest
+                        // selection, not the save.
+                        Task { await saveAndFinish() }
                     }
                     .font(.subheadline)
                     .foregroundStyle(OuestTheme.Colors.textSecondary)
@@ -54,6 +79,22 @@ struct OnboardingView: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .animation(OuestTheme.Anim.smooth, value: currentStep)
+            // Defense in depth: if a swipe gesture advances past the
+            // profile step without valid name + handle, snap back.
+            .onChange(of: currentStep) { oldValue, newValue in
+                if newValue > 1 && !isProfileStepValid {
+                    currentStep = 1
+                }
+            }
+
+            if let onboardingError {
+                Text(onboardingError)
+                    .font(.caption)
+                    .foregroundStyle(OuestTheme.Colors.error)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, OuestTheme.Spacing.xxl)
+                    .padding(.bottom, OuestTheme.Spacing.sm)
+            }
 
             pageIndicator
                 .padding(.bottom, OuestTheme.Spacing.xxl)
@@ -185,8 +226,10 @@ struct OnboardingView: View {
 
                 OuestButton(title: "Continue") {
                     HapticFeedback.light()
+                    onboardingError = nil
                     withAnimation { currentStep = 2 }
                 }
+                .disabled(!isProfileStepValid)
             }
             .padding(.horizontal, OuestTheme.Spacing.xxl)
             .padding(.bottom, OuestTheme.Spacing.xxl)
@@ -326,7 +369,18 @@ struct OnboardingView: View {
     // MARK: - Save & Finish
 
     private func saveAndFinish() async {
+        // Final guard — name + handle must be present before we persist
+        // anything or let the user leave onboarding. If someone gestured
+        // past step 1, snap them back instead of writing a half-formed
+        // profile to the DB.
+        guard isProfileStepValid else {
+            onboardingError = "Please add your name and a valid handle before continuing."
+            withAnimation { currentStep = 1 }
+            return
+        }
+
         isSaving = true
+        onboardingError = nil
         defer { isSaving = false }
 
         do {
@@ -342,18 +396,14 @@ struct OnboardingView: View {
                 )
             }
 
+            let trimmedName = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedHandle = handle.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let trimmedNationality = nationality.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+
             let payload = UpdateProfilePayload(
-                fullName: fullName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    ? nil
-                    : fullName.trimmingCharacters(in: .whitespacesAndNewlines),
-                handle: handle.trimmingCharacters(in: .whitespacesAndNewlines)
-                    .lowercased().isEmpty
-                    ? nil
-                    : handle.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
-                nationality: nationality.trimmingCharacters(in: .whitespacesAndNewlines)
-                    .isEmpty
-                    ? nil
-                    : nationality.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(),
+                fullName: trimmedName,
+                handle: trimmedHandle,
+                nationality: trimmedNationality.isEmpty ? nil : trimmedNationality,
                 avatarUrl: avatarUrl,
                 travelInterests: selectedInterests.isEmpty
                     ? nil
@@ -372,11 +422,21 @@ struct OnboardingView: View {
                 .value
             authViewModel.currentUser = updated
             HapticFeedback.success()
+            withAnimation { currentStep = 3 }
         } catch {
-            // On error, still advance — user can edit profile later
+            // Postgres 23505 unique_violation surfaces as 'duplicate key' /
+            // 'unique constraint' in localizedDescription — the only unique
+            // column the user can collide on from this form is `handle`.
+            // Same detection style as EditProfileView.applySaveError.
+            let desc = error.localizedDescription.lowercased()
+            let isHandleTaken = desc.contains("duplicate key")
+                || desc.contains("unique constraint")
+            onboardingError = isHandleTaken
+                ? "That handle is already taken — try another."
+                : error.localizedDescription
+            HapticFeedback.error()
+            withAnimation { currentStep = 1 }
         }
-
-        withAnimation { currentStep = 3 }
     }
 }
 
