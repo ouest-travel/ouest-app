@@ -156,6 +156,64 @@ final class AuthViewModel {
 
     private let appleSignInCoordinator = AppleSignInCoordinator()
 
+    /// Called by LoginView's `SignInWithAppleButton` after the native sheet
+    /// completes. Extracts the identity token from the authorization and
+    /// hands it to Supabase along with the raw nonce that was generated for
+    /// the request.
+    ///
+    /// This is the preferred path going forward — Apple's native SwiftUI
+    /// button satisfies the Human Interface Guidelines automatically (the
+    /// custom button we had before was invisible in dark mode, which
+    /// triggered a Guideline 4.0 review rejection).
+    func completeAppleSignIn(
+        authorization: ASAuthorization,
+        rawNonce: String
+    ) async {
+        errorMessage = nil
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                  let tokenData = credential.identityToken,
+                  let identityToken = String(data: tokenData, encoding: .utf8)
+            else {
+                errorMessage = AppleSignInError.missingIdentityToken.errorDescription
+                return
+            }
+
+            let session = try await AuthService.signInWithApple(
+                idToken: identityToken,
+                nonce: rawNonce
+            )
+
+            isAuthenticated = true
+            await loadProfile(userId: session.user.id)
+
+            // Apple only sends the full name on first sign-in. Apply it if
+            // we got one AND the profile doesn't already have one.
+            if let nameComponents = credential.fullName {
+                let formatter = PersonNameComponentsFormatter()
+                let name = formatter.string(from: nameComponents)
+                let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty,
+                   currentUser?.fullName == nil || currentUser?.fullName?.isEmpty == true
+                {
+                    let payload = UpdateProfilePayload(fullName: trimmed)
+                    try? await updateProfile(payload)
+                }
+            }
+
+            if currentUser?.handle == nil && currentUser?.travelInterests == nil {
+                needsOnboarding = true
+            }
+        } catch let error as AuthError {
+            errorMessage = error.errorDescription
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func signInWithApple() async {
         errorMessage = nil
         isLoading = true

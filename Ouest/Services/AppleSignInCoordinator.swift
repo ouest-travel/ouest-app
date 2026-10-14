@@ -111,8 +111,10 @@ final class AppleSignInCoordinator: NSObject, ASAuthorizationControllerDelegate,
 
     // MARK: - Nonce Helpers
 
-    /// Generate a random nonce string for Apple Sign In.
-    private static func randomNonceString(length: Int = 32) -> String {
+    /// Generate a random nonce string for Apple Sign In. Exposed so the
+    /// SwiftUI `SignInWithAppleButton` path in LoginView can share the same
+    /// implementation as this coordinator.
+    static func randomNonceString(length: Int = 32) -> String {
         precondition(length > 0)
         var randomBytes = [UInt8](repeating: 0, count: length)
         let errorCode = SecRandomCopyBytes(kSecRandomDefault, randomBytes.count, &randomBytes)
@@ -124,7 +126,7 @@ final class AppleSignInCoordinator: NSObject, ASAuthorizationControllerDelegate,
     }
 
     /// SHA256 hash of a string, returned as a hex string.
-    private static func sha256(_ input: String) -> String {
+    static func sha256(_ input: String) -> String {
         let data = Data(input.utf8)
         let hash = SHA256.hash(data: data)
         return hash.compactMap { String(format: "%02x", $0) }.joined()

@@ -1,13 +1,19 @@
+import AuthenticationServices
 import SwiftUI
 
 struct LoginView: View {
     @Environment(AuthViewModel.self) private var authViewModel
+    @Environment(\.colorScheme) private var colorScheme
     @State private var email = ""
     @State private var password = ""
     @State private var showSignUp = false
     @State private var showForgotPassword = false
     @State private var appeared = false
     @State private var hasError = false
+    /// Raw nonce for the in-flight Sign in with Apple request. Generated in
+    /// SignInWithAppleButton's onRequest closure, consumed by onCompletion
+    /// so AuthViewModel can hand it to Supabase for identity-token verification.
+    @State private var appleRawNonce = ""
 
     var body: some View {
         NavigationStack {
@@ -98,23 +104,39 @@ struct LoginView: View {
                 }
                 .fadeSlideIn(isVisible: appeared, delay: 0.32)
 
-                // Apple Sign In
-                Button {
+                // Apple Sign In — use Apple's native SwiftUI button so the
+                // styling is HIG-compliant by construction. The custom
+                // Button we had before used .background(.black), which was
+                // invisible on the app's dark login screen and triggered a
+                // Guideline 4.0 review rejection (reviewer screenshot on
+                // iPad Air showed just a floating logo + text).
+                SignInWithAppleButton(.signIn) { request in
                     HapticFeedback.light()
-                    Task { await authViewModel.signInWithApple() }
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "apple.logo")
-                            .font(.system(size: 18))
-                        Text("Sign in with Apple")
-                            .font(.body.weight(.medium))
+                    let nonce = AppleSignInCoordinator.randomNonceString()
+                    appleRawNonce = nonce
+                    request.requestedScopes = [.fullName, .email]
+                    request.nonce = AppleSignInCoordinator.sha256(nonce)
+                } onCompletion: { result in
+                    switch result {
+                    case .success(let authorization):
+                        Task {
+                            await authViewModel.completeAppleSignIn(
+                                authorization: authorization,
+                                rawNonce: appleRawNonce
+                            )
+                        }
+                    case .failure(let error):
+                        // Silent on explicit user cancel; surface anything else.
+                        if let authError = error as? ASAuthorizationError,
+                           authError.code == .canceled {
+                            return
+                        }
+                        authViewModel.errorMessage = error.localizedDescription
                     }
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(.black)
-                    .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
                 }
+                .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+                .frame(height: 50)
+                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
                 .fadeSlideIn(isVisible: appeared, delay: 0.34)
 
                 Spacer()
