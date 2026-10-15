@@ -100,6 +100,19 @@ struct OnboardingView: View {
                 .padding(.bottom, OuestTheme.Spacing.xxl)
         }
         .onAppear {
+            // Returning user with an incomplete profile — don't show them
+            // the "Welcome" step (step 0), that copy is for brand-new
+            // accounts. Jump straight to the Profile step and pre-fill
+            // anything they already have so they're only typing the
+            // missing fields.
+            if let profile = authViewModel.currentUser {
+                if fullName.isEmpty { fullName = profile.fullName ?? "" }
+                if handle.isEmpty { handle = profile.handle ?? "" }
+                if nationality.isEmpty { nationality = profile.nationality ?? "" }
+                if currentStep == 0 && (profile.handle ?? "").isEmpty {
+                    currentStep = 1
+                }
+            }
             withAnimation(OuestTheme.Anim.smooth) {
                 appeared = true
             }

@@ -23,8 +23,24 @@ final class AuthViewModel {
             let session = try await AuthService.restoreSession()
             isAuthenticated = true
             await loadProfile(userId: session.user.id)
+            // Catch pre-fix accounts: anyone who signed up via SIWA before
+            // the onboarding gate landed could have escaped with a null
+            // handle. Flip them back into onboarding on next launch so the
+            // rest of the app doesn't render against half-formed profiles.
+            requireOnboardingIfIncomplete()
         } catch {
             isAuthenticated = false
+        }
+    }
+
+    /// A profile is "complete enough" to leave onboarding when its handle
+    /// is set and non-empty. Handle is the one identity field the rest of
+    /// the app assumes is non-nil (profile card, @mentions, follower graph,
+    /// feed authorship) — everything else can be edited later from Settings.
+    private func requireOnboardingIfIncomplete() {
+        let handle = currentUser?.handle ?? ""
+        if handle.isEmpty {
+            needsOnboarding = true
         }
     }
 
@@ -116,6 +132,8 @@ final class AuthViewModel {
             let session = try await AuthService.signIn(email: email, password: password)
             isAuthenticated = true
             await loadProfile(userId: session.user.id)
+            // Same nag as restoreSession — catches pre-fix accounts.
+            requireOnboardingIfIncomplete()
         } catch let error as AuthError {
             errorMessage = error.errorDescription
         } catch {
@@ -204,9 +222,9 @@ final class AuthViewModel {
                 }
             }
 
-            if currentUser?.handle == nil && currentUser?.travelInterests == nil {
-                needsOnboarding = true
-            }
+            // Handle (not interests) is the identity gate — see
+            // requireOnboardingIfIncomplete for why.
+            requireOnboardingIfIncomplete()
         } catch let error as AuthError {
             errorMessage = error.errorDescription
         } catch {
@@ -240,10 +258,9 @@ final class AuthViewModel {
                 try? await updateProfile(payload)
             }
 
-            // 4. Show onboarding for first-time Apple sign-in users
-            if currentUser?.handle == nil && currentUser?.travelInterests == nil {
-                needsOnboarding = true
-            }
+            // 4. Show onboarding for first-time Apple sign-in users (and
+            //    for any pre-fix account that escaped with a null handle).
+            requireOnboardingIfIncomplete()
         } catch let error as AppleSignInError {
             // .cancelled has nil errorDescription — only show real errors
             if let message = error.errorDescription {
