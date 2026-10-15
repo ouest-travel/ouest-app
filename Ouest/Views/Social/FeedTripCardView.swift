@@ -1,68 +1,78 @@
 import SwiftUI
 
+/// Navigation destination for user profiles from the feed
+struct ProfileDestination: Hashable {
+    let userId: UUID
+}
+
 struct FeedTripCardView: View {
     let feedTrip: FeedTrip
+    let onProfileTap: () -> Void
+    let onTripTap: () -> Void
     let onLike: () -> Void
     let onSave: () -> Void
     let onComment: () -> Void
     let onClone: () -> Void
 
+    /// Namespace for the iOS 18 zoom transition into `TripDetailView`.
+    /// Optional so preview / test call sites keep working.
+    var namespace: Namespace.ID? = nil
+
     @State private var likeScale: CGFloat = 1.0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Author Header
-            authorHeader
-                .padding(.horizontal, OuestTheme.Spacing.md)
-                .padding(.vertical, OuestTheme.Spacing.sm)
+            // Trip Cover (with author blur pill overlay)
+            ZStack(alignment: .topLeading) {
+                Button { onTripTap() } label: {
+                    tripCover
+                }
+                .buttonStyle(ScaledButtonStyle(scale: 0.98))
+                .contentShape(Rectangle())
 
-            // Trip Cover
-            NavigationLink(value: feedTrip.trip.id) {
-                tripCover
+                // Author blur pill (top-left)
+                Button { onProfileTap() } label: {
+                    authorPill
+                }
+                .buttonStyle(.plain)
+                .padding(OuestTheme.Spacing.md)
             }
-            .buttonStyle(ScaledButtonStyle(scale: 0.98))
 
             // Action Bar
             actionBar
                 .padding(.horizontal, OuestTheme.Spacing.md)
                 .padding(.vertical, OuestTheme.Spacing.sm)
+                .contentShape(Rectangle())
         }
         .background(OuestTheme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.xl))
-        .shadow(OuestTheme.Shadow.md)
+        .ouestElevation(.md)
+        .zoomSource(id: feedTrip.trip.id, in: namespace)
     }
 
-    // MARK: - Author Header
+    // MARK: - Author Blur Pill
 
-    private var authorHeader: some View {
-        NavigationLink {
-            UserProfileView(userId: feedTrip.creatorProfile.id)
-        } label: {
-            HStack(spacing: OuestTheme.Spacing.sm) {
-                AvatarView(url: feedTrip.creatorProfile.avatarUrl, size: 36)
+    private var authorPill: some View {
+        HStack(spacing: OuestTheme.Spacing.sm) {
+            AvatarView(url: feedTrip.creatorProfile.avatarUrl, size: 26)
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(feedTrip.creatorProfile.fullName ?? "Traveler")
-                        .font(OuestTheme.Typography.cardTitle)
-                        .foregroundStyle(OuestTheme.Colors.textPrimary)
-
-                    if let handle = feedTrip.creatorProfile.handle {
-                        Text("@\(handle)")
-                            .font(OuestTheme.Typography.micro)
-                            .foregroundStyle(OuestTheme.Colors.textSecondary)
-                    }
-                }
-
-                Spacer()
+            VStack(alignment: .leading, spacing: 0) {
+                Text(feedTrip.creatorProfile.fullName ?? "Traveler")
+                    .font(OuestTheme.Typography.micro)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
 
                 if let created = feedTrip.trip.createdAt {
                     Text(created.relativeText)
-                        .font(OuestTheme.Typography.caption)
-                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+                        .font(.system(size: 9))
+                        .foregroundStyle(.white.opacity(0.7))
                 }
             }
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, OuestTheme.Spacing.sm)
+        .padding(.vertical, OuestTheme.Spacing.xs)
+        .background(.ultraThinMaterial)
+        .clipShape(Capsule())
     }
 
     // MARK: - Trip Cover
@@ -88,15 +98,20 @@ struct FeedTripCardView: View {
                     placeholderGradient
                 }
             }
+            // Bound width so panoramic cover images don't blow the feed card
+            // wider than the screen — see TripDetailView for the same fix.
+            .frame(maxWidth: .infinity)
             .frame(height: 200)
             .clipped()
+            .contentShape(Rectangle())
 
             // Gradient overlay
             LinearGradient(
-                colors: [.clear, .black.opacity(0.65)],
+                colors: [.clear, OuestTheme.Colors.deepNavy.opacity(0.75)],
                 startPoint: .top,
                 endPoint: .bottom
             )
+            .allowsHitTesting(false)
 
             // Trip info
             VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
@@ -115,7 +130,11 @@ struct FeedTripCardView: View {
                 .foregroundStyle(.white.opacity(0.9))
             }
             .padding(OuestTheme.Spacing.md)
+            .allowsHitTesting(false)
         }
+        .frame(height: 200)
+        .clipped()
+        .contentShape(Rectangle())
     }
 
     private var placeholderGradient: some View {
@@ -149,12 +168,15 @@ struct FeedTripCardView: View {
                     Image(systemName: feedTrip.isLiked ? "heart.fill" : "heart")
                         .foregroundStyle(feedTrip.isLiked ? .red : OuestTheme.Colors.textSecondary)
                         .scaleEffect(likeScale)
+                        .likeBurst(trigger: feedTrip.isLiked)
                     if feedTrip.likeCount > 0 {
                         Text("\(feedTrip.likeCount)")
                             .font(OuestTheme.Typography.caption)
                             .foregroundStyle(OuestTheme.Colors.textSecondary)
                     }
                 }
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
@@ -171,6 +193,8 @@ struct FeedTripCardView: View {
                             .foregroundStyle(OuestTheme.Colors.textSecondary)
                     }
                 }
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
@@ -182,8 +206,11 @@ struct FeedTripCardView: View {
             } label: {
                 Image(systemName: feedTrip.isSaved ? "bookmark.fill" : "bookmark")
                     .foregroundStyle(feedTrip.isSaved ? OuestTheme.Colors.brand : OuestTheme.Colors.textSecondary)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(feedTrip.isSaved ? "Unsave trip" : "Save trip")
 
             // More menu
             Menu {
@@ -199,6 +226,8 @@ struct FeedTripCardView: View {
             } label: {
                 Image(systemName: "ellipsis")
                     .foregroundStyle(OuestTheme.Colors.textSecondary)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
             }
         }
         .font(.body)
@@ -227,6 +256,8 @@ struct FeedTripCardView: View {
                 isLiked: false,
                 isSaved: false
             ),
+            onProfileTap: {},
+            onTripTap: {},
             onLike: {},
             onSave: {},
             onComment: {},

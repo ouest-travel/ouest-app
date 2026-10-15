@@ -139,12 +139,14 @@ enum TripService {
             .value
     }
 
-    /// Fetch public/discover trips for the Explore feed
+    /// Fetch public/discover trips for the Explore feed (only completed trips)
     static func fetchPublicTrips(limit: Int = 20, offset: Int = 0) async throws -> [Trip] {
-        try await SupabaseManager.client
+        let now = ISO8601DateFormatter().string(from: Date())
+        return try await SupabaseManager.client
             .from("trips")
             .select()
             .eq("is_public", value: true)
+            .lte("end_date", value: now)
             .order("created_at", ascending: false)
             .range(from: offset, to: offset + limit - 1)
             .execute()
@@ -172,6 +174,67 @@ enum TripService {
             .order("created_at", ascending: false)
             .execute()
             .value
+    }
+    // MARK: - Invite Links
+
+    /// Generate a random 8-character invite code (base62, excludes confusable chars)
+    static func generateInviteCode() -> String {
+        let chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"
+        return String((0..<8).map { _ in chars.randomElement()! })
+    }
+
+    /// Create a new invite code for a trip
+    static func createInvite(_ payload: CreateInvitePayload) async throws -> TripInvite {
+        try await SupabaseManager.client
+            .from("trip_invites")
+            .insert(payload)
+            .select()
+            .single()
+            .execute()
+            .value
+    }
+
+    /// Fetch all invites for a trip
+    static func fetchInvites(tripId: UUID) async throws -> [TripInvite] {
+        try await SupabaseManager.client
+            .from("trip_invites")
+            .select()
+            .eq("trip_id", value: tripId)
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+    }
+
+    /// Revoke an invite (set is_active = false)
+    static func revokeInvite(id: UUID) async throws {
+        try await SupabaseManager.client
+            .from("trip_invites")
+            .update(["is_active": false])
+            .eq("id", value: id)
+            .execute()
+    }
+
+    /// Join a trip via invite code (atomic RPC). Returns the trip_id.
+    static func joinViaInvite(code: String) async throws -> UUID {
+        try await SupabaseManager.client
+            .rpc("join_trip_via_invite", params: ["_code": code])
+            .execute()
+            .value
+    }
+
+    /// Validate/preview an invite code without joining.
+    static func validateInvite(code: String) async throws -> InvitePreview {
+        let results: [InvitePreview] = try await SupabaseManager.client
+            .rpc("validate_invite", params: ["_code": code])
+            .execute()
+            .value
+        guard let preview = results.first else {
+            throw NSError(
+                domain: "TripService", code: 404,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid invite code"]
+            )
+        }
+        return preview
     }
 }
 

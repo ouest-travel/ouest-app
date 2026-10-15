@@ -1,0 +1,18 @@
+{
+  "name": "ouest-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ouest landing + Universal Link target + rich link previews",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "@vercel/og": "^0.6.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.12",
+    "@vercel/node": "^3.2.0",
+    "typescript": "^5.5.0"
+  }
+}

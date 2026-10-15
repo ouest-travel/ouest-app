@@ -64,7 +64,7 @@ struct CommunityFeedViewModelTests {
         #expect(vm.isLoading == false)
         #expect(vm.isLoadingMore == false)
         #expect(vm.hasMore == true)
-        #expect(vm.errorMessage == nil)
+        #expect(vm.failure == nil)
         #expect(vm.searchQuery == "")
         #expect(vm.showComments == false)
         #expect(vm.selectedCommentTripId == nil)
@@ -279,7 +279,7 @@ struct UserProfileViewModelTests {
         #expect(vm.followingCount == 0)
         #expect(vm.isFollowing == false)
         #expect(vm.isLoading == false)
-        #expect(vm.errorMessage == nil)
+        #expect(vm.failure == nil)
     }
 
     @Test("userId is stored correctly")

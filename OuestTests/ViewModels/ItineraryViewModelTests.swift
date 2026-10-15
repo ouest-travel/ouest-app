@@ -27,7 +27,8 @@ struct ItineraryViewModelTests {
         #expect(vm.days.isEmpty)
         #expect(vm.isLoading == false)
         #expect(vm.isSaving == false)
-        #expect(vm.errorMessage == nil)
+        #expect(vm.failure == nil)
+        #expect(vm.failureDetail == nil)
         #expect(vm.editingActivity == nil)
     }
 

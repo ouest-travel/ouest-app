@@ -157,6 +157,31 @@ struct Follow: Codable, Identifiable, Sendable {
     }
 }
 
+/// Follow row with nested profile (used for fetching follower/following lists)
+struct FollowWithProfile: Codable, Sendable {
+    let id: UUID
+    let followerId: UUID
+    let followingId: UUID
+    let createdAt: Date?
+    var profile: Profile?
+
+    enum CodingKeys: String, CodingKey {
+        case id, profile
+        case followerId = "follower_id"
+        case followingId = "following_id"
+        case createdAt = "created_at"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        followerId = try container.decode(UUID.self, forKey: .followerId)
+        followingId = try container.decode(UUID.self, forKey: .followingId)
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt)
+        profile = try? container.decode(Profile.self, forKey: .profile)
+    }
+}
+
 struct CreateFollowPayload: Codable, Sendable {
     let followerId: UUID
     let followingId: UUID

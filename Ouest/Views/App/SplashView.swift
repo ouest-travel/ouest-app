@@ -8,9 +8,11 @@ struct SplashView: View {
 
     var body: some View {
         VStack(spacing: OuestTheme.Spacing.lg) {
-            Image(systemName: "airplane.departure")
-                .font(.system(size: 64))
-                .foregroundStyle(OuestTheme.Colors.brandGradient)
+            Image("OuestLogo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 80, height: 80)
+                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
                 .scaleEffect(iconScale)
                 .opacity(iconOpacity)
 
