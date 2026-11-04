@@ -153,6 +153,21 @@ enum TripService {
             .value
     }
 
+    /// Fetch a single profile by handle (case-insensitive). Used for
+    /// /u/:handle deep links. Returns nil if no such handle exists.
+    static func fetchProfile(byHandle handle: String) async throws -> Profile? {
+        let trimmed = handle.trimmingCharacters(in: CharacterSet(charactersIn: "@ "))
+        guard !trimmed.isEmpty else { return nil }
+        let results: [Profile] = try await SupabaseManager.client
+            .from("profiles")
+            .select()
+            .ilike("handle", pattern: trimmed)
+            .limit(1)
+            .execute()
+            .value
+        return results.first
+    }
+
     /// Fetch a single profile by user ID
     static func fetchProfile(userId: UUID) async throws -> Profile {
         try await SupabaseManager.client
