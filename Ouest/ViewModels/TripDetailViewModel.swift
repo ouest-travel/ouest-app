@@ -256,19 +256,20 @@ final class TripDetailViewModel {
                 countryCodes: countryCodes.isEmpty ? nil : countryCodes
             )
 
-            let oldTrip = trip
             trip = try await TripService.updateTrip(id: tripId, payload)
 
-            // If dates were added/changed, auto-generate itinerary days (only if none exist)
-            if hasDates && (oldTrip?.startDate == nil || oldTrip?.endDate == nil) {
-                let existingDays = try await ItineraryService.fetchDays(tripId: tripId)
-                if existingDays.isEmpty {
-                    _ = try? await ItineraryService.generateDaysForTrip(
-                        tripId: tripId,
-                        startDate: startDate,
-                        endDate: endDate
-                    )
-                }
+            // Keep itinerary days in sync with the trip's current range.
+            // Covers all cases in one call: dates added for the first time
+            // (generates the full range), start shifted (re-aligns existing
+            // day dates), end extended (appends missing days). Non-destructive
+            // when the range shrinks — extra days stay so we don't delete
+            // user activities behind their back.
+            if hasDates {
+                try? await ItineraryService.syncDayDatesToTrip(
+                    tripId: tripId,
+                    startDate: startDate,
+                    endDate: endDate
+                )
             }
 
             isSaving = false

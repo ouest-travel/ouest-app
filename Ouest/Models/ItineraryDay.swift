@@ -117,6 +117,13 @@ struct UpdateDayPayload: Codable, Sendable {
     var notes: String?
 }
 
+/// Narrow payload for shifting just a day's date. Separate from
+/// `UpdateDayPayload` so a date edit doesn't accidentally null out title/notes
+/// via Codable's default nil-encodes-as-null behavior.
+struct UpdateDayDatePayload: Codable, Sendable {
+    let date: Date?
+}
+
 // MARK: - Update Day Order Payload (for reordering)
 
 struct UpdateDayOrderPayload: Codable, Sendable {

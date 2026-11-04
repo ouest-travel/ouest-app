@@ -51,6 +51,20 @@ enum ItineraryService {
             .value
     }
 
+    /// Update a day's date in isolation (used when the user edits a single
+    /// day's date or when `syncDayDatesToTrip` shifts the whole range).
+    @discardableResult
+    static func updateDayDate(id: UUID, date: Date?) async throws -> ItineraryDay {
+        try await SupabaseManager.client
+            .from("itinerary_days")
+            .update(UpdateDayDatePayload(date: date))
+            .eq("id", value: id)
+            .select("*, activities:itinerary_activities(*)")
+            .single()
+            .execute()
+            .value
+    }
+
     /// Delete a day (cascades to its activities)
     static func deleteDay(id: UUID) async throws {
         try await SupabaseManager.client
@@ -92,6 +106,64 @@ enum ItineraryService {
 
         guard !payloads.isEmpty else { return [] }
         return try await createDays(payloads)
+    }
+
+    /// Re-align existing itinerary days to a (possibly new) trip date range.
+    /// - No existing days: generate the full range.
+    /// - Existing days: for each day, set date = startDate + (dayNumber - 1),
+    ///   so day N keeps its ordinal and gets the correct new date.
+    /// - New range longer than existing days: append the missing ones.
+    /// - New range shorter: leave extra days in place (non-destructive — we
+    ///   don't delete user activities just because the trip got shorter).
+    static func syncDayDatesToTrip(
+        tripId: UUID,
+        startDate: Date,
+        endDate: Date
+    ) async throws {
+        var calendar = Calendar.current
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let startDay = calendar.startOfDay(for: startDate)
+        let endDay = calendar.startOfDay(for: endDate)
+
+        let existing = try await fetchDays(tripId: tripId)
+        if existing.isEmpty {
+            _ = try await generateDaysForTrip(
+                tripId: tripId,
+                startDate: startDate,
+                endDate: endDate
+            )
+            return
+        }
+
+        for day in existing {
+            guard let newDate = calendar.date(
+                byAdding: .day,
+                value: day.dayNumber - 1,
+                to: startDay
+            ) else { continue }
+            if day.date != newDate {
+                _ = try await updateDayDate(id: day.id, date: newDate)
+            }
+        }
+
+        let totalDaysInRange = (calendar.dateComponents([.day], from: startDay, to: endDay).day ?? 0) + 1
+        let maxExistingNumber = existing.map(\.dayNumber).max() ?? 0
+        guard totalDaysInRange > maxExistingNumber else { return }
+
+        var newPayloads: [CreateDayPayload] = []
+        for n in (maxExistingNumber + 1)...totalDaysInRange {
+            guard let date = calendar.date(byAdding: .day, value: n - 1, to: startDay) else { continue }
+            newPayloads.append(CreateDayPayload(
+                tripId: tripId,
+                dayNumber: n,
+                date: date,
+                title: nil,
+                notes: nil
+            ))
+        }
+        if !newPayloads.isEmpty {
+            _ = try await createDays(newPayloads)
+        }
     }
 
     // MARK: - Activities
