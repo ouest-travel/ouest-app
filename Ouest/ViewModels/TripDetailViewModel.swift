@@ -31,6 +31,15 @@ final class TripDetailViewModel {
     var hasBudget = false
     var countryCodes: [String] = []
 
+    // MARK: - Weather
+    /// The daily forecast for this trip's destination. `nil` when we haven't
+    /// fetched, when preconditions weren't met (no dates, > 10 days out,
+    /// already ended), or when geocoding found no match. The view treats those
+    /// cases identically: no weather section rendered.
+    var forecast: DailyForecast?
+    var weatherFailure: OuestError?
+    var isLoadingWeather = false
+
     // MARK: - Members search
     var searchQuery = ""
     var searchResults: [Profile] = []
@@ -84,6 +93,58 @@ final class TripDetailViewModel {
         }
 
         isLoading = false
+
+        // Kick off weather without blocking trip render — the section has its
+        // own skeleton and error states.
+        Task { await self.loadForecast() }
+    }
+
+    // MARK: - Load Forecast
+    //
+    // Preconditions live here rather than in the view so `WeatherSection` can
+    // stay a pure presentation surface. `loadForecast()` returns silently when
+    // the trip has no dates, is more than 10 days out, or has already ended —
+    // the view then reads `forecast == nil && weatherFailure == nil` to hide
+    // the section entirely.
+
+    func loadForecast() async {
+        guard !isLoadingWeather, let trip = trip else { return }
+
+        guard let start = trip.startDate else { return }
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let startDay = calendar.startOfDay(for: start)
+        let daysUntilStart = calendar.dateComponents([.day], from: today, to: startDay).day ?? 0
+
+        // WeatherKit's daily forecast reaches ~10 days out. Fetching earlier
+        // would just paint a "no data" state.
+        guard daysUntilStart <= 10 else { return }
+
+        // Trip already ended — no forward-looking weather is useful.
+        if let end = trip.endDate {
+            let endDay = calendar.startOfDay(for: end)
+            let daysSinceEnd = calendar.dateComponents([.day], from: endDay, to: today).day ?? 0
+            guard daysSinceEnd <= 0 else { return }
+        }
+
+        isLoadingWeather = true
+        weatherFailure = nil
+
+        do {
+            guard let coord = try await GeocodingService.geocode(trip.destination) else {
+                // "Home" / "TBD" / typo — hide the section rather than error.
+                isLoadingWeather = false
+                return
+            }
+            forecast = try await WeatherService.fetchDailyForecast(
+                latitude: coord.latitude,
+                longitude: coord.longitude
+            )
+        } catch {
+            weatherFailure = OuestError(error)
+        }
+
+        isLoadingWeather = false
     }
 
     // MARK: - Create Trip

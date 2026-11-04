@@ -113,6 +113,11 @@ struct TripDetailView: View {
                         .fadeSlideIn(isVisible: contentAppeared, delay: 0.15)
                 }
 
+                // Weather (10-day forecast — hides itself when the trip has
+                // no dates, is more than 10 days out, or has already ended)
+                WeatherSection(viewModel: viewModel)
+                    .fadeSlideIn(isVisible: contentAppeared, delay: 0.18)
+
                 // Members Preview
                 membersPreview
                     .fadeSlideIn(isVisible: contentAppeared, delay: 0.2)
@@ -185,19 +190,18 @@ struct TripDetailView: View {
     // MARK: - Cover Header
 
     private func coverHeader(_ trip: Trip) -> some View {
-        // Establish the screen-width bound via Color.clear at the back of the
-        // ZStack. .scaledToFill() preserves aspect ratio, so a panoramic cover
-        // image at 260pt tall has a natural width far wider than the screen —
-        // without an explicit maxWidth: .infinity constraint, the ZStack
-        // expands to that natural width and pushes every section below it off
-        // the leading edge. .clipped() clips painting but NOT layout, so the
-        // bug stays invisible until the cover image has a wide aspect.
+        // .scaledToFill() preserves aspect ratio, so a panoramic cover image
+        // at 260pt tall has a natural width far wider than the screen.
+        // Without an explicit maxWidth: .infinity on the OUTER frame, the
+        // ZStack expands to that natural width and pushes every section
+        // below it off the leading edge. .clipped() clips painting but NOT
+        // layout, so the bug stays invisible until the cover image has a
+        // wide aspect.
+        //
+        // We deliberately DON'T add a Color.clear bounding sibling here —
+        // a tested earlier version did and that pushed the title VStack
+        // beyond the clipped frame, half-cutting the destination subtitle.
         ZStack(alignment: .bottomLeading) {
-            // Width-bounding sibling — guarantees the ZStack takes exactly
-            // the proposed (screen) width regardless of the cover image's
-            // intrinsic dimensions.
-            Color.clear
-
             if let urlString = trip.coverImageUrl, let url = URL(string: urlString) {
                 AsyncImage(url: url) { phase in
                     switch phase {
@@ -241,8 +245,14 @@ struct TripDetailView: View {
             }
             .padding(OuestTheme.Spacing.xl)
         }
-        .frame(maxWidth: .infinity)
+        // Order matters: .frame(height:) FIRST so the ZStack lays out within
+        // 260pt and the title VStack's .bottomLeading anchor lands at the
+        // bottom of THAT 260pt frame. If the maxWidth frame came first, the
+        // ZStack would lay out at the panoramic image's natural height
+        // (taller than 260), the title would anchor at that taller bottom,
+        // and .clipped() would cut the destination subtitle in half.
         .frame(height: 260)
+        .frame(maxWidth: .infinity)
         .clipped()
     }
 
