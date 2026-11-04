@@ -59,3 +59,14 @@ fastlane/test_output
 # Supabase
 supabase/.branches
 supabase/.temp
+
+# Apple Push Notification private key — NEVER commit
+APN key/
+
+# Local build output + marketing assets
+build/
+app-store-screenshots/
+
+# Agent/tooling scratch
+.agents/
+.claude/worktrees/
