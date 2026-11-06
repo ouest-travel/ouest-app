@@ -18,6 +18,7 @@ struct AIImportView: View {
     @State private var inputText: String = ""
     @State private var appeared = false
     @FocusState private var inputFocused: Bool
+    @State private var showConsent = false
 
     private var trimmed: String {
         inputText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -69,6 +70,9 @@ struct AIImportView: View {
                 Button("OK", role: .cancel) { viewModel.aiError = nil }
             } message: { msg in
                 Text(msg)
+            }
+            .aiConsentSheet(isPresented: $showConsent, includesPastedText: true) {
+                runImport()
             }
             .onAppear {
                 withAnimation(OuestTheme.Anim.smooth) {
@@ -269,16 +273,25 @@ struct AIImportView: View {
             title: existingDaysCount > 0 ? "Replace with imported itinerary" : "Import itinerary",
             isLoading: viewModel.isGeneratingAI
         ) {
-            Task {
-                let success = await viewModel.importAIItinerary(inputText: trimmed)
-                if success {
-                    dismiss()
-                }
+            if AIConsent.hasConsented(authViewModel.currentUser?.id) {
+                runImport()
+            } else {
+                inputFocused = false
+                showConsent = true
             }
         }
         .disabled(!canImport)
         .opacity(canImport ? 1 : 0.5)
         .fadeSlideIn(isVisible: appeared, delay: 0.15)
+    }
+
+    private func runImport() {
+        Task {
+            let success = await viewModel.importAIItinerary(inputText: trimmed)
+            if success {
+                dismiss()
+            }
+        }
     }
 
     private var existingDaysCount: Int {

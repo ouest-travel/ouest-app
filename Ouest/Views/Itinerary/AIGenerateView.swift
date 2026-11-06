@@ -16,6 +16,7 @@ struct AIGenerateView: View {
     @State private var selectedBudget: TripBudgetLevel = .moderate
     @State private var appeared = false
     @State private var prefilledFromProfile = false
+    @State private var showConsent = false
 
     private var canGenerate: Bool {
         !selectedVibes.isEmpty
@@ -64,6 +65,9 @@ struct AIGenerateView: View {
                 Button("OK", role: .cancel) { viewModel.aiError = nil }
             } message: { msg in
                 Text(msg)
+            }
+            .aiConsentSheet(isPresented: $showConsent) {
+                generate()
             }
             .onAppear {
                 prefillFromProfileIfNeeded()
@@ -289,20 +293,28 @@ struct AIGenerateView: View {
             title: existingDaysCount > 0 ? "Replace with AI itinerary" : "Generate Itinerary",
             isLoading: viewModel.isGeneratingAI
         ) {
-            Task {
-                let preferences = TripPreferences(
-                    vibes: selectedVibes.map(\.rawValue),
-                    budgetLevel: selectedBudget.rawValue
-                )
-                let success = await viewModel.generateAIItinerary(preferences: preferences)
-                if success {
-                    dismiss()
-                }
+            if AIConsent.hasConsented(authViewModel.currentUser?.id) {
+                generate()
+            } else {
+                showConsent = true
             }
         }
         .disabled(!canGenerate)
         .opacity(canGenerate ? 1 : 0.5)
         .fadeSlideIn(isVisible: appeared, delay: 0.2)
+    }
+
+    private func generate() {
+        Task {
+            let preferences = TripPreferences(
+                vibes: selectedVibes.map(\.rawValue),
+                budgetLevel: selectedBudget.rawValue
+            )
+            let success = await viewModel.generateAIItinerary(preferences: preferences)
+            if success {
+                dismiss()
+            }
+        }
     }
 
     /// Approximate count of existing days — used to warn that generation replaces content.

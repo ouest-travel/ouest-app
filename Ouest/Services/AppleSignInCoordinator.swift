@@ -19,6 +19,9 @@ final class AppleSignInCoordinator: NSObject, ASAuthorizationControllerDelegate,
         let nonce: String
         let fullName: String?
         let email: String?
+        /// Single-use, valid for 5 minutes. Only used to revoke the user's
+        /// Apple tokens when they delete their account.
+        let authorizationCode: String?
     }
 
     /// Starts the Apple Sign In flow and returns the result.
@@ -72,7 +75,10 @@ final class AppleSignInCoordinator: NSObject, ASAuthorizationControllerDelegate,
                 identityToken: identityToken,
                 nonce: currentNonce,
                 fullName: fullName,
-                email: credential.email
+                email: credential.email,
+                authorizationCode: credential.authorizationCode.flatMap {
+                    String(data: $0, encoding: .utf8)
+                }
             )
 
             continuation?.resume(returning: result)

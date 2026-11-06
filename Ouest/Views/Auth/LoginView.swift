@@ -139,6 +139,15 @@ struct LoginView: View {
                 .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
                 .fadeSlideIn(isVisible: appeared, delay: 0.34)
 
+                // Sign in with Apple can create an account, so the terms
+                // agreement belongs here as well as on Sign Up.
+                Text("By continuing, you agree to Ouest's [Terms of Use](https://links.ouest.travel/terms) and [Privacy Policy](https://links.ouest.travel/privacy).")
+                    .font(OuestTheme.Typography.caption)
+                    .foregroundStyle(OuestTheme.Colors.textSecondary)
+                    .tint(OuestTheme.Colors.brandInk)
+                    .multilineTextAlignment(.center)
+                    .fadeSlideIn(isVisible: appeared, delay: 0.345)
+
                 Spacer()
 
                 // Sign up link

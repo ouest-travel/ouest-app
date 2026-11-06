@@ -138,7 +138,7 @@ struct SettingsView: View {
                 }
             }
         } message: {
-            Text("This action is permanent and cannot be undone. All your trips, itineraries, and data will be deleted.")
+            Text("This action is permanent and cannot be undone. All your trips, itineraries, and data will be deleted. If you signed in with Apple, you'll confirm with Apple next.")
         }
         .alert("Couldn't delete account", isPresented: $showDeleteError) {
             Button("OK", role: .cancel) { }

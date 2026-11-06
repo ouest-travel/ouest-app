@@ -121,7 +121,6 @@ interface EnrichmentContext {
   currency?: string;
   budget?: number | null;
   memberCount?: number;
-  travelerName?: string;
   nationality?: string;
   profileInterests?: string[];
   pastTrips?: PastTripSummary[];
@@ -230,7 +229,6 @@ function renderContextBlock(ctx: EnrichmentContext): string {
 
   // Traveler signal (lever 1)
   const travelerBits: string[] = [];
-  if (ctx.travelerName) travelerBits.push(`called ${ctx.travelerName}`);
   if (ctx.nationality) travelerBits.push(`from ${ctx.nationality}`);
   if (ctx.profileInterests?.length)
     travelerBits.push(
@@ -794,7 +792,7 @@ async function fetchTripContext(
   try {
     const { data, error } = await supabase
       .from("profiles")
-      .select("full_name, nationality, travel_interests")
+      .select("nationality, travel_interests")
       .eq("id", userId)
       .single();
     if (error) console.error("Profile lookup error:", error);
@@ -1174,8 +1172,6 @@ Deno.serve(async (req: Request) => {
       budget:
         typeof tripCtx.trip.budget === "number" ? tripCtx.trip.budget : null,
       memberCount: tripCtx.memberCount,
-      travelerName:
-        (tripCtx.profile?.full_name as string | undefined) || undefined,
       nationality:
         (tripCtx.profile?.nationality as string | undefined) || undefined,
       profileInterests:

@@ -100,10 +100,22 @@ enum AuthService {
 
     /// Permanently delete the current user's account via the `delete-user`
     /// Edge Function (auth.admin.deleteUser; everything else cascades).
+    /// Pass a fresh Apple authorization code for Sign in with Apple accounts
+    /// so the function can revoke the user's Apple tokens, which Apple
+    /// requires on account deletion.
     /// The session is invalid afterwards, so the local sign-out is best-effort.
-    static func deleteAccount() async throws {
-        try await SupabaseManager.client.functions.invoke("delete-user")
+    static func deleteAccount(appleAuthorizationCode: String? = nil) async throws {
+        try await SupabaseManager.client.functions.invoke(
+            "delete-user",
+            options: .init(body: DeleteAccountPayload(appleAuthorizationCode: appleAuthorizationCode))
+        )
         try? await SupabaseManager.client.auth.signOut()
+    }
+
+    /// True when the signed-in account has a linked Apple identity.
+    static func isAppleAccount() async -> Bool {
+        guard let user = try? await SupabaseManager.client.auth.session.user else { return false }
+        return user.identities?.contains { $0.provider == "apple" } ?? false
     }
 
     /// Restore an existing session from Keychain
@@ -173,5 +185,15 @@ enum AuthService {
         }
 
         return .unknown(error.localizedDescription)
+    }
+}
+
+// MARK: - Delete Account Payload
+
+private struct DeleteAccountPayload: Encodable {
+    let appleAuthorizationCode: String?
+
+    enum CodingKeys: String, CodingKey {
+        case appleAuthorizationCode = "apple_authorization_code"
     }
 }

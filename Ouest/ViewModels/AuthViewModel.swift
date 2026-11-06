@@ -286,13 +286,25 @@ final class AuthViewModel {
     var isDeletingAccount = false
 
     /// Delete the account server-side and drop to the signed-out state.
-    /// Returns false (and sets `errorMessage`) if deletion failed.
+    /// Returns false (and sets `errorMessage`) if deletion failed. Backing
+    /// out of the Apple confirmation is not a failure: nothing is deleted
+    /// and the user stays signed in.
+    ///
+    /// Sign in with Apple accounts confirm with Apple first: the fresh
+    /// authorization code lets the server revoke the user's Apple tokens.
     func deleteAccount() async -> Bool {
         isDeletingAccount = true
         defer { isDeletingAccount = false }
         do {
-            try await AuthService.deleteAccount()
+            var appleCode: String?
+            if await AuthService.isAppleAccount() {
+                appleCode = try await appleSignInCoordinator.signIn().authorizationCode
+            }
+            try await AuthService.deleteAccount(appleAuthorizationCode: appleCode)
             clearSessionState()
+            return true
+        } catch AppleSignInError.cancelled {
+            // User backed out of the Apple confirmation; nothing was deleted.
             return true
         } catch {
             errorMessage = error.localizedDescription
