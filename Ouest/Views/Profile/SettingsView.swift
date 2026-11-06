@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(AuthViewModel.self) private var authViewModel
     @State private var showDeleteConfirmation = false
+    @State private var showDeleteError = false
     @State private var showSignOutConfirmation = false
 
     // Notification preferences
@@ -130,10 +131,27 @@ struct SettingsView: View {
         .alert("Delete Account", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
-                // Placeholder — account deletion requires server-side implementation
+                Task {
+                    if await authViewModel.deleteAccount() == false {
+                        showDeleteError = true
+                    }
+                }
             }
         } message: {
             Text("This action is permanent and cannot be undone. All your trips, itineraries, and data will be deleted.")
+        }
+        .alert("Couldn't delete account", isPresented: $showDeleteError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(authViewModel.errorMessage ?? "Please try again.")
+        }
+        .disabled(authViewModel.isDeletingAccount)
+        .overlay {
+            if authViewModel.isDeletingAccount {
+                ProgressView("Deleting account…")
+                    .padding(OuestTheme.Spacing.xl)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+            }
         }
     }
 

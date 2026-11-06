@@ -26,11 +26,15 @@ enum SupabaseManager {
                 return date
             }
 
-            // Try date-only format (e.g. "2026-02-26") — PostgreSQL `date` columns
+            // Try date-only format (e.g. "2026-02-26") — PostgreSQL `date` columns.
+            // Decoded as *local* midnight: a `date` has no timezone, and every
+            // display path (DateFormatter, .formatted, Calendar.current) is
+            // local. UTC midnight here showed "Nov 4" for a Nov 5 trip to
+            // anyone west of Greenwich.
             let dateOnly = DateFormatter()
             dateOnly.dateFormat = "yyyy-MM-dd"
             dateOnly.locale = Locale(identifier: "en_US_POSIX")
-            dateOnly.timeZone = TimeZone(identifier: "UTC")
+            dateOnly.timeZone = .current
             if let date = dateOnly.date(from: string) {
                 return date
             }

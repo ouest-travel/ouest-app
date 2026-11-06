@@ -2,6 +2,9 @@ import UIKit
 import UserNotifications
 
 class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
+    /// UserDefaults key for the last APNs token this device registered.
+    static let deviceTokenDefaultsKey = "apnsDeviceToken"
+
 
     // MARK: - App Lifecycle
 
@@ -22,6 +25,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
     ) {
         let token = deviceToken.map { String(format: "%02x", $0) }.joined()
         print("[Push] Registered device token: \(token)")
+
+        // Remembered locally so sign-out can unregister exactly this device.
+        UserDefaults.standard.set(token, forKey: Self.deviceTokenDefaultsKey)
 
         // Store token in Supabase via NotificationService
         Task { @MainActor in

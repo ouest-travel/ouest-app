@@ -243,17 +243,24 @@ final class TripDetailViewModel {
                 )
             }
 
+            // Fields the user toggled off must be sent as explicit nulls —
+            // omitting them would leave the previous value in place.
+            var cleared: [UpdateTripPayload.CodingKeys] = []
+            if !hasDates { cleared += [.startDate, .endDate] }
+            if !hasBudget { cleared.append(.budget) }
+
             let payload = UpdateTripPayload(
                 title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                 destination: destination.trimmingCharacters(in: .whitespacesAndNewlines),
-                description: description.isEmpty ? nil : description.trimmingCharacters(in: .whitespacesAndNewlines),
+                description: description.trimmingCharacters(in: .whitespacesAndNewlines),
                 coverImageUrl: coverUrl,
                 startDate: hasDates ? startDate : nil,
                 endDate: hasDates ? endDate : nil,
                 isPublic: isPublic,
                 budget: hasBudget ? Double(budgetText) : nil,
                 currency: hasBudget ? currency : nil,
-                countryCodes: countryCodes.isEmpty ? nil : countryCodes
+                countryCodes: countryCodes,
+                nullFields: cleared
             )
 
             trip = try await TripService.updateTrip(id: tripId, payload)

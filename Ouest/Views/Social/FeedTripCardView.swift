@@ -13,6 +13,8 @@ struct FeedTripCardView: View {
     let onSave: () -> Void
     let onComment: () -> Void
     let onClone: () -> Void
+    /// Optional so preview / test call sites keep working.
+    var onReport: (() -> Void)? = nil
 
     /// Namespace for the iOS 18 zoom transition into `TripDetailView`.
     /// Optional so preview / test call sites keep working.
@@ -222,6 +224,15 @@ struct FeedTripCardView: View {
 
                 ShareLink(item: "Check out \"\(feedTrip.trip.title)\" on Ouest!") {
                     Label("Share", systemImage: "square.and.arrow.up")
+                }
+
+                if let onReport {
+                    Divider()
+                    Button(role: .destructive) {
+                        onReport()
+                    } label: {
+                        Label("Report", systemImage: "flag")
+                    }
                 }
             } label: {
                 Image(systemName: "ellipsis")

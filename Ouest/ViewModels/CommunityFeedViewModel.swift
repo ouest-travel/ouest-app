@@ -48,6 +48,9 @@ final class CommunityFeedViewModel {
     private let pageSize = 20
     private var currentOffset = 0
     private var currentUserId: UUID?
+    /// Authors the current user has blocked — dropped from the feed and
+    /// people search client-side.
+    private var blockedIds: Set<UUID> = []
 
     // MARK: - Load Feed
 
@@ -61,7 +64,9 @@ final class CommunityFeedViewModel {
         hasMore = true
 
         do {
-            currentUserId = try await SupabaseManager.client.auth.session.user.id
+            let userId = try await SupabaseManager.client.auth.session.user.id
+            currentUserId = userId
+            blockedIds = (try? await ModerationService.fetchBlockedIds(for: userId)) ?? []
             let trips = try await TripService.fetchPublicTrips(limit: pageSize, offset: 0)
             feedTrips = try await buildFeedTrips(from: trips)
             hasMore = trips.count == pageSize
@@ -228,8 +233,8 @@ final class CommunityFeedViewModel {
             do {
                 let results = try await TripService.searchProfiles(query: query)
                 guard !Task.isCancelled else { return }
-                // Filter out the current user
-                searchedUsers = results.filter { $0.id != currentUserId }
+                // Filter out the current user and anyone they've blocked
+                searchedUsers = results.filter { $0.id != currentUserId && !blockedIds.contains($0.id) }
             } catch {
                 guard !Task.isCancelled else { return }
                 searchedUsers = []
@@ -244,7 +249,8 @@ final class CommunityFeedViewModel {
 
     // MARK: - Private: Build Feed
 
-    private func buildFeedTrips(from trips: [Trip]) async throws -> [FeedTrip] {
+    private func buildFeedTrips(from fetched: [Trip]) async throws -> [FeedTrip] {
+        let trips = fetched.filter { !blockedIds.contains($0.createdBy) }
         guard !trips.isEmpty, let userId = currentUserId else { return [] }
 
         let tripIds = trips.map(\.id)

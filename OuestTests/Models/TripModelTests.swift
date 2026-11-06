@@ -104,6 +104,53 @@ struct TripModelTests {
         #expect(MemberRole.viewer.label == "Viewer")
     }
 
+    // MARK: - UpdateTripPayload encoding
+
+    // PostgREST treats an omitted key as "leave unchanged" and an explicit
+    // null as "clear". A partial update (e.g. status only) must not touch
+    // other columns, while Edit Trip toggling dates/budget off must clear them.
+
+    @Test("UpdateTripPayload omits nil fields so partial updates leave other columns alone")
+    func payloadOmitsNilByDefault() throws {
+        let data = try JSONEncoder().encode(UpdateTripPayload(status: .planning))
+        let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        #expect(json.keys.sorted() == ["status"])
+    }
+
+    @Test("UpdateTripPayload sends explicit null for fields the user cleared")
+    func payloadEncodesExplicitNulls() throws {
+        let payload = UpdateTripPayload(
+            title: "Lisbon",
+            nullFields: [.startDate, .endDate, .budget]
+        )
+        let data = try JSONEncoder().encode(payload)
+        let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        #expect(json["title"] as? String == "Lisbon")
+        #expect(json["start_date"] is NSNull)
+        #expect(json["end_date"] is NSNull)
+        #expect(json["budget"] is NSNull)
+        #expect(json["currency"] == nil)
+    }
+
+    // MARK: - Date column decoding
+
+    // `date` columns carry no timezone. Decoding "2026-11-05" as UTC midnight
+    // made every local-calendar display (titles, calendar grid, DatePicker)
+    // show Nov 4 for anyone west of Greenwich.
+
+    @Test("postgrestDecoder decodes date-only columns as local midnight")
+    func dateOnlyDecodesAsLocalMidnight() throws {
+        struct Row: Decodable { let date: Date }
+        let data = Data(#"{"date":"2026-11-05"}"#.utf8)
+        let row = try SupabaseManager.postgrestDecoder.decode(Row.self, from: data)
+
+        let comps = Calendar.current.dateComponents([.year, .month, .day], from: row.date)
+        #expect(comps.year == 2026)
+        #expect(comps.month == 11)
+        #expect(comps.day == 5)
+        #expect(Calendar.current.startOfDay(for: row.date) == row.date)
+    }
+
     // MARK: - Helpers
 
     private func makeTrip(

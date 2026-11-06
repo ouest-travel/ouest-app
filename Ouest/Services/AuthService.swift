@@ -98,6 +98,14 @@ enum AuthService {
         try await SupabaseManager.client.auth.signOut()
     }
 
+    /// Permanently delete the current user's account via the `delete-user`
+    /// Edge Function (auth.admin.deleteUser; everything else cascades).
+    /// The session is invalid afterwards, so the local sign-out is best-effort.
+    static func deleteAccount() async throws {
+        try await SupabaseManager.client.functions.invoke("delete-user")
+        try? await SupabaseManager.client.auth.signOut()
+    }
+
     /// Restore an existing session from Keychain
     static func restoreSession() async throws -> Session {
         try await SupabaseManager.client.auth.session

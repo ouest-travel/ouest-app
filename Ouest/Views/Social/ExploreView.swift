@@ -4,6 +4,7 @@ struct ExploreView: View {
     @State private var viewModel = CommunityFeedViewModel()
     @State private var path = NavigationPath()
     @State private var contentAppeared = false
+    @State private var reportTarget: ReportTarget?
 
     /// Shared namespace so tapping a feed card grows the cover into the
     /// trip detail hero on iOS 18. Same technique as HomeView.
@@ -45,6 +46,7 @@ struct ExploreView: View {
             .refreshable {
                 await viewModel.refreshFeed()
             }
+            .reportDialog(target: $reportTarget)
             .navigationDestination(for: UUID.self) { tripId in
                 TripDetailView(tripId: tripId, zoomSourceId: tripId, zoomNamespace: feedCovers)
             }
@@ -118,6 +120,9 @@ struct ExploreView: View {
                         onComment: { viewModel.openComments(for: feedTrip.id) },
                         onClone: {
                             Task { await viewModel.cloneTrip(feedTrip) }
+                        },
+                        onReport: {
+                            reportTarget = ReportTarget(kind: .trip, id: feedTrip.trip.id, displayName: "trip")
                         },
                         namespace: feedCovers
                     )

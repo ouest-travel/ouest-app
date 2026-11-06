@@ -12,6 +12,8 @@ struct UserProfileView: View {
     @State private var contentAppeared = false
     @State private var equippedStickers: [UserSticker] = []
     @State private var showAvatarViewer = false
+    @State private var reportTarget: ReportTarget?
+    @State private var showBlockConfirmation = false
 
     init(userId: UUID) {
         self.userId = userId
@@ -34,6 +36,47 @@ struct UserProfileView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if !viewModel.isOwnProfile, viewModel.profile != nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button {
+                            reportTarget = ReportTarget(kind: .profile, id: userId, displayName: "profile")
+                        } label: {
+                            Label("Report", systemImage: "flag")
+                        }
+                        if viewModel.isBlocked {
+                            Button {
+                                viewModel.toggleBlock()
+                            } label: {
+                                Label("Unblock", systemImage: "hand.raised.slash")
+                            }
+                        } else {
+                            Button(role: .destructive) {
+                                showBlockConfirmation = true
+                            } label: {
+                                Label("Block", systemImage: "hand.raised")
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                    .accessibilityLabel("Profile options")
+                }
+            }
+        }
+        .reportDialog(target: $reportTarget)
+        .confirmationDialog(
+            "Block \(viewModel.profile?.fullName ?? "this user")?",
+            isPresented: $showBlockConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Block", role: .destructive) {
+                viewModel.toggleBlock()
+            }
+        } message: {
+            Text("You won't see their trips or comments anymore. You can unblock them from this page.")
+        }
         .navigationDestination(for: FollowListDestination.self) { dest in
             FollowListView(userId: dest.userId, listType: dest.listType)
         }
@@ -67,16 +110,26 @@ struct UserProfileView: View {
                 profileCard(profile)
                     .fadeSlideIn(isVisible: contentAppeared, delay: 0)
 
-                // Follow button (outside card for prominence)
+                // Follow button (outside card for prominence). Blocked users
+                // get Unblock here instead — following someone you've blocked
+                // makes no sense.
                 if !viewModel.isOwnProfile {
-                    OuestButton(
-                        title: viewModel.isFollowing ? "Following" : "Follow",
-                        style: viewModel.isFollowing ? .secondary : .primary
-                    ) {
-                        viewModel.toggleFollow()
+                    if viewModel.isBlocked {
+                        OuestButton(title: "Unblock", style: .secondary) {
+                            viewModel.toggleBlock()
+                        }
+                        .frame(width: 200)
+                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.1)
+                    } else {
+                        OuestButton(
+                            title: viewModel.isFollowing ? "Following" : "Follow",
+                            style: viewModel.isFollowing ? .secondary : .primary
+                        ) {
+                            viewModel.toggleFollow()
+                        }
+                        .frame(width: 200)
+                        .fadeSlideIn(isVisible: contentAppeared, delay: 0.1)
                     }
-                    .frame(width: 200)
-                    .fadeSlideIn(isVisible: contentAppeared, delay: 0.1)
                 }
 
                 if isProfileLocked {

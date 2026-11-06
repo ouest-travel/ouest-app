@@ -275,14 +275,45 @@ final class AuthViewModel {
 
     func signOut() async {
         do {
+            await unregisterDeviceToken()
             try await AuthService.signOut()
-            isAuthenticated = false
-            currentUser = nil
-            needsEmailConfirmation = false
-            isPasswordRecovery = false
+            clearSessionState()
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    var isDeletingAccount = false
+
+    /// Delete the account server-side and drop to the signed-out state.
+    /// Returns false (and sets `errorMessage`) if deletion failed.
+    func deleteAccount() async -> Bool {
+        isDeletingAccount = true
+        defer { isDeletingAccount = false }
+        do {
+            try await AuthService.deleteAccount()
+            clearSessionState()
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    private func clearSessionState() {
+        isAuthenticated = false
+        currentUser = nil
+        needsEmailConfirmation = false
+        isPasswordRecovery = false
+    }
+
+    /// Drop this device's push token for the outgoing user, so the next
+    /// account on this phone doesn't receive their notifications.
+    private func unregisterDeviceToken() async {
+        guard let userId = currentUser?.id,
+              let token = UserDefaults.standard.string(forKey: AppDelegate.deviceTokenDefaultsKey)
+        else { return }
+        try? await NotificationService.removeToken(userId: userId, token: token)
     }
 
     func resetPassword(email: String) async {

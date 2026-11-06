@@ -141,6 +141,12 @@ struct UpdateTripPayload: Codable, Sendable {
     var currency: String?
     var countryCodes: [String]?
 
+    /// Keys to send as an explicit JSON `null`. Synthesized Codable *omits*
+    /// nil optionals from the PATCH body, which PostgREST reads as "leave
+    /// unchanged" — so clearing a value (dates toggled off, budget removed)
+    /// has to name the key here or the old value silently survives.
+    var nullFields: [CodingKeys] = []
+
     enum CodingKeys: String, CodingKey {
         case title, destination, description, status, budget, currency
         case coverImageUrl = "cover_image_url"
@@ -148,5 +154,23 @@ struct UpdateTripPayload: Codable, Sendable {
         case endDate = "end_date"
         case isPublic = "is_public"
         case countryCodes = "country_codes"
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(title, forKey: .title)
+        try container.encodeIfPresent(destination, forKey: .destination)
+        try container.encodeIfPresent(description, forKey: .description)
+        try container.encodeIfPresent(coverImageUrl, forKey: .coverImageUrl)
+        try container.encodeIfPresent(startDate, forKey: .startDate)
+        try container.encodeIfPresent(endDate, forKey: .endDate)
+        try container.encodeIfPresent(status, forKey: .status)
+        try container.encodeIfPresent(isPublic, forKey: .isPublic)
+        try container.encodeIfPresent(budget, forKey: .budget)
+        try container.encodeIfPresent(currency, forKey: .currency)
+        try container.encodeIfPresent(countryCodes, forKey: .countryCodes)
+        for key in nullFields {
+            try container.encodeNil(forKey: key)
+        }
     }
 }

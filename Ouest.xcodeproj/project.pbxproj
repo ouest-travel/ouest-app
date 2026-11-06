@@ -102,6 +102,8 @@
 		A1B2C3D40000000000000010 /* OuestEmptyState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000011 /* OuestEmptyState.swift */; };
 		A1B2C3D40000000000000012 /* OuestErrorState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000013 /* OuestErrorState.swift */; };
 		A1B2C3D40000000000000014 /* OuestToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000015 /* OuestToast.swift */; };
+		A1B2C3D40000000000000090 /* ModerationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000091 /* ModerationService.swift */; };
+		A1B2C3D40000000000000092 /* ReportDialog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000093 /* ReportDialog.swift */; };
 		A3BFEA4E38CFEF42A31C430A /* TripInviteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B659CCBE58BC10DB726B40F1 /* TripInviteTests.swift */; };
 		A594008FCA85A5927A34AD97 /* TripsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54F43E21F21F3EC55CB64D48 /* TripsViewModelTests.swift */; };
 		AB905DA25B43915F4D495983 /* Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD3B364293BB2ABF0739899 /* Profile.swift */; };
@@ -282,6 +284,8 @@
 		A1B2C3D40000000000000011 /* OuestEmptyState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OuestEmptyState.swift; sourceTree = "<group>"; };
 		A1B2C3D40000000000000013 /* OuestErrorState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OuestErrorState.swift; sourceTree = "<group>"; };
 		A1B2C3D40000000000000015 /* OuestToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OuestToast.swift; sourceTree = "<group>"; };
+		A1B2C3D40000000000000091 /* ModerationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModerationService.swift; sourceTree = "<group>"; };
+		A1B2C3D40000000000000093 /* ReportDialog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportDialog.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718293A4B5C /* ItineraryCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItineraryCalendarView.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* Fraunces.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Fraunces.ttf; sourceTree = "<group>"; };
 		A2076A15544CFB733C0C1862 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
@@ -451,6 +455,7 @@
 				A1B2C3D40000000000000013 /* OuestErrorState.swift */,
 				7BB7BB942DEEF21FF3A8E41A /* OuestTextField.swift */,
 				A1B2C3D40000000000000015 /* OuestToast.swift */,
+				A1B2C3D40000000000000093 /* ReportDialog.swift */,
 				AAB697F8C1D520EA34A1BD94 /* TripDateRangePicker.swift */,
 			);
 			path = Components;
@@ -462,6 +467,7 @@
 				F22AD11A1B8686AEE718BA8D /* AppleSignInCoordinator.swift */,
 				C2503CCBB38708B06F75CEAC /* AuthService.swift */,
 				8804C0610A3880690B30AC7F /* CommunityService.swift */,
+				A1B2C3D40000000000000091 /* ModerationService.swift */,
 				A1B2C3D40000000000000002 /* CurrencyService.swift */,
 				F9AC9CFD269E3DC0D2CD6013 /* EntryRequirementService.swift */,
 				2E54A48B8BDF64E5A792EC03 /* ExpensesService.swift */,
@@ -934,6 +940,7 @@
 				2ED41C3B1D906753F1C828C4 /* Community.swift in Sources */,
 				CD6F0DB3F0EF2F80EA02635A /* CommunityFeedViewModel.swift in Sources */,
 				79C9D1871AB9F0FBCBC3CFE1 /* CommunityService.swift in Sources */,
+				A1B2C3D40000000000000090 /* ModerationService.swift in Sources */,
 				542E96006380DB66BD2C1199 /* Constants.swift in Sources */,
 				1DB3824A8551B9905C8D2A05 /* ContentView.swift in Sources */,
 				923ECD339D48E7462C119779 /* CountryHelper.swift in Sources */,
@@ -993,6 +1000,7 @@
 				A1B2C3D40000000000000012 /* OuestErrorState.swift in Sources */,
 				581F64E8F5A561E461436A47 /* OuestTextField.swift in Sources */,
 				A1B2C3D40000000000000014 /* OuestToast.swift in Sources */,
+				A1B2C3D40000000000000092 /* ReportDialog.swift in Sources */,
 				427F0B0ADC55153DDCFA111A /* PhotoDetailView.swift in Sources */,
 				CBA9EC433D3B61C309F8042C /* Poll.swift in Sources */,
 				F8C244B414BC409641FB84B0 /* PollCardView.swift in Sources */,

@@ -87,8 +87,8 @@ enum ItineraryService {
         var calendar = Calendar.current
         calendar.timeZone = TimeZone(identifier: "UTC")!
         var payloads: [CreateDayPayload] = []
-        var current = calendar.startOfDay(for: startDate)
-        let end = calendar.startOfDay(for: endDate)
+        var current = utcMidnight(sameCalendarDayAs: startDate)
+        let end = utcMidnight(sameCalendarDayAs: endDate)
         var dayNumber = 1
 
         while current <= end {
@@ -110,8 +110,9 @@ enum ItineraryService {
 
     /// Re-align existing itinerary days to a (possibly new) trip date range.
     /// - No existing days: generate the full range.
-    /// - Existing days: for each day, set date = startDate + (dayNumber - 1),
-    ///   so day N keeps its ordinal and gets the correct new date.
+    /// - Existing days: the Nth day in dayNumber order gets startDate + (N - 1).
+    ///   We walk by position, not by `dayNumber`, so legacy rows with gaps in
+    ///   their numbering (1, 2, 4 …) still land on consecutive dates.
     /// - New range longer than existing days: append the missing ones.
     /// - New range shorter: leave extra days in place (non-destructive — we
     ///   don't delete user activities just because the trip got shorter).
@@ -122,10 +123,10 @@ enum ItineraryService {
     ) async throws {
         var calendar = Calendar.current
         calendar.timeZone = TimeZone(identifier: "UTC")!
-        let startDay = calendar.startOfDay(for: startDate)
-        let endDay = calendar.startOfDay(for: endDate)
+        let startDay = utcMidnight(sameCalendarDayAs: startDate)
+        let endDay = utcMidnight(sameCalendarDayAs: endDate)
 
-        let existing = try await fetchDays(tripId: tripId)
+        let existing = try await fetchDays(tripId: tripId).sorted { $0.dayNumber < $1.dayNumber }
         if existing.isEmpty {
             _ = try await generateDaysForTrip(
                 tripId: tripId,
@@ -135,27 +136,29 @@ enum ItineraryService {
             return
         }
 
-        for day in existing {
+        for (index, day) in existing.enumerated() {
             guard let newDate = calendar.date(
                 byAdding: .day,
-                value: day.dayNumber - 1,
+                value: index,
                 to: startDay
             ) else { continue }
-            if day.date != newDate {
+            if !isSameCalendarDay(day.date, newDate) {
                 _ = try await updateDayDate(id: day.id, date: newDate)
             }
         }
 
         let totalDaysInRange = (calendar.dateComponents([.day], from: startDay, to: endDay).day ?? 0) + 1
-        let maxExistingNumber = existing.map(\.dayNumber).max() ?? 0
-        guard totalDaysInRange > maxExistingNumber else { return }
+        guard totalDaysInRange > existing.count else { return }
 
+        // New rows must not collide with `UNIQUE (trip_id, day_number)`, so
+        // number them past whatever the highest existing day is.
+        let maxExistingNumber = existing.map(\.dayNumber).max() ?? 0
         var newPayloads: [CreateDayPayload] = []
-        for n in (maxExistingNumber + 1)...totalDaysInRange {
-            guard let date = calendar.date(byAdding: .day, value: n - 1, to: startDay) else { continue }
+        for offset in existing.count..<totalDaysInRange {
+            guard let date = calendar.date(byAdding: .day, value: offset, to: startDay) else { continue }
             newPayloads.append(CreateDayPayload(
                 tripId: tripId,
-                dayNumber: n,
+                dayNumber: maxExistingNumber + 1 + (offset - existing.count),
                 date: date,
                 title: nil,
                 notes: nil
@@ -164,6 +167,51 @@ enum ItineraryService {
         if !newPayloads.isEmpty {
             _ = try await createDays(newPayloads)
         }
+    }
+
+    /// UTC midnight of the *local* calendar day `date` falls on. Day dates are
+    /// encoded as ISO-8601 instants and Postgres keeps only the date part, so
+    /// the instant has to sit at UTC midnight — local midnight east of
+    /// Greenwich serialises as the previous day.
+    private static func utcMidnight(sameCalendarDayAs date: Date) -> Date {
+        var utc = Calendar.current
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let comps = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return utc.date(from: comps) ?? utc.startOfDay(for: date)
+    }
+
+    /// Compare a decoded `date` column (local midnight) against a UTC-midnight
+    /// target by calendar day, since the two represent the same day with
+    /// different instants.
+    private static func isSameCalendarDay(_ stored: Date?, _ target: Date) -> Bool {
+        guard let stored else { return false }
+        var utc = Calendar.current
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let a = Calendar.current.dateComponents([.year, .month, .day], from: stored)
+        let b = utc.dateComponents([.year, .month, .day], from: target)
+        return a == b
+    }
+
+    /// Close the `dayNumber` gap left by a deleted day so titles stay "Day 1,
+    /// 2, 3" and date sync keeps mapping by position. Walks ascending so each
+    /// decrement moves into a number that was just freed — no UNIQUE collision.
+    static func renumberDays(after deletedNumber: Int, in days: [ItineraryDay]) async throws -> [ItineraryDay] {
+        let shifted = days
+            .filter { $0.dayNumber > deletedNumber }
+            .sorted { $0.dayNumber < $1.dayNumber }
+        var updated = days
+        for day in shifted {
+            let newNumber = day.dayNumber - 1
+            try await SupabaseManager.client
+                .from("itinerary_days")
+                .update(["day_number": newNumber])
+                .eq("id", value: day.id)
+                .execute()
+            if let i = updated.firstIndex(where: { $0.id == day.id }) {
+                updated[i].dayNumber = newNumber
+            }
+        }
+        return updated
     }
 
     // MARK: - Activities

@@ -243,3 +243,35 @@ struct CountRow: Codable, Sendable {
         case count
     }
 }
+
+// MARK: - Moderation
+
+/// Something a user can report. `displayName` is the noun shown in the
+/// dialog title ("Report comment", "Report profile").
+struct ReportTarget: Identifiable, Equatable, Sendable {
+    enum Kind: String, Sendable {
+        case trip, comment, profile
+    }
+
+    let kind: Kind
+    let id: UUID
+    let displayName: String
+}
+
+enum ReportReason: String, CaseIterable, Identifiable, Sendable {
+    case spam
+    case harassment
+    case inappropriate
+    case other
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .spam: "Spam or misleading"
+        case .harassment: "Harassment or hate"
+        case .inappropriate: "Inappropriate content"
+        case .other: "Something else"
+        }
+    }
+}

@@ -226,6 +226,7 @@ final class ItineraryViewModel {
         do {
             try await ItineraryService.deleteDay(id: day.id)
             days.removeAll { $0.id == day.id }
+            days = try await ItineraryService.renumberDays(after: day.dayNumber, in: days)
             HapticFeedback.success()
         } catch {
             failure = OuestError(error)

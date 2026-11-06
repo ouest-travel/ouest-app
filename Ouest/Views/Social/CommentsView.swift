@@ -21,6 +21,11 @@ struct CommentsView: View {
     @State private var contentAppeared = false
     @State private var currentUserId: UUID?
 
+    // MARK: - Moderation State
+
+    @State private var reportTarget: ReportTarget?
+    @State private var blockedIds: Set<UUID> = []
+
     // MARK: - Mention State
 
     @State private var mentionResults: [Profile] = []
@@ -103,6 +108,7 @@ struct CommentsView: View {
                 }
             }
             .animation(OuestTheme.Anim.quick, value: errorMessage)
+            .reportDialog(target: $reportTarget)
     }
 
     // MARK: - Comments List
@@ -119,6 +125,17 @@ struct CommentsView: View {
                                     Task { await deleteComment(comment) }
                                 } label: {
                                     Label("Delete", systemImage: "trash")
+                                }
+                            } else {
+                                Button {
+                                    reportTarget = ReportTarget(kind: .comment, id: comment.id, displayName: "comment")
+                                } label: {
+                                    Label("Report", systemImage: "flag")
+                                }
+                                Button(role: .destructive) {
+                                    Task { await blockAuthor(of: comment) }
+                                } label: {
+                                    Label("Block \(authorHandle(comment))", systemImage: "hand.raised")
                                 }
                             }
                         }
@@ -298,7 +315,11 @@ struct CommentsView: View {
         isLoading = true
         errorMessage = nil
         do {
+            if let currentUserId {
+                blockedIds = (try? await ModerationService.fetchBlockedIds(for: currentUserId)) ?? []
+            }
             comments = try await CommunityService.fetchComments(tripId: tripId)
+                .filter { !blockedIds.contains($0.userId) }
         } catch {
             errorMessage = error.localizedDescription
             #if DEBUG
@@ -347,6 +368,32 @@ struct CommentsView: View {
     private func isOwnComment(_ comment: TripComment) -> Bool {
         guard let userId = currentUserId else { return false }
         return comment.userId == userId
+    }
+
+    private func authorHandle(_ comment: TripComment) -> String {
+        if let handle = comment.profile?.handle, !handle.isEmpty {
+            return "@\(handle)"
+        }
+        return "user"
+    }
+
+    /// Block the comment's author and drop everything they've written here.
+    private func blockAuthor(of comment: TripComment) async {
+        guard let currentUserId else { return }
+        do {
+            try await ModerationService.block(userId: comment.userId, by: currentUserId)
+            blockedIds.insert(comment.userId)
+            withAnimation(OuestTheme.Anim.quick) {
+                comments.removeAll { $0.userId == comment.userId }
+            }
+            HapticFeedback.success()
+        } catch {
+            errorMessage = "Couldn't block this user. Try again."
+            HapticFeedback.error()
+            #if DEBUG
+            print("[Comments] block failed: \(error)")
+            #endif
+        }
     }
 
     // MARK: - Mention Parsing

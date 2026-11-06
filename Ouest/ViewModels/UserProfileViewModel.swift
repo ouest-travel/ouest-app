@@ -13,6 +13,7 @@ final class UserProfileViewModel {
     var followerCount = 0
     var followingCount = 0
     var isFollowing = false
+    var isBlocked = false
     var isLoading = false
 
     var failure: OuestError?
@@ -53,6 +54,9 @@ final class UserProfileViewModel {
                     userIds: [userId], currentUserId: uid
                 )) ?? []
                 isFollowing = followedSet.contains(userId)
+
+                let blocked = (try? await ModerationService.fetchBlockedIds(for: uid)) ?? []
+                isBlocked = blocked.contains(userId)
             }
 
             // Non-critical: member previews for trip cards
@@ -98,6 +102,37 @@ final class UserProfileViewModel {
                 followerCount += wasFollowing ? 1 : -1
                 #if DEBUG
                 print("[UserProfile] toggleFollow failed: \(error)")
+                #endif
+            }
+        }
+    }
+
+    /// Block or unblock this user. Blocking also drops our follow of them
+    /// so they stop appearing in the feed immediately.
+    func toggleBlock() {
+        guard let currentUserId else { return }
+        guard userId != currentUserId else { return }
+
+        let wasBlocked = isBlocked
+        isBlocked = !wasBlocked
+        HapticFeedback.light()
+
+        Task {
+            do {
+                if wasBlocked {
+                    try await ModerationService.unblock(userId: userId, by: currentUserId)
+                } else {
+                    try await ModerationService.block(userId: userId, by: currentUserId)
+                    if isFollowing {
+                        try? await CommunityService.unfollowUser(followingId: userId, followerId: currentUserId)
+                        isFollowing = false
+                        followerCount = max(0, followerCount - 1)
+                    }
+                }
+            } catch {
+                isBlocked = wasBlocked
+                #if DEBUG
+                print("[UserProfile] toggleBlock failed: \(error)")
                 #endif
             }
         }

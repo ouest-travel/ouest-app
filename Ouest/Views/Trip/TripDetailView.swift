@@ -312,7 +312,7 @@ struct TripDetailView: View {
             HStack(spacing: OuestTheme.Spacing.md) {
                 // Itinerary
                 NavigationLink {
-                    ItineraryView(trip: trip, canEdit: viewModel.isMember)
+                    ItineraryView(trip: trip, canEdit: viewModel.canEdit)
                 } label: {
                     actionButtonLabel("Itinerary", icon: "list.bullet.clipboard", color: .blue, index: 0)
                 }
@@ -320,7 +320,7 @@ struct TripDetailView: View {
 
                 // Expenses
                 NavigationLink {
-                    ExpensesView(trip: trip, canEdit: viewModel.isMember)
+                    ExpensesView(trip: trip, canEdit: viewModel.canEdit)
                 } label: {
                     actionButtonLabel("Expenses", icon: "creditcard", color: .green, index: 1)
                 }
@@ -337,13 +337,15 @@ struct TripDetailView: View {
 
                 // Journal
                 NavigationLink {
-                    JournalView(trip: trip, canEdit: viewModel.isMember)
+                    JournalView(trip: trip, canEdit: viewModel.canEdit)
                 } label: {
                     actionButtonLabel("Journal", icon: "book", color: .purple, index: 3)
                 }
                 .buttonStyle(ScaledButtonStyle(scale: 0.92))
 
-                // Polls
+                // Polls — stays on isMember: `canEdit` also gates voting in
+                // PollCardView, and RLS lets every member vote. Only poll
+                // creation is owner/editor; see PollsView.
                 NavigationLink {
                     PollsView(trip: trip, canEdit: viewModel.isMember)
                 } label: {
