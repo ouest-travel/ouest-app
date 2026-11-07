@@ -67,6 +67,22 @@ enum TripService {
             .value
     }
 
+    /// Ask the `destination-image` Edge Function to give the trip a stock
+    /// Unsplash cover of its destination. The function writes the cover and
+    /// attribution onto the trip itself (RLS-checked) and returns what it
+    /// applied — `nil` when it left the trip alone (user-uploaded cover,
+    /// or no photo found for that destination).
+    static func applyDestinationCover(tripId: UUID) async throws -> DestinationCover? {
+        let response: DestinationCoverResponse = try await SupabaseManager.client.functions.invoke(
+            "destination-image",
+            options: .init(body: ["tripId": tripId.uuidString])
+        )
+        guard response.success else {
+            throw TripServiceError.destinationCoverFailed(response.error ?? "Unknown error")
+        }
+        return response.applied == true ? response.image : nil
+    }
+
     /// Delete a trip (owner only)
     static func deleteTrip(id: UUID) async throws {
         try await SupabaseManager.client
@@ -259,5 +275,17 @@ private struct TripMemberID: Codable {
     let tripId: UUID
     enum CodingKeys: String, CodingKey {
         case tripId = "trip_id"
+    }
+}
+
+// MARK: - Errors
+
+enum TripServiceError: LocalizedError {
+    case destinationCoverFailed(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .destinationCoverFailed(let message): return message
+        }
     }
 }

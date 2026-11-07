@@ -42,6 +42,10 @@ struct Trip: Codable, Identifiable, Sendable {
     var votingEnabled: Bool?
     var tags: [String]?
     var countryCodes: [String]?
+    /// Photographer credit for a stock (Unsplash) cover. `nil` means the
+    /// cover was uploaded by the user — and must never be auto-replaced.
+    var coverAttribution: String?
+    var coverAttributionUrl: String?
     let createdAt: Date?
     var updatedAt: Date?
 
@@ -54,8 +58,15 @@ struct Trip: Codable, Identifiable, Sendable {
         case isPublic = "is_public"
         case votingEnabled = "voting_enabled"
         case countryCodes = "country_codes"
+        case coverAttribution = "cover_attribution"
+        case coverAttributionUrl = "cover_attribution_url"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+
+    /// True when the hero shows a stock photo that needs a visible credit.
+    var hasStockCover: Bool {
+        coverImageUrl != nil && coverAttribution != nil
     }
 
     /// Formatted date range for display (e.g. "Mar 15 – Mar 25, 2025")
@@ -114,6 +125,8 @@ struct CreateTripPayload: Codable, Sendable {
     let budget: Double?
     let currency: String?
     let countryCodes: [String]?
+    var coverAttribution: String? = nil
+    var coverAttributionUrl: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case title, destination, description, status, budget, currency
@@ -123,7 +136,25 @@ struct CreateTripPayload: Codable, Sendable {
         case endDate = "end_date"
         case isPublic = "is_public"
         case countryCodes = "country_codes"
+        case coverAttribution = "cover_attribution"
+        case coverAttributionUrl = "cover_attribution_url"
     }
+}
+
+// MARK: - Stock destination cover (Unsplash, via the `destination-image` function)
+
+struct DestinationCover: Decodable, Sendable {
+    let url: String
+    let photographer: String
+    let photographerUrl: String
+    let photoUrl: String
+}
+
+struct DestinationCoverResponse: Decodable, Sendable {
+    let success: Bool
+    let error: String?
+    let applied: Bool?
+    let image: DestinationCover?
 }
 
 // MARK: - Trip update payload
@@ -140,6 +171,8 @@ struct UpdateTripPayload: Codable, Sendable {
     var budget: Double?
     var currency: String?
     var countryCodes: [String]?
+    var coverAttribution: String?
+    var coverAttributionUrl: String?
 
     /// Keys to send as an explicit JSON `null`. Synthesized Codable *omits*
     /// nil optionals from the PATCH body, which PostgREST reads as "leave
@@ -154,6 +187,8 @@ struct UpdateTripPayload: Codable, Sendable {
         case endDate = "end_date"
         case isPublic = "is_public"
         case countryCodes = "country_codes"
+        case coverAttribution = "cover_attribution"
+        case coverAttributionUrl = "cover_attribution_url"
     }
 
     func encode(to encoder: Encoder) throws {
@@ -169,6 +204,8 @@ struct UpdateTripPayload: Codable, Sendable {
         try container.encodeIfPresent(budget, forKey: .budget)
         try container.encodeIfPresent(currency, forKey: .currency)
         try container.encodeIfPresent(countryCodes, forKey: .countryCodes)
+        try container.encodeIfPresent(coverAttribution, forKey: .coverAttribution)
+        try container.encodeIfPresent(coverAttributionUrl, forKey: .coverAttributionUrl)
         for key in nullFields {
             try container.encodeNil(forKey: key)
         }

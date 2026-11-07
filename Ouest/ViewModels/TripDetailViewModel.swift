@@ -26,6 +26,9 @@ final class TripDetailViewModel {
     var hasDates = true
     var isPublic = false
     var coverImageData: Data?
+    /// Edit Trip "Reset to destination photo": drop the current cover so a
+    /// stock photo of the destination takes its place on save.
+    var resetCoverToStock = false
     var budgetText = ""
     var currency = "USD"
     var hasBudget = false
@@ -97,6 +100,31 @@ final class TripDetailViewModel {
         // Kick off weather without blocking trip render — the section has its
         // own skeleton and error states.
         Task { await self.loadForecast() }
+
+        // Trips created before stock covers existed (or whose first lookup
+        // failed) get one the next time an editor opens them.
+        if trip?.coverImageUrl == nil, canEdit {
+            Task { await self.applyStockCover(to: id) }
+        }
+    }
+
+    // MARK: - Stock Cover
+
+    /// Best-effort: ask the backend for an Unsplash photo of the destination
+    /// and reflect it locally. Never surfaces an error — the gradient
+    /// placeholder is an acceptable fallback, not a failure the user caused.
+    private func applyStockCover(to tripId: UUID) async {
+        do {
+            guard let cover = try await TripService.applyDestinationCover(tripId: tripId),
+                  trip?.id == tripId else { return }
+            trip?.coverImageUrl = cover.url
+            trip?.coverAttribution = cover.photographer
+            trip?.coverAttributionUrl = cover.photographerUrl
+        } catch {
+            #if DEBUG
+            print("[TripDetail] stock cover failed: \(error)")
+            #endif
+        }
     }
 
     // MARK: - Load Forecast
@@ -210,8 +238,15 @@ final class TripDetailViewModel {
             }
 
             trip = newTrip
+
+            // No upload → stock photo of the destination. Done before
+            // returning so the Home card and detail hero both show it.
+            if coverImageData == nil {
+                await applyStockCover(to: newTrip.id)
+            }
+
             isSaving = false
-            return newTrip
+            return trip ?? newTrip
         } catch {
             failure = OuestError(error)
 
@@ -232,6 +267,14 @@ final class TripDetailViewModel {
 
         do {
             let userId = try await SupabaseManager.client.auth.session.user.id
+            let previousDestination = trip?.destination
+            let hadStockCover = trip?.hasStockCover ?? false
+
+            // Fields the user toggled off must be sent as explicit nulls —
+            // omitting them would leave the previous value in place.
+            var cleared: [UpdateTripPayload.CodingKeys] = []
+            if !hasDates { cleared += [.startDate, .endDate] }
+            if !hasBudget { cleared.append(.budget) }
 
             // Upload new cover image if changed
             var coverUrl = trip?.coverImageUrl
@@ -241,13 +284,14 @@ final class TripDetailViewModel {
                     userId: userId,
                     tripId: tripId
                 )
+                // A user photo replaces a stock one; drop the stale credit.
+                cleared += [.coverAttribution, .coverAttributionUrl]
+            } else if resetCoverToStock {
+                // Clearing the cover is what makes the stock lookup below
+                // run — and what tells the server it may write one.
+                coverUrl = nil
+                cleared += [.coverImageUrl, .coverAttribution, .coverAttributionUrl]
             }
-
-            // Fields the user toggled off must be sent as explicit nulls —
-            // omitting them would leave the previous value in place.
-            var cleared: [UpdateTripPayload.CodingKeys] = []
-            if !hasDates { cleared += [.startDate, .endDate] }
-            if !hasBudget { cleared.append(.budget) }
 
             let payload = UpdateTripPayload(
                 title: title.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -264,6 +308,14 @@ final class TripDetailViewModel {
             )
 
             trip = try await TripService.updateTrip(id: tripId, payload)
+
+            // Still no cover, or a stock cover for a destination that just
+            // changed → fetch a (new) stock photo. User uploads are left alone.
+            let destinationChanged = previousDestination != trip?.destination
+            if coverImageData == nil,
+               trip?.coverImageUrl == nil || (hadStockCover && destinationChanged) {
+                await applyStockCover(to: tripId)
+            }
 
             // Keep itinerary days in sync with the trip's current range.
             // Covers all cases in one call: dates added for the first time
@@ -304,6 +356,7 @@ final class TripDetailViewModel {
         budgetText = trip.budget.map { String(format: "%.0f", $0) } ?? ""
         currency = trip.currency ?? "USD"
         countryCodes = trip.countryCodes ?? []
+        resetCoverToStock = false
     }
 
     // MARK: - Members

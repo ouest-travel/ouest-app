@@ -230,18 +230,27 @@ struct TripDetailView: View {
                 endPoint: .bottom
             )
 
-            VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
-                Text(trip.title)
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white)
+            HStack(alignment: .bottom, spacing: OuestTheme.Spacing.md) {
+                VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
+                    Text(trip.title)
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.white)
 
-                HStack(spacing: OuestTheme.Spacing.xs) {
-                    Image(systemName: "mappin.circle.fill")
-                    Text(trip.destination)
+                    HStack(spacing: OuestTheme.Spacing.xs) {
+                        Image(systemName: "mappin.circle.fill")
+                        Text(trip.destination)
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.9))
                 }
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.9))
+
+                // Sharing the HStack (rather than a second ZStack corner)
+                // lets a long title wrap instead of running under the credit.
+                if trip.hasStockCover {
+                    Spacer(minLength: 0)
+                    coverAttribution(trip)
+                }
             }
             .padding(OuestTheme.Spacing.xl)
         }
@@ -254,6 +263,25 @@ struct TripDetailView: View {
         .frame(height: 260)
         .frame(maxWidth: .infinity)
         .clipped()
+    }
+
+    /// Unsplash API terms: credit the photographer and Unsplash, both linked.
+    /// Markdown links keep it one tappable `Text`; the tint keeps them white.
+    private func coverAttribution(_ trip: Trip) -> some View {
+        let name = trip.coverAttribution ?? "Unsplash"
+        let link = trip.coverAttributionUrl ?? "https://unsplash.com?utm_source=ouest&utm_medium=referral"
+        let markdown = "Photo by [\(name)](\(link)) on [Unsplash](https://unsplash.com?utm_source=ouest&utm_medium=referral)"
+        let text = (try? AttributedString(markdown: markdown)).map(Text.init) ?? Text("Photo via Unsplash")
+
+        return text
+            .font(OuestTheme.Typography.micro)
+            .tint(.white)
+            .foregroundStyle(.white.opacity(0.85))
+            .lineLimit(2)
+            .multilineTextAlignment(.trailing)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: 140, alignment: .trailing)
+            .accessibilityLabel("Photo by \(name) on Unsplash")
     }
 
     private func gradientPlaceholder(_ trip: Trip) -> some View {

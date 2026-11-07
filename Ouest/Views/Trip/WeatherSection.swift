@@ -147,7 +147,7 @@ struct WeatherSection: View {
         VStack(alignment: .leading, spacing: OuestTheme.Spacing.md) {
             header
             HStack(spacing: OuestTheme.Spacing.sm) {
-                Image(systemName: "cloud.slash")
+                Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(OuestTheme.Colors.textSecondary)
                 Text("Couldn't load forecast")
                     .font(OuestTheme.Typography.caption)
@@ -272,7 +272,11 @@ struct WeatherSection: View {
         // app — degree sign, no unit letter, rounded to whole degrees, C/F
         // chosen by the user's locale.
         Measurement(value: celsius, unit: UnitTemperature.celsius)
-            .formatted(.measurement(width: .narrow, usage: .weather))
+            .formatted(.measurement(
+                width: .narrow,
+                usage: .weather,
+                numberFormatStyle: .number.precision(.fractionLength(0))
+            ))
     }
 
     private static func accessibilityLabel(for day: WeatherDay) -> String {

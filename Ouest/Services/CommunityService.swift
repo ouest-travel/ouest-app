@@ -261,7 +261,9 @@ enum CommunityService {
             isPublic: false,
             budget: source.budget,
             currency: source.currency,
-            countryCodes: source.countryCodes
+            countryCodes: source.countryCodes,
+            coverAttribution: source.coverAttribution,
+            coverAttributionUrl: source.coverAttributionUrl
         )
         let newTrip = try await TripService.createTrip(payload)
 

@@ -42,7 +42,7 @@ struct StickerDetailView: View {
                     .font(.subheadline)
                     .foregroundStyle(OuestTheme.Colors.textSecondary)
                     .multilineTextAlignment(.center)
-                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, OuestTheme.Spacing.xxl)
             }
             .fadeSlideIn(isVisible: appeared, delay: 0.2)

@@ -70,6 +70,31 @@ struct EditTripView: View {
     // MARK: - Cover Image
 
     private var coverImagePicker: some View {
+        VStack(spacing: OuestTheme.Spacing.sm) {
+            photoPicker
+
+            // Only offered while there's something to reset: a photo the
+            // user picked or uploaded. Stock covers are already the default.
+            if coverPreview != nil && !viewModel.resetCoverToStock {
+                Button {
+                    HapticFeedback.light()
+                    viewModel.resetCoverToStock = true
+                    viewModel.coverImageData = nil
+                    selectedPhoto = nil
+                    withAnimation(OuestTheme.Anim.smooth) {
+                        coverPreview = nil
+                    }
+                } label: {
+                    Label("Use a photo of the destination instead", systemImage: "photo.on.rectangle.angled")
+                        .font(.subheadline)
+                        .foregroundStyle(OuestTheme.Colors.brand)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var photoPicker: some View {
         PhotosPicker(selection: $selectedPhoto, matching: .images) {
             ZStack {
                 if let coverPreview {
@@ -87,7 +112,7 @@ struct EditTripView: View {
                     Image(systemName: "arrow.triangle.2.circlepath")
                         .font(.title2)
                         .symbolEffect(.bounce, value: coverPreview != nil)
-                    Text("Change Photo")
+                    Text(viewModel.resetCoverToStock ? "Destination photo on save" : "Change Photo")
                         .font(OuestTheme.Typography.caption)
                         .fontWeight(.medium)
                 }
@@ -108,6 +133,7 @@ struct EditTripView: View {
             Task {
                 if let data = try? await selectedPhoto?.loadTransferable(type: Data.self) {
                     viewModel.coverImageData = data
+                    viewModel.resetCoverToStock = false
                     if let uiImage = UIImage(data: data) {
                         withAnimation(OuestTheme.Anim.smooth) {
                             coverPreview = Image(uiImage: uiImage)

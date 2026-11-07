@@ -125,9 +125,8 @@ struct StickersCollectionView: View {
                 Text(type.unlockCriteria)
                     .font(OuestTheme.Typography.micro)
                     .foregroundStyle(unlocked ? OuestTheme.Colors.textSecondary : OuestTheme.Colors.textSecondary.opacity(0.3))
-                    .lineLimit(2)
                     .multilineTextAlignment(.center)
-                    .frame(height: 28)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .buttonStyle(.plain)

@@ -132,6 +132,33 @@ struct TripModelTests {
         #expect(json["currency"] == nil)
     }
 
+    @Test("UpdateTripPayload can clear a stock cover's credit when the user uploads their own photo")
+    func payloadClearsStockAttribution() throws {
+        // A stale Unsplash credit under a user's own photo would misattribute
+        // it — and `coverAttribution != nil` is what marks a cover as
+        // replaceable stock, so leaving it set would let the next
+        // destination edit silently overwrite the user's upload.
+        let payload = UpdateTripPayload(
+            coverImageUrl: "https://example.com/mine.jpg",
+            nullFields: [.coverAttribution, .coverAttributionUrl]
+        )
+        let data = try JSONEncoder().encode(payload)
+        let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        #expect(json["cover_image_url"] as? String == "https://example.com/mine.jpg")
+        #expect(json["cover_attribution"] is NSNull)
+        #expect(json["cover_attribution_url"] is NSNull)
+    }
+
+    @Test("Trip.hasStockCover is true only when both a cover and a credit exist")
+    func hasStockCover() {
+        var trip = makeTrip(start: nil, end: nil)
+        #expect(trip.hasStockCover == false)
+        trip.coverImageUrl = "https://images.unsplash.com/x"
+        #expect(trip.hasStockCover == false) // user upload: must not be auto-replaced
+        trip.coverAttribution = "Jane Doe"
+        #expect(trip.hasStockCover == true)
+    }
+
     // MARK: - Date column decoding
 
     // `date` columns carry no timezone. Decoding "2026-11-05" as UTC midnight
