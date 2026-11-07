@@ -1,10 +1,30 @@
 import SwiftUI
 
-/// 3D flippable medal — tap to spin and reveal the back face with "EARNED BY" text.
+/// Flippable medal for the sticker detail view.
 ///
-/// Used in the sticker detail view. Shows front (icon medal) and back (earned-by text)
-/// with a 360° Y-axis coin flip animation on tap.
+/// On iOS 18+ this is a physically rendered RealityKit medal (`RealityMedalView`):
+/// drag to spin, tap to flip. On iOS 17 it falls back to the flat
+/// `rotation3DEffect` coin flip below.
 struct StickerMedalView: View {
+
+    let stickerType: StickerType
+    let userName: String
+    let earnedDate: Date
+
+    var body: some View {
+        if #available(iOS 18.0, *) {
+            RealityMedalView(stickerType: stickerType, userName: userName, earnedDate: earnedDate)
+        } else {
+            FlatFlipMedalView(stickerType: stickerType, userName: userName, earnedDate: earnedDate)
+        }
+    }
+}
+
+/// iOS 17 fallback — tap to spin and reveal the back face with "EARNED BY" text.
+///
+/// Shows front (icon medal) and back (earned-by text) with a 360° Y-axis
+/// coin flip animation on tap.
+private struct FlatFlipMedalView: View {
 
     let stickerType: StickerType
     let userName: String
@@ -152,7 +172,7 @@ struct StickerMedalView: View {
 
 // MARK: - Preview
 
-#Preview("Medal Flip") {
+#Preview("Flat medal flip (iOS 17 fallback)") {
     ZStack {
         Color(hex: 0x0E0F11).ignoresSafeArea()
 
@@ -161,13 +181,13 @@ struct StickerMedalView: View {
                 .foregroundStyle(.white.opacity(0.5))
                 .font(.caption)
 
-            StickerMedalView(
+            FlatFlipMedalView(
                 stickerType: .og,
                 userName: "TimTime",
                 earnedDate: Date()
             )
 
-            StickerMedalView(
+            FlatFlipMedalView(
                 stickerType: .firstTrip,
                 userName: "TimTime",
                 earnedDate: Date()

@@ -105,6 +105,9 @@
 		A1B2C3D40000000000000014 /* OuestToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000015 /* OuestToast.swift */; };
 		A1B2C3D40000000000000090 /* ModerationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000091 /* ModerationService.swift */; };
 		A1B2C3D40000000000000092 /* ReportDialog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000093 /* ReportDialog.swift */; };
+		A1B2C3D400000000000000A0 /* MeshGradientHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000A1 /* MeshGradientHeader.swift */; };
+		A1B2C3D400000000000000A2 /* MeshGradientHeader.metal in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000A3 /* MeshGradientHeader.metal */; };
+		A1B2C3D400000000000000A4 /* MeshHeaderMotionPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000A5 /* MeshHeaderMotionPolicyTests.swift */; };
 		A3BFEA4E38CFEF42A31C430A /* TripInviteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B659CCBE58BC10DB726B40F1 /* TripInviteTests.swift */; };
 		A594008FCA85A5927A34AD97 /* TripsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54F43E21F21F3EC55CB64D48 /* TripsViewModelTests.swift */; };
 		AB905DA25B43915F4D495983 /* Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD3B364293BB2ABF0739899 /* Profile.swift */; };
@@ -142,6 +145,7 @@
 		E1F2A3B4C5D6708192A3B4C5 /* NewPasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E2D3C4B5A67890A1B2C3D4 /* NewPasswordView.swift */; };
 		E37D216B540A8C27054C64C5 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AB76DC74BD804B52FBAF4E6 /* HomeView.swift */; };
 		E75B332A692842AA30F08FAF /* StickerMedalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2EF0BFFA6D9841521C1439C /* StickerMedalView.swift */; };
+		B8D4F2E3A5C6079812345BCD /* RealityMedalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C3E1D2F4B5968701234ABC /* RealityMedalView.swift */; };
 		EB2A98C3C318AAA1A0AC2DAF /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 2C26DEC969059CBDBB1D81DD /* PrivacyInfo.xcprivacy */; };
 		EB8C5DE372C5977AED43642E /* JoinTripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B972FA425B1C88476C0A4D16 /* JoinTripView.swift */; };
 		EC4F0F5061D7A41CF82784CA /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8021C5EC7F2823084CAE6505 /* JournalView.swift */; };
@@ -287,6 +291,9 @@
 		A1B2C3D40000000000000015 /* OuestToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OuestToast.swift; sourceTree = "<group>"; };
 		A1B2C3D40000000000000091 /* ModerationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModerationService.swift; sourceTree = "<group>"; };
 		A1B2C3D40000000000000093 /* ReportDialog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportDialog.swift; sourceTree = "<group>"; };
+		A1B2C3D400000000000000A1 /* MeshGradientHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshGradientHeader.swift; sourceTree = "<group>"; };
+		A1B2C3D400000000000000A3 /* MeshGradientHeader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = MeshGradientHeader.metal; sourceTree = "<group>"; };
+		A1B2C3D400000000000000A5 /* MeshHeaderMotionPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshHeaderMotionPolicyTests.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718293A4B5C /* ItineraryCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItineraryCalendarView.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* Fraunces.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Fraunces.ttf; sourceTree = "<group>"; };
 		A2076A15544CFB733C0C1862 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
@@ -298,6 +305,7 @@
 		ADBCC1F228528A9CC8906E53 /* TripModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripModelTests.swift; sourceTree = "<group>"; };
 		AF7B08BFC90941A3FA7D68B2 /* PollService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollService.swift; sourceTree = "<group>"; };
 		B2EF0BFFA6D9841521C1439C /* StickerMedalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerMedalView.swift; sourceTree = "<group>"; };
+		A7C3E1D2F4B5968701234ABC /* RealityMedalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealityMedalView.swift; sourceTree = "<group>"; };
 		B411A653B45A94B3087ABE17 /* PollCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollCardView.swift; sourceTree = "<group>"; };
 		B463C5773141641023C3E576 /* GalleryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryService.swift; sourceTree = "<group>"; };
 		B48D21745DE4A9C41659A5A9 /* ItineraryModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItineraryModelTests.swift; sourceTree = "<group>"; };
@@ -450,6 +458,8 @@
 			children = (
 				7DD881F42F0C2A0924F7314E /* AvatarView.swift */,
 				C02CEB2F76E574D12107FB1F /* FullScreenAvatarView.swift */,
+				A1B2C3D400000000000000A3 /* MeshGradientHeader.metal */,
+				A1B2C3D400000000000000A1 /* MeshGradientHeader.swift */,
 				BF4E5DDCBDA105B7DE84A8B9 /* NationalityPickerView.swift */,
 				EB906B1EA5BAB038D8EE16FB /* OuestButton.swift */,
 				404D729B581F8B721C76679F /* OuestCard.swift */,
@@ -520,6 +530,7 @@
 				1846FEB1DB449FEB23570CD6 /* StickerBadgeView.swift */,
 				A7DCCE02623FD07BBDB8A54D /* StickersCollectionView.swift */,
 				7225CF6FF84925347F6CB67F /* StickerDetailView.swift */,
+				A7C3E1D2F4B5968701234ABC /* RealityMedalView.swift */,
 				B2EF0BFFA6D9841521C1439C /* StickerMedalView.swift */,
 			);
 			path = Stickers;
@@ -730,6 +741,7 @@
 		D3E3733B208F1412FDE2276C /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				A1B2C3D400000000000000A5 /* MeshHeaderMotionPolicyTests.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -925,6 +937,7 @@
 				235FB6170040460B1AE9B5AE /* StickerBadgeView.swift in Sources */,
 				9E81ED6AAC63CA893D1E95AE /* StickersCollectionView.swift in Sources */,
 				26B473C2E142F2888B0612EF /* StickerDetailView.swift in Sources */,
+				B8D4F2E3A5C6079812345BCD /* RealityMedalView.swift in Sources */,
 				E75B332A692842AA30F08FAF /* StickerMedalView.swift in Sources */,
 				807B76729FA3C2E4A3DBC9FB /* Activity.swift in Sources */,
 				4AC696AB40FFB62CBA788593 /* ActivityCardView.swift in Sources */,
@@ -1004,6 +1017,8 @@
 				581F64E8F5A561E461436A47 /* OuestTextField.swift in Sources */,
 				A1B2C3D40000000000000014 /* OuestToast.swift in Sources */,
 				A1B2C3D40000000000000092 /* ReportDialog.swift in Sources */,
+				A1B2C3D400000000000000A0 /* MeshGradientHeader.swift in Sources */,
+				A1B2C3D400000000000000A2 /* MeshGradientHeader.metal in Sources */,
 				427F0B0ADC55153DDCFA111A /* PhotoDetailView.swift in Sources */,
 				CBA9EC433D3B61C309F8042C /* Poll.swift in Sources */,
 				F8C244B414BC409641FB84B0 /* PollCardView.swift in Sources */,
@@ -1073,6 +1088,7 @@
 				5298AF2EC3B34924AA3FFBDB /* PollTests.swift in Sources */,
 				A3BFEA4E38CFEF42A31C430A /* TripInviteTests.swift in Sources */,
 				C5F93E8550A03FFBD133EA07 /* TripModelTests.swift in Sources */,
+				A1B2C3D400000000000000A4 /* MeshHeaderMotionPolicyTests.swift in Sources */,
 				A594008FCA85A5927A34AD97 /* TripsViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

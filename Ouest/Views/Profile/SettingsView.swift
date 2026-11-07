@@ -13,6 +13,9 @@ struct SettingsView: View {
     // Privacy
     @State private var isPrivateProfile = false
 
+    // Appearance
+    @AppStorage(ProfileHeaderStyle.storageKey) private var headerStyle: ProfileHeaderStyle = .mesh
+
     var body: some View {
         List {
             // MARK: - Account Section
@@ -76,6 +79,25 @@ struct SettingsView: View {
                 Text("Privacy")
             } footer: {
                 Text("When enabled, only followers can see your trips, interests, and bio.")
+            }
+
+            // MARK: - Appearance Section
+
+            Section {
+                Picker(selection: $headerStyle) {
+                    ForEach(ProfileHeaderStyle.allCases) { style in
+                        Text(style.title).tag(style)
+                    }
+                } label: {
+                    Label("Profile Header", systemImage: "paintpalette")
+                }
+                .onChange(of: headerStyle) { _, _ in
+                    HapticFeedback.selection()
+                }
+            } header: {
+                Text("Appearance")
+            } footer: {
+                Text("The backdrop behind your profile photo. It holds still when Reduce Motion or Low Power Mode is on.")
             }
 
             // MARK: - Actions Section

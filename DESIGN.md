@@ -82,6 +82,11 @@ text. Blue text in `brandFill` fails contrast in dark mode.
 - `inkGradient` (blue → indigo; light blues in dark mode) for gradient text.
 - `tripGradients[0...7]` are destination card backdrops. Each dark variant
   is one step deeper. Pick by stable index, never at random per render.
+- `MeshGradientHeader(style: .mesh | .grain)` is the animated hero backdrop
+  (profile card). A Metal shader blending the decor/ink stops, so it adapts
+  to dark mode. Capped at 30fps and frozen at t = 0 under Reduce Motion,
+  Dim Flashing Lights, Low Power Mode or when the scene is inactive. One
+  per screen, decorative only, never under body text.
 - Never assign a raw colour to a gradient stop.
 
 ### Toasts

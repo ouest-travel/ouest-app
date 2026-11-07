@@ -10,6 +10,7 @@ struct ProfileView: View {
     @State private var showAvatarViewer = false
     @State private var contentAppeared = false
     @State private var equippedStickers: [UserSticker] = []
+    @AppStorage(ProfileHeaderStyle.storageKey) private var headerStyle: ProfileHeaderStyle = .mesh
 
     // MARK: - Stats (loaded async)
 
@@ -219,7 +220,7 @@ struct ProfileView: View {
         .frame(maxWidth: .infinity)
         .background(
             VStack(spacing: 0) {
-                OuestTheme.Colors.decorGradient
+                MeshGradientHeader(style: headerStyle)
                     .frame(height: 140)
                 Color("Surface")
             }

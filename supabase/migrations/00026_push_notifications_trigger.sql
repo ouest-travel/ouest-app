@@ -6,14 +6,24 @@
 --
 -- One-time configuration (run from the Supabase SQL editor, NOT committed):
 --
---   ALTER DATABASE postgres
---     SET app.settings.supabase_url = 'https://YOUR-PROJECT.supabase.co';
---   ALTER DATABASE postgres
---     SET app.settings.service_role_key = 'YOUR-SERVICE-ROLE-KEY';
+--   select vault.create_secret(
+--     'https://YOUR-PROJECT.supabase.co',
+--     'project_url'
+--   );
+--   select vault.create_secret(
+--     'YOUR-SERVICE-ROLE-KEY',
+--     'service_role_key'
+--   );
 --
--- These persist across restarts. The trigger reads them at runtime; if they
--- are unset (e.g. local dev without secrets configured) the trigger no-ops
--- gracefully and the notification INSERT still succeeds.
+-- If you need to update an existing secret:
+--   select vault.update_secret(
+--     (select id from vault.secrets where name = 'service_role_key'),
+--     'NEW-KEY-VALUE'
+--   );
+--
+-- The trigger reads these at runtime via vault.decrypted_secrets. If either
+-- is missing the trigger no-ops gracefully and the notification INSERT still
+-- succeeds — so local dev without push secrets keeps working.
 
 -- pg_net is bundled with Supabase but not enabled by default.
 CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
@@ -22,20 +32,28 @@ CREATE OR REPLACE FUNCTION public.send_push_for_notification()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, vault, extensions
 AS $$
 DECLARE
     project_url   text;
     service_key   text;
     request_id    bigint;
 BEGIN
-    -- Read configuration. `true` flag = don't error if the setting is missing
-    -- so local dev environments without secrets configured still work.
-    project_url := current_setting('app.settings.supabase_url',   true);
-    service_key := current_setting('app.settings.service_role_key', true);
+    -- Pull project URL + service role key from Vault. These are encrypted at
+    -- rest and never appear in pg_dump output, function definitions, or this
+    -- migration's source.
+    SELECT decrypted_secret INTO project_url
+    FROM vault.decrypted_secrets
+    WHERE name = 'project_url'
+    LIMIT 1;
 
-    -- No config → graceful no-op. We never want a push-config issue to block
-    -- the underlying notification INSERT.
+    SELECT decrypted_secret INTO service_key
+    FROM vault.decrypted_secrets
+    WHERE name = 'service_role_key'
+    LIMIT 1;
+
+    -- Graceful no-op when either secret is missing. We never want a push-
+    -- config issue to block the underlying notification INSERT.
     IF project_url IS NULL
        OR project_url = ''
        OR service_key IS NULL
