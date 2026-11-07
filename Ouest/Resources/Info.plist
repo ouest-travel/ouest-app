@@ -20,6 +20,10 @@
 	<string>1.0.0</string>
 	<key>CFBundleVersion</key>
 	<string>16</string>
+	<key>DEV_SIGNIN_EMAIL</key>
+	<string>$(DEV_SIGNIN_EMAIL)</string>
+	<key>DEV_SIGNIN_PASSWORD</key>
+	<string>$(DEV_SIGNIN_PASSWORD)</string>
 	<key>RAPIDAPI_KEY</key>
 	<string>$(RAPIDAPI_KEY)</string>
 	<key>SUPABASE_ANON_KEY</key>

@@ -55,6 +55,19 @@ enum Secrets {
     }
 
     #if DEBUG
+    /// Dev sign-in account — DEBUG builds only. Set DEV_SIGNIN_EMAIL and
+    /// DEV_SIGNIN_PASSWORD in Debug.xcconfig (never committed). Returns nil
+    /// when either is missing, so dev sign-in reports it instead of crashing.
+    static var devSignInCredentials: (email: String, password: String)? {
+        guard let email = appBundle.infoDictionary?["DEV_SIGNIN_EMAIL"] as? String,
+              let password = appBundle.infoDictionary?["DEV_SIGNIN_PASSWORD"] as? String,
+              !email.isEmpty, !password.isEmpty,
+              !email.hasPrefix("$("), !password.hasPrefix("$(") else {
+            return nil
+        }
+        return (email, password)
+    }
+
     /// Service role key for admin operations — DEBUG builds only.
     /// Used exclusively by dev sign-in to create a pre-confirmed test user.
     static var supabaseServiceRoleKey: String {

@@ -398,8 +398,12 @@ final class AuthViewModel {
     /// One-tap dev sign-in using a test Supabase account.
     /// Creates the account via Admin API (with email pre-confirmed) if it doesn't exist.
     func devSignIn() async {
-        let email = "dev@ouest.app"
-        let password = "devpassword123"
+        guard let credentials = Secrets.devSignInCredentials else {
+            errorMessage = "Dev sign-in isn't set up. Add DEV_SIGNIN_EMAIL and DEV_SIGNIN_PASSWORD to Debug.xcconfig."
+            return
+        }
+        let email = credentials.email
+        let password = credentials.password
         let fullName = "Dev User"
 
         errorMessage = nil
