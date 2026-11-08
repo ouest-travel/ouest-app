@@ -179,6 +179,7 @@ Springs only, from `OuestTheme.Anim`:
 | `OuestErrorState` | `error: OuestError, context, detail?, onRecover` | `.offline / .notFound / .noPermission / .serverError / .unknown`, each with symbol, copy and recovery |
 | `.ouestToast($toast, onRetry:)` | `OuestToast.success(_) / .failure(_, retry:)` | Sits above `tabBarInset`. Auto-dismisses unless it has a retry. |
 | `StickerMedalView` | `stickerType, userName, earnedDate, playsReveal` | iOS 18: RealityKit medal, ring metal from `StickerType.tier` (bronze/silver/gold/platinum), foil enamel inlay, guilloché face. `playsReveal` drops, spins and sparks once per sticker per device. iOS 17: flat flip, no reveal. |
+| `GooeyTabBar` | `items, selection, center:` | Main tab bar. Selected tab is a `decorGradient` capsule with icon + label; on change a fast and a slow capsule stretch and merge (Canvas `blur` + `alphaThreshold`). Label blurs in/out. Centre view (Create) sits above the liquid. Reduce Motion: plain ease, no stretch or blur. |
 | `AvatarView`, `TripDateRangePicker`, `NationalityPickerView` | — | Reuse; don't rebuild. |
 
 Every data-driven screen designs **four states**: loading (shimmer

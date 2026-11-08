@@ -10,13 +10,6 @@ struct MainTabView: View {
     /// app, they see progress until the generation completes.
     @State private var aiRun = AIRunCoordinator.shared
 
-    private let tabs: [(icon: String, filledIcon: String, label: String)] = [
-        ("house", "house.fill", "Home"),
-        ("safari", "safari.fill", "Explore"),
-        ("bell", "bell.fill", "Activity"),
-        ("person", "person.fill", "Profile"),
-    ]
-
     var body: some View {
         ZStack(alignment: .bottom) {
             // Main content
@@ -61,71 +54,20 @@ struct MainTabView: View {
     // MARK: - Floating Pill Tab Bar
 
     private var floatingTabBar: some View {
-        HStack(spacing: 0) {
-            // Home & Explore tabs
-            ForEach(0..<2, id: \.self) { index in
-                tabButton(index: index)
-            }
-
-            // Create button (gradient circle)
+        GooeyTabBar(
+            items: [
+                .init(id: 0, icon: "house", filledIcon: "house.fill", label: "Home"),
+                .init(id: 1, icon: "safari", filledIcon: "safari.fill", label: "Explore"),
+                .init(id: 3, icon: "bell", filledIcon: "bell.fill", label: "Activity",
+                      badge: notificationsVM.unreadCount),
+                .init(id: 4, icon: "person", filledIcon: "person.fill", label: "Profile"),
+            ],
+            selection: $selectedTab
+        ) {
             createButton
-                .padding(.horizontal, OuestTheme.Spacing.sm)
-
-            // Activity & Profile tabs
-            ForEach(2..<4, id: \.self) { index in
-                tabButton(index: index)
-            }
         }
-        .padding(.horizontal, OuestTheme.Spacing.lg)
-        .padding(.vertical, OuestTheme.Spacing.sm)
-        .background(.ultraThinMaterial)
-        .clipShape(Capsule())
-        .ouestElevation(.lg)
         .padding(.horizontal, OuestTheme.Spacing.xl)
         .padding(.bottom, OuestTheme.Spacing.sm)
-    }
-
-    private func tabButton(index: Int) -> some View {
-        let tab = tabs[index]
-        // Map tab array index to actual tab value: 0,1 → 0,1 and 2,3 → 3,4
-        let tabValue = index < 2 ? index : index + 1
-
-        return Button {
-            HapticFeedback.light()
-            withAnimation(OuestTheme.Anim.quick) {
-                selectedTab = tabValue
-            }
-        } label: {
-            VStack(spacing: 3) {
-                ZStack {
-                    Image(systemName: selectedTab == tabValue ? tab.filledIcon : tab.icon)
-                        .font(OuestTheme.Icon.control)
-                        .foregroundStyle(selectedTab == tabValue ? OuestTheme.Colors.brand : OuestTheme.Colors.textSecondary)
-
-                    // Notification badge
-                    if tabValue == 3 && notificationsVM.unreadCount > 0 {
-                        Text("\(min(notificationsVM.unreadCount, 99))")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 1)
-                            .background(OuestTheme.Colors.error)
-                            .clipShape(Capsule())
-                            .offset(x: 10, y: -8)
-                    }
-                }
-
-                // Active dot indicator
-                Circle()
-                    .fill(OuestTheme.Colors.brand)
-                    .frame(width: 4, height: 4)
-                    .opacity(selectedTab == tabValue ? 1 : 0)
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 44)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: - AI Run Bubble
