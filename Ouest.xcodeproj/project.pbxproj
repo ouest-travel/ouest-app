@@ -137,6 +137,7 @@
 		D8D74691CCADFC83EF1D0700 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04B617FC41DBBF2FE073E799 /* SettingsView.swift */; };
 		DB49F1EEBFCFB4A3BF2FE8BB /* JournalEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A06F892F79E233B8634343 /* JournalEntry.swift */; };
 		DC0494A66DFE179F5387EB7A /* CommunityModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C6C8FC843CA8ED281F53B2E /* CommunityModelTests.swift */; };
+		A1B2C3D400000000000000B4 /* StickerTierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000B5 /* StickerTierTests.swift */; };
 		DD006A19DB893A0E18683239 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4213CC4264EEE12B0D445A9 /* NotificationService.swift */; };
 		DD770E3B6CD09CC9A331E8A7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 12970E485458B2C116D83E12 /* Assets.xcassets */; };
 		DDB8B0B97A1B00BEBFA3A244 /* TripInvite.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C1803D6A4FD9CB722AAB8E5 /* TripInvite.swift */; };
@@ -228,6 +229,7 @@
 		4B92F7634046F4D72DD73848 /* ExpensesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpensesViewModel.swift; sourceTree = "<group>"; };
 		4C4225F980CD876EF1F5D9A4 /* Validators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validators.swift; sourceTree = "<group>"; };
 		4C6C8FC843CA8ED281F53B2E /* CommunityModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityModelTests.swift; sourceTree = "<group>"; };
+		A1B2C3D400000000000000B5 /* StickerTierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerTierTests.swift; sourceTree = "<group>"; };
 		4F72E1AF6FFF12B586EAE87D /* SignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpView.swift; sourceTree = "<group>"; };
 		519A770AE0F3C535B852A5E0 /* ItineraryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItineraryService.swift; sourceTree = "<group>"; };
 		540EA22C5B16A039C9D5767E /* OuestApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OuestApp.swift; sourceTree = "<group>"; };
@@ -512,6 +514,7 @@
 			isa = PBXGroup;
 			children = (
 				4C6C8FC843CA8ED281F53B2E /* CommunityModelTests.swift */,
+				A1B2C3D400000000000000B5 /* StickerTierTests.swift */,
 				1D57406D4CDD5CE2F41A5721 /* EntryRequirementTests.swift */,
 				6AAB52CD63F3D8601C1A4258 /* ExpenseModelTests.swift */,
 				B48D21745DE4A9C41659A5A9 /* ItineraryModelTests.swift */,
@@ -1077,6 +1080,7 @@
 				5CD04F36C6FE4220B706FCD7 /* AuthViewModelTests.swift in Sources */,
 				AF2620CD9C307D05DBF5A0C3 /* CommunityFeedViewModelTests.swift in Sources */,
 				DC0494A66DFE179F5387EB7A /* CommunityModelTests.swift in Sources */,
+				A1B2C3D400000000000000B4 /* StickerTierTests.swift in Sources */,
 				8FFFDB3862B9BF8EDA476511 /* EntryRequirementTests.swift in Sources */,
 				7F567BBCAEF6CE97A92E65CD /* ExpenseModelTests.swift in Sources */,
 				0BD978A155EAFA780D900CA6 /* ExpensesViewModelTests.swift in Sources */,

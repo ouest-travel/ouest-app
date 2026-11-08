@@ -178,6 +178,7 @@ Springs only, from `OuestTheme.Anim`:
 | `OuestEmptyState` | `symbol, title, message, footnote?, primary?, secondary?` | Built on `ContentUnavailableView`. See copy rules in the file header. |
 | `OuestErrorState` | `error: OuestError, context, detail?, onRecover` | `.offline / .notFound / .noPermission / .serverError / .unknown`, each with symbol, copy and recovery |
 | `.ouestToast($toast, onRetry:)` | `OuestToast.success(_) / .failure(_, retry:)` | Sits above `tabBarInset`. Auto-dismisses unless it has a retry. |
+| `StickerMedalView` | `stickerType, userName, earnedDate, playsReveal` | iOS 18: RealityKit medal, ring metal from `StickerType.tier` (bronze/silver/gold/platinum), foil enamel inlay, guilloché face. `playsReveal` drops, spins and sparks once per sticker per device. iOS 17: flat flip, no reveal. |
 | `AvatarView`, `TripDateRangePicker`, `NationalityPickerView` | — | Reuse; don't rebuild. |
 
 Every data-driven screen designs **four states**: loading (shimmer

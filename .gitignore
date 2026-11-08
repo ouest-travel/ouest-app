@@ -70,3 +70,5 @@ app-store-screenshots/
 # Agent/tooling scratch
 .agents/
 .claude/worktrees/
+# Per-machine Claude Code permissions; records shell commands verbatim, so it can hold secrets
+.claude/settings.local.json

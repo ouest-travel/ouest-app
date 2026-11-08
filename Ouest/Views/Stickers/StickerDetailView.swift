@@ -9,7 +9,18 @@ struct StickerDetailView: View {
     @Bindable var viewModel: StickersViewModel
 
     @State private var appeared = false
+    /// Decided once when the sheet is created, before the medal's scene is
+    /// built, so a re-render never replays it.
+    @State private var playsReveal: Bool
     @Environment(\.dismiss) private var dismiss
+
+    init(stickerType: StickerType, userSticker: UserSticker, userName: String, viewModel: StickersViewModel) {
+        self.stickerType = stickerType
+        self.userSticker = userSticker
+        self.userName = userName
+        self.viewModel = viewModel
+        _playsReveal = State(initialValue: StickerReveal.isPending(userSticker))
+    }
 
     private var isEquipped: Bool {
         viewModel.allStickers.first(where: { $0.id == userSticker.id })?.equipped ?? false
@@ -24,11 +35,13 @@ struct StickerDetailView: View {
             // Drag indicator spacing
             Spacer().frame(height: 8)
 
-            // 3D flippable medal — tap to spin
+            // 3D flippable medal — tap to spin. Plays the unlock reveal the
+            // first time this sticker is opened on this device.
             StickerMedalView(
                 stickerType: stickerType,
                 userName: userName,
-                earnedDate: userSticker.unlockedAt
+                earnedDate: userSticker.unlockedAt,
+                playsReveal: playsReveal
             )
             .bouncyAppear(isVisible: appeared, delay: 0.1)
 
@@ -100,9 +113,31 @@ struct StickerDetailView: View {
         }
         .background(Color("Background"))
         .onAppear {
+            if playsReveal {
+                StickerReveal.markShown(userSticker)
+            }
             withAnimation(OuestTheme.Anim.smooth) {
                 appeared = true
             }
         }
+    }
+}
+
+// MARK: - Reveal bookkeeping
+
+/// Records which stickers have had their unlock reveal played, per user per
+/// device, so the reveal is seen once and a second account on the same
+/// phone gets its own.
+enum StickerReveal {
+    private static func key(for sticker: UserSticker) -> String {
+        "stickerRevealed.\(sticker.userId.uuidString.lowercased()).\(sticker.stickerId)"
+    }
+
+    static func isPending(_ sticker: UserSticker) -> Bool {
+        !UserDefaults.standard.bool(forKey: key(for: sticker))
+    }
+
+    static func markShown(_ sticker: UserSticker) {
+        UserDefaults.standard.set(true, forKey: key(for: sticker))
     }
 }

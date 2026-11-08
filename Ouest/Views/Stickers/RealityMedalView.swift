@@ -4,19 +4,27 @@ import UIKit
 
 /// Physically rendered medal for the sticker detail sheet (iOS 18+).
 ///
-/// A bevelled metal ring in the sticker's foil colour, a dark enamel disc and
-/// the sticker's symbol struck in metal relief. The back carries the
-/// "EARNED BY" engraving. A generated studio environment lights the scene so
-/// the metal picks up highlights as it moves.
+/// A bevelled ring in the rarity-tier metal (`StickerType.tier`), a thin
+/// enamel inlay in the sticker's foil colour, a dark enamel disc with a
+/// guilloché rosette engraved across it, and the sticker's symbol struck in
+/// foil-tinted metal on a clean centre. The back carries the "EARNED BY"
+/// engraving. A generated studio environment lights the scene so the metal
+/// picks up highlights as it moves.
 ///
 /// Gestures: drag to spin and tilt (with momentum), tap to flip.
-/// Reduce Motion: no idle sway, and a flip snaps instead of springing.
+/// Reveal (`playsReveal`): drops in from above, spins one and a half turns,
+/// lands face on with a burst of sparks in the foil colour.
+/// Reduce Motion: no idle sway, a flip snaps instead of springing, and the
+/// reveal is skipped apart from its haptic.
 @available(iOS 18.0, *)
 struct RealityMedalView: View {
 
     let stickerType: StickerType
     let userName: String
     let earnedDate: Date
+
+    /// Play the unlock reveal once the scene is ready.
+    var playsReveal = false
 
     /// Apparent diameter of the medal in points. The render canvas is larger
     /// so a tilted medal is never clipped, but the layout footprint stays at
@@ -35,6 +43,7 @@ struct RealityMedalView: View {
         let inset = (canvas - diameter) / 2
 
         RealityView { content in
+            motion.reduceMotion = reduceMotion
             await MedalScene.build(
                 in: &content,
                 stickerType: stickerType,
@@ -42,6 +51,9 @@ struct RealityMedalView: View {
                 earnedDate: earnedDate,
                 motion: motion
             )
+            if playsReveal {
+                motion.beginReveal()
+            }
         } placeholder: {
             StickerBadgeView(stickerType: stickerType, isUnlocked: true, size: .large)
         }
@@ -86,6 +98,9 @@ struct RealityMedalView: View {
 /// Yaw (spin) is either dragged directly, coasting after a flick, or springing
 /// toward the nearest face. Pitch (tilt) always springs back to rest. A small
 /// sinusoidal sway keeps the reflections alive while idle.
+///
+/// The reveal reuses the same springs: it starts the medal high, small and
+/// wound back one and a half turns, then lets everything settle to rest.
 @available(iOS 18.0, *)
 @MainActor
 final class MedalMotion {
@@ -94,19 +109,32 @@ final class MedalMotion {
     var subscription: EventSubscription?
     var reduceMotion = false
     var onFaceChange: ((Bool) -> Void)?
+    /// Called once when a reveal lands face on, for the spark burst.
+    var onRevealLanded: (() -> Void)?
 
     private var yaw: Float = 0
     private var yawVelocity: Float = 0
     private var targetYaw: Float = 0
     private var pitch: Float = 0
     private var pitchVelocity: Float = 0
+    private var height: Float = 0
+    private var heightVelocity: Float = 0
+    private var scale: Float = 1
+    private var scaleVelocity: Float = 0
 
     private var dragging = false
     private var coasting = false
+    private var revealing = false
+    private var dropped = true
     private var dragStartYaw: Float = 0
     private var dragStartPitch: Float = 0
     private var flipDirection: Float = 1
     private var elapsed: Float = 0
+
+    private static let revealTurns: Float = 1.5
+    /// Half a radius: the small medal stays inside the render canvas.
+    private static let revealHeight: Float = 0.025
+    private static let revealScale: Float = 0.72
 
     /// Radians of spin per point of finger travel: roughly a half turn across
     /// two thirds of the screen.
@@ -140,28 +168,68 @@ final class MedalMotion {
                     HapticFeedback.selection()
                     onFaceChange?(showsBack)
                 }
+            } else if revealing {
+                // A softer spring so the one-and-a-half turns decelerate visibly.
+                spring(&yaw, &yawVelocity, toward: targetYaw, dt: dt, stiffness: 45, damping: 9)
+                if abs(yaw - targetYaw) < 0.12, abs(yawVelocity) < 1.5 {
+                    revealing = false
+                    HapticFeedback.success()
+                    onRevealLanded?()
+                }
             } else {
                 spring(&yaw, &yawVelocity, toward: targetYaw + swayYaw, dt: dt)
             }
             spring(&pitch, &pitchVelocity, toward: swayPitch, dt: dt)
         }
 
+        // Drop-in: height and scale settle quickly, with a light haptic on landing.
+        spring(&height, &heightVelocity, toward: 0, dt: dt, stiffness: 120, damping: 16)
+        spring(&scale, &scaleVelocity, toward: 1, dt: dt, stiffness: 120, damping: 16)
+        if !dropped, height < 0.002 {
+            dropped = true
+            HapticFeedback.light()
+        }
+
         entity.orientation =
             simd_quatf(angle: pitch, axis: [1, 0, 0])
             * simd_quatf(angle: yaw, axis: [0, 1, 0])
+        entity.position.y = height
+        entity.scale = SIMD3<Float>(repeating: scale)
     }
 
-    private func spring(_ x: inout Float, _ v: inout Float, toward target: Float, dt: Float) {
-        let stiffness: Float = 70
-        let damping: Float = 11
+    private func spring(
+        _ x: inout Float, _ v: inout Float, toward target: Float, dt: Float,
+        stiffness: Float = 70, damping: Float = 11
+    ) {
         v += (-stiffness * (x - target) - damping * v) * dt
         x += v * dt
+    }
+
+    /// Start the unlock reveal. Under Reduce Motion the medal simply appears
+    /// at rest and only the success haptic plays.
+    func beginReveal() {
+        guard !reduceMotion else {
+            HapticFeedback.success()
+            return
+        }
+        coasting = false
+        dragging = false
+        targetYaw = 0
+        yaw = -Self.revealTurns * 2 * .pi
+        yawVelocity = 0
+        height = Self.revealHeight
+        heightVelocity = 0
+        scale = Self.revealScale
+        scaleVelocity = 0
+        dropped = false
+        revealing = true
     }
 
     func dragChanged(translation: CGSize) {
         if !dragging {
             dragging = true
             coasting = false
+            revealing = false
             dragStartYaw = yaw
             dragStartPitch = pitch
             yawVelocity = 0
@@ -187,6 +255,7 @@ final class MedalMotion {
 
     func flip() {
         coasting = false
+        revealing = false
         targetYaw += .pi * flipDirection
         if reduceMotion {
             yaw = targetYaw
@@ -210,7 +279,9 @@ enum MedalScene {
     private static let bevel: Float = 0.0014
     private static let recess: Float = 0.0010
     private static let lip: Float = 0.0005
+    private static let inlayWidth: Float = 0.0018    // foil enamel band between ring and disc
     private static var innerRadius: Float { radius - ringWidth }
+    private static var discRadius: Float { innerRadius - inlayWidth }
     private static var faceZ: Float { halfThickness - recess }
 
     static func build(
@@ -241,25 +312,39 @@ enum MedalScene {
         key.look(at: .zero, from: [-0.35, 0.45, 0.8], relativeTo: nil)
         content.add(key)
 
-        // Medal.
+        // Medal. `root` stays still so the spark burst is not spun with the medal.
+        let root = Entity()
         let medal = Entity()
         let foil = UIColor(stickerType.foilColor)
         let foilAlt = UIColor(stickerType.foilAltColor)
 
         if let ringMesh = try? lathe(ringProfile()) {
-            medal.addChild(ModelEntity(mesh: ringMesh, materials: [metal(foil, roughness: 0.18)]))
+            medal.addChild(ModelEntity(mesh: ringMesh, materials: [ringMetal(for: stickerType.tier)]))
+        }
+        if let inlayMesh = try? lathe(inlayProfile()) {
+            medal.addChild(ModelEntity(mesh: inlayMesh, materials: [enamel(tint: foil)]))
         }
         if let discMesh = try? lathe(discProfile()) {
             medal.addChild(ModelEntity(mesh: discMesh, materials: [enamel()]))
         }
 
+        // Front: guilloché engraving low and faint, in the foil; symbol raised, in the light foil.
+        let faceWidth = discRadius * 2
+        let faceMesh = MeshResource.generatePlane(width: faceWidth, height: faceWidth)
+        if let mask = try? await maskTexture(guillocheRelief(), size: 1024) {
+            let engraving = ModelEntity(mesh: faceMesh, materials: [relief(foil, mask: mask, roughness: 0.45, opacity: 0.7)])
+            engraving.position = [0, 0, faceZ + 0.0002]
+            medal.addChild(engraving)
+        }
+        if let mask = try? await maskTexture(symbolRelief(stickerType.icon)) {
+            let symbol = ModelEntity(mesh: faceMesh, materials: [relief(foilAlt, mask: mask)])
+            symbol.position = [0, 0, faceZ + 0.0005]
+            medal.addChild(symbol)
+        }
+
+        // Back: the earned-by engraving.
         let reliefWidth = innerRadius * 2 * 0.9
         let reliefMesh = MeshResource.generatePlane(width: reliefWidth, height: reliefWidth)
-        if let mask = try? await maskTexture(symbolRelief(stickerType.icon)) {
-            let front = ModelEntity(mesh: reliefMesh, materials: [relief(foilAlt, mask: mask)])
-            front.position = [0, 0, faceZ + 0.0003]
-            medal.addChild(front)
-        }
         if let mask = try? await maskTexture(earnedByRelief(userName: userName, earnedDate: earnedDate)) {
             let back = ModelEntity(mesh: reliefMesh, materials: [relief(foilAlt, mask: mask)])
             back.position = [0, 0, -(faceZ + 0.0003)]
@@ -272,11 +357,48 @@ enum MedalScene {
                 child.components.set(ImageBasedLightReceiverComponent(imageBasedLight: lightSource))
             }
         }
-        content.add(medal)
+        root.addChild(medal)
+        content.add(root)
 
         motion.entity = medal
+        motion.onRevealLanded = {
+            burstSparks(in: root, from: foilAlt, to: foil)
+        }
         motion.subscription = content.subscribe(to: SceneEvents.Update.self) { event in
             motion.tick(event.deltaTime)
+        }
+    }
+
+    /// One burst of sparks off the rim, fading from the light foil to the
+    /// foil colour, then the emitter is removed.
+    private static func burstSparks(in parent: Entity, from start: UIColor, to end: UIColor) {
+        var emitter = ParticleEmitterComponent()
+        emitter.emitterShape = .sphere
+        emitter.emitterShapeSize = [radius, radius, 0.004]
+        emitter.birthLocation = .surface
+        emitter.birthDirection = .normal
+        emitter.speed = 0.10
+        emitter.speedVariation = 0.04
+        emitter.burstCount = 80
+        emitter.mainEmitter.birthRate = 0
+        emitter.mainEmitter.lifeSpan = 0.7
+        emitter.mainEmitter.lifeSpanVariation = 0.2
+        emitter.mainEmitter.size = 0.0025
+        emitter.mainEmitter.sizeVariation = 0.001
+        emitter.mainEmitter.color = .evolving(start: .single(start), end: .single(end))
+        emitter.mainEmitter.opacityCurve = .quickFadeInOut
+        emitter.mainEmitter.acceleration = [0, -0.15, 0]
+        emitter.mainEmitter.dampingFactor = 2
+        emitter.isEmitting = true
+        emitter.burst()
+
+        let sparks = Entity()
+        sparks.components.set(emitter)
+        parent.addChild(sparks)
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.5))
+            sparks.removeFromParent()
         }
     }
 
@@ -297,8 +419,21 @@ enum MedalScene {
         ]
     }
 
+    /// Thin enamel band inside the ring, front and back.
+    private static func inlayProfile() -> [SIMD2<Float>] {
+        let ro = innerRadius + 0.0003   // overlap the ring wall so no seam shows
+        let ri = discRadius
+        return [
+            [ri, faceZ],
+            [ro, faceZ],
+            [ro, -faceZ],
+            [ri, -faceZ],
+            [ri, faceZ]
+        ]
+    }
+
     private static func discProfile() -> [SIMD2<Float>] {
-        let r = innerRadius + 0.0003   // overlap the ring wall so no seam shows
+        let r = discRadius + 0.0003   // overlap the inlay so no seam shows
         return [
             [0, faceZ],
             [r, faceZ],
@@ -361,30 +496,49 @@ enum MedalScene {
 
     // MARK: Materials
 
-    private static func metal(_ color: UIColor, roughness: Float) -> PhysicallyBasedMaterial {
+    private static func metal(_ color: UIColor, roughness: Float, clearcoat: Float = 0.25) -> PhysicallyBasedMaterial {
         var material = PhysicallyBasedMaterial()
         material.baseColor = .init(tint: color)
         material.metallic = .init(floatLiteral: 1)
         material.roughness = .init(floatLiteral: roughness)
-        material.clearcoat = .init(floatLiteral: 0.25)
+        material.clearcoat = .init(floatLiteral: clearcoat)
         material.clearcoatRoughness = .init(floatLiteral: 0.3)
         return material
     }
 
-    /// Dark satin enamel for the inner disc. The albedo is a material
-    /// property, not a UI colour, so it is deliberately a literal.
-    private static func enamel() -> PhysicallyBasedMaterial {
+    /// The ring metal for a rarity tier. Albedos are material properties,
+    /// not UI colours, so they are deliberately literals: warm bronze, neutral
+    /// silver, yellow gold, and a cool near-white platinum under a thick coat.
+    private static func ringMetal(for tier: StickerTier) -> PhysicallyBasedMaterial {
+        switch tier {
+        case .bronze:
+            return metal(UIColor(red: 0.80, green: 0.50, blue: 0.26, alpha: 1), roughness: 0.30)
+        case .silver:
+            return metal(UIColor(red: 0.84, green: 0.86, blue: 0.90, alpha: 1), roughness: 0.20)
+        case .gold:
+            return metal(UIColor(red: 1.00, green: 0.78, blue: 0.33, alpha: 1), roughness: 0.18)
+        case .platinum:
+            return metal(UIColor(red: 0.93, green: 0.95, blue: 0.98, alpha: 1), roughness: 0.12, clearcoat: 0.6)
+        }
+    }
+
+    /// Satin enamel: dark for the inner disc, or tinted for the foil inlay.
+    /// The dark albedo is a material property, not a UI colour, so it is
+    /// deliberately a literal.
+    private static func enamel(tint: UIColor? = nil) -> PhysicallyBasedMaterial {
         var material = PhysicallyBasedMaterial()
-        material.baseColor = .init(tint: UIColor(red: 0.075, green: 0.082, blue: 0.10, alpha: 1))
+        material.baseColor = .init(tint: tint ?? UIColor(red: 0.075, green: 0.082, blue: 0.10, alpha: 1))
         material.metallic = .init(floatLiteral: 0.35)
         material.roughness = .init(floatLiteral: 0.5)
         return material
     }
 
-    /// Metal cut to the shape of a mask: the symbol and engraving.
-    private static func relief(_ color: UIColor, mask: TextureResource) -> PhysicallyBasedMaterial {
-        var material = metal(color, roughness: 0.32)
-        material.blending = .transparent(opacity: .init(scale: 1, texture: .init(mask)))
+    /// Metal cut to the shape of a mask: the symbol and engravings.
+    private static func relief(
+        _ color: UIColor, mask: TextureResource, roughness: Float = 0.32, opacity: Float = 1
+    ) -> PhysicallyBasedMaterial {
+        var material = metal(color, roughness: roughness)
+        material.blending = .transparent(opacity: .init(scale: opacity, texture: .init(mask)))
         return material
     }
 
@@ -395,11 +549,11 @@ enum MedalScene {
     /// Renders a SwiftUI view in white on clear and uploads it as an opacity
     /// mask. Font sizes here are texture pixels, not UI points, so they are
     /// intentionally fixed.
-    private static func maskTexture<Content: View>(_ content: Content) async throws -> TextureResource {
+    private static func maskTexture<Content: View>(_ content: Content, size: CGFloat = textureSize) async throws -> TextureResource {
         let renderer = ImageRenderer(
             content: content
                 .foregroundStyle(.white)
-                .frame(width: textureSize, height: textureSize)
+                .frame(width: size, height: size)
         )
         renderer.scale = 1
         renderer.isOpaque = false
@@ -411,9 +565,40 @@ enum MedalScene {
         )
     }
 
+    /// The symbol, sized to sit inside the clean centre of the guilloché.
     private static func symbolRelief(_ symbol: String) -> some View {
         Image(systemName: symbol)
-            .font(.system(size: 300, weight: .semibold))
+            .font(.system(size: 190, weight: .semibold))
+    }
+
+    /// Engine-turned rosette: two families of offset circles whose
+    /// interference makes the pattern, cleared from a centre disc that is
+    /// outlined by a single ring. Drawn in disc units where the disc radius
+    /// is 63, matching the design mockups.
+    private static func guillocheRelief() -> some View {
+        Canvas { context, size in
+            let centre = CGPoint(x: size.width / 2, y: size.height / 2)
+            let unit = size.width / 2 / 63 * 0.97
+            let stroke = StrokeStyle(lineWidth: 0.22 * unit)
+            let white = GraphicsContext.Shading.color(.white)
+
+            func circle(_ cx: CGFloat, _ cy: CGFloat, _ r: CGFloat) -> Path {
+                Path(ellipseIn: CGRect(x: cx - r, y: cy - r, width: r * 2, height: r * 2))
+            }
+
+            context.stroke(circle(centre.x, centre.y, 27 * unit), with: white, style: stroke)
+
+            // The rosette lives outside the centre disc.
+            context.clip(to: circle(centre.x, centre.y, 27 * unit), options: .inverse)
+            for i in 0..<24 {
+                let a = CGFloat(i) / 24 * 2 * .pi
+                context.stroke(circle(centre.x + cos(a) * 16 * unit, centre.y + sin(a) * 16 * unit, 40 * unit), with: white, style: stroke)
+            }
+            for i in 0..<12 {
+                let a = CGFloat(i) / 12 * 2 * .pi
+                context.stroke(circle(centre.x + cos(a) * 6 * unit, centre.y + sin(a) * 6 * unit, 54 * unit), with: white, style: stroke)
+            }
+        }
     }
 
     private static func earnedByRelief(userName: String, earnedDate: Date) -> some View {
@@ -491,7 +676,16 @@ enum MedalSceneError: Error {
         VStack(spacing: OuestTheme.Spacing.xxxl) {
             RealityMedalView(stickerType: .og, userName: "TimTime", earnedDate: .now)
             RealityMedalView(stickerType: .globeTrotter, userName: "TimTime", earnedDate: .now)
+            RealityMedalView(stickerType: .firstTrip, userName: "TimTime", earnedDate: .now)
         }
+    }
+}
+
+@available(iOS 18.0, *)
+#Preview("RealityKit medal, reveal") {
+    ZStack {
+        OuestTheme.Colors.background.ignoresSafeArea()
+        RealityMedalView(stickerType: .jetSetter, userName: "TimTime", earnedDate: .now, playsReveal: true)
     }
 }
 

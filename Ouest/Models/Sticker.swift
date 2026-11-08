@@ -129,6 +129,27 @@ enum StickerType: String, Codable, CaseIterable, Sendable {
         }
     }
 
+    /// Rarity tier, set by how hard the criterion is. Drives the medal's
+    /// metal: bronze for first-week milestones, silver after a few trips of
+    /// real use, gold for sustained use or a big trip. Platinum is not
+    /// earnable and marks the OG and Dev stickers.
+    var tier: StickerTier {
+        switch self {
+        case .firstTrip, .streak, .storyteller: return .bronze
+        case .globeTrotter, .shutterbug, .decisionMaker, .crewChief: return .silver
+        case .jetSetter, .socialButterfly, .luxuryExplorer: return .gold
+        case .og, .dev: return .platinum
+        }
+    }
+
+    /// Whether a user can earn this sticker by using the app.
+    var isEarnable: Bool {
+        switch self {
+        case .og, .dev: return false
+        default: return true
+        }
+    }
+
     /// User-facing unlock criteria description.
     var unlockCriteria: String {
         switch self {
@@ -163,6 +184,21 @@ enum StickerType: String, Codable, CaseIterable, Sendable {
         case .crewChief: return "Ten invites sent. You're the one who brings the crew together."
         case .luxuryExplorer: return "A five-thousand dollar trip planned. You appreciate the finer things in travel."
         }
+    }
+}
+
+// MARK: - Sticker Tier
+
+/// Rarity of a sticker, in ascending order. See `StickerType.tier`.
+enum StickerTier: String, Codable, CaseIterable, Sendable, Comparable {
+    case bronze
+    case silver
+    case gold
+    case platinum
+
+    static func < (lhs: StickerTier, rhs: StickerTier) -> Bool {
+        let order = Self.allCases
+        return order.firstIndex(of: lhs)! < order.firstIndex(of: rhs)!
     }
 }
 

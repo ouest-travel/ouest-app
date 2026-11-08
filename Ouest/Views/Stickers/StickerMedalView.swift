@@ -3,17 +3,24 @@ import SwiftUI
 /// Flippable medal for the sticker detail view.
 ///
 /// On iOS 18+ this is a physically rendered RealityKit medal (`RealityMedalView`):
-/// drag to spin, tap to flip. On iOS 17 it falls back to the flat
-/// `rotation3DEffect` coin flip below.
+/// drag to spin, tap to flip, with an unlock reveal when `playsReveal` is set.
+/// On iOS 17 it falls back to the flat `rotation3DEffect` coin flip below,
+/// which has no reveal.
 struct StickerMedalView: View {
 
     let stickerType: StickerType
     let userName: String
     let earnedDate: Date
+    var playsReveal = false
 
     var body: some View {
         if #available(iOS 18.0, *) {
-            RealityMedalView(stickerType: stickerType, userName: userName, earnedDate: earnedDate)
+            RealityMedalView(
+                stickerType: stickerType,
+                userName: userName,
+                earnedDate: earnedDate,
+                playsReveal: playsReveal
+            )
         } else {
             FlatFlipMedalView(stickerType: stickerType, userName: userName, earnedDate: earnedDate)
         }
