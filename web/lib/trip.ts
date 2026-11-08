@@ -83,6 +83,11 @@ export function formatDateRange(
     s.getUTCMonth() === e.getUTCMonth() && s.getUTCFullYear() === e.getUTCFullYear();
   const month = (d: Date) =>
     d.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
+  // A range that crosses a year boundary needs both years spelled out,
+  // otherwise "Aug 8 – Aug 14" hides that it's a year apart.
+  if (s.getUTCFullYear() !== e.getUTCFullYear()) {
+    return `${month(s)} ${s.getUTCDate()}, ${s.getUTCFullYear()} – ${month(e)} ${e.getUTCDate()}, ${e.getUTCFullYear()}`;
+  }
   const sameYearAsNow = s.getUTCFullYear() === new Date().getUTCFullYear();
   const yearSuffix = sameYearAsNow ? "" : `, ${e.getUTCFullYear()}`;
   if (sameMonth) {

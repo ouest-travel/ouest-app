@@ -65,8 +65,12 @@ export default async function handler(req: Request) {
   const dateRange = formatDateRange(trip.startDate, trip.endDate);
   const ogTitle = dateRange ? `${cityShort} · ${dateRange}` : cityShort;
   const memberNoun = trip.memberCount === 1 ? "traveler" : "travelers";
+  const others = Math.max(0, trip.memberCount - 1);
+  const othersNoun = others === 1 ? "traveler" : "travelers";
   const ogDescription = trip.createdByName
-    ? `${trip.createdByName} + ${Math.max(0, trip.memberCount - 1)} ${memberNoun} on Ouest`
+    ? others > 0
+      ? `${trip.createdByName} + ${others} ${othersNoun} on Ouest`
+      : `${trip.createdByName} on Ouest`
     : `${trip.memberCount} ${memberNoun} on Ouest`;
 
   const ogImage = `${site}/api/og/trip?code=${encodeURIComponent(code)}`;
