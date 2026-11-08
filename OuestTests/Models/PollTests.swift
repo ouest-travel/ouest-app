@@ -10,10 +10,6 @@ struct PollModelTests {
     /// Builds the same custom decoder the app uses for Supabase dates.
     private static var supabaseDecoder: JSONDecoder {
         let decoder = JSONDecoder()
-        let isoWithFrac = ISO8601DateFormatter()
-        isoWithFrac.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let isoPlain = ISO8601DateFormatter()
-        isoPlain.formatOptions = [.withInternetDateTime]
         let dateOnly = DateFormatter()
         dateOnly.dateFormat = "yyyy-MM-dd"
         dateOnly.timeZone = TimeZone(identifier: "UTC")
@@ -21,6 +17,10 @@ struct PollModelTests {
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let str = try container.decode(String.self)
+            let isoWithFrac = ISO8601DateFormatter()
+            isoWithFrac.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            let isoPlain = ISO8601DateFormatter()
+            isoPlain.formatOptions = [.withInternetDateTime]
             if let d = isoWithFrac.date(from: str) { return d }
             if let d = isoPlain.date(from: str) { return d }
             if let d = dateOnly.date(from: str) { return d }
