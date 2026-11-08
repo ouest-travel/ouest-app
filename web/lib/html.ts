@@ -15,6 +15,25 @@ export function esc(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ESCAPE[c]);
 }
 
+// Public origin of the site that received the request, for canonical URLs
+// and og:image. Derived from the request rather than hardcoded because the
+// deployment is reachable on links.ouest.travel (the host the app shares)
+// while the bare ouest.travel currently points elsewhere.
+export function siteOrigin(req: Request): string {
+  const host =
+    req.headers.get("x-forwarded-host") ??
+    req.headers.get("host") ??
+    "links.ouest.travel";
+  return `https://${host}`;
+}
+
+// The dynamic segment after `/<prefix>/` in a pathname, e.g. "/t/AbC123" →
+// "AbC123". Also accepts the direct function path "/api/t/AbC123".
+export function lastPathSegment(pathname: string, prefix: string): string {
+  const m = pathname.match(new RegExp(`/${prefix}/([^/?#]+)`));
+  return m ? decodeURIComponent(m[1]) : "";
+}
+
 export type OgMeta = {
   url: string; // canonical URL
   title: string;
@@ -54,7 +73,7 @@ export function renderPage(meta: OgMeta, bodyHtml: string): string {
   <meta name="twitter:image" content="${esc(meta.imageUrl)}" />
 
   <!-- App banner (Safari "Open in app" prompt) -->
-  <meta name="apple-itunes-app" content="app-id=PLACEHOLDER_APP_ID" />
+  <meta name="apple-itunes-app" content="app-id=6759875932" />
 
   <link rel="icon" type="image/png" href="/logo.png" />
   <link rel="apple-touch-icon" href="/logo.png" />

@@ -27,9 +27,12 @@ struct TripInvite: Codable, Identifiable, Sendable {
 
     /// The Universal Link URL for this invite.
     /// On iOS with the app installed, tapping this opens the app directly to the join screen.
-    /// Without the app, it falls back to the web landing page with App Store download.
+    /// Without the app, it falls back to the web preview page (trip title, dates,
+    /// cover photo as the link unfurl) with an App Store download. `/t/` and the
+    /// older `/join/` route identically in DeepLinkRouter; `/t/` is served by the
+    /// edge function that renders the rich preview.
     var inviteURL: URL {
-        URL(string: "https://links.ouest.travel/join/\(code)")!
+        URL(string: "https://links.ouest.travel/t/\(code)")!
     }
 
     /// Human-readable share text

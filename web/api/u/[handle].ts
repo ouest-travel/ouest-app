@@ -2,48 +2,53 @@
 //
 // Respects the is_private flag from migration 00019: private profiles return
 // a generic card with no personal info so a leaked URL can't dox the user.
+//
+// Edge runtime — see the note in api/t/[code].ts.
 
-import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fetchProfileByHandle } from "../../lib/profile.js";
-import { renderPage, esc } from "../../lib/html.js";
+import { renderPage, esc, siteOrigin, lastPathSegment } from "../../lib/html.js";
 
-const SITE = "https://ouest.travel";
+export const config = { runtime: "edge" };
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const handleRaw = String(req.query.handle ?? "").trim();
+const APP_STORE = "https://apps.apple.com/app/id6759875932";
+
+export default async function handler(req: Request) {
+  const url = new URL(req.url);
+  const handleRaw = (url.searchParams.get("handle") ?? lastPathSegment(url.pathname, "u")).trim();
   // Strip leading @ if present so /u/@timmy and /u/timmy both work
   const handle = handleRaw.replace(/^@/, "");
   if (!handle) {
-    res.status(400).send("Missing handle");
-    return;
+    return new Response("Missing handle", { status: 400 });
   }
 
+  const site = siteOrigin(req);
   const profile = await fetchProfileByHandle(handle);
-  const url = `${SITE}/u/${encodeURIComponent(handle)}`;
+  const pageUrl = `${site}/u/${encodeURIComponent(handle)}`;
 
   if (!profile) {
     const html = renderPage(
       {
-        url,
+        url: pageUrl,
         title: "Profile not found — Ouest",
         description: "We couldn't find that traveler on Ouest.",
-        imageUrl: `${SITE}/logo.png`,
-        appStoreUrl: "https://apps.apple.com/app/ouest",
+        imageUrl: `${site}/logo.png`,
+        appStoreUrl: APP_STORE,
       },
       `
       <img src="/logo.png" alt="Ouest" class="logo" />
       <div class="label">Not found</div>
       <h1>No traveler at @${esc(handle)}</h1>
       <p class="subtitle">Double-check the handle, or get the app to find them.</p>
-      <a href="https://apps.apple.com/app/ouest" class="btn-secondary">Get Ouest on the App Store</a>
+      <a href="${APP_STORE}" class="btn-secondary">Get Ouest on the App Store</a>
       `
     );
-    res
-      .setHeader("Content-Type", "text/html; charset=utf-8")
-      .setHeader("Cache-Control", "public, max-age=60, s-maxage=60")
-      .status(404)
-      .send(html);
-    return;
+    return new Response(html, {
+      status: 404,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "public, max-age=60, s-maxage=60",
+      },
+    });
   }
 
   const displayName = profile.fullName || `@${profile.handle}`;
@@ -57,7 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? profile.bio.trim()
       : `${profile.tripCount} ${tripNoun} planned on Ouest`;
 
-  const ogImage = `${SITE}/api/og/profile?handle=${encodeURIComponent(handle)}`;
+  const ogImage = `${site}/api/og/profile?handle=${encodeURIComponent(handle)}`;
   const deepLink = `ouest://u/${encodeURIComponent(handle)}`;
 
   const avatar = profile.avatarUrl
@@ -66,11 +71,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const html = renderPage(
     {
-      url,
+      url: pageUrl,
       title: `${ogTitle} — Ouest`,
       description: ogDescription,
       imageUrl: ogImage,
-      appStoreUrl: "https://apps.apple.com/app/ouest",
+      appStoreUrl: APP_STORE,
       deepLink,
     },
     `
@@ -86,13 +91,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         : ""
     }
     <a href="${esc(deepLink)}" class="btn-primary">Open in Ouest</a>
-    <a href="https://apps.apple.com/app/ouest" class="btn-secondary">Download on the App Store</a>
+    <a href="${APP_STORE}" class="btn-secondary">Download on the App Store</a>
     `
   );
 
-  res
-    .setHeader("Content-Type", "text/html; charset=utf-8")
-    .setHeader("Cache-Control", "public, max-age=60, s-maxage=300")
-    .status(200)
-    .send(html);
+  return new Response(html, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "public, max-age=60, s-maxage=300",
+    },
+  });
 }

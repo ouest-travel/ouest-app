@@ -18,6 +18,12 @@ struct JoinTripView: View {
                     previewView(preview)
                 } else if let error = viewModel.failureDetail {
                     errorView(error)
+                } else {
+                    // Nothing loaded yet. Without this branch the Group is
+                    // empty on first render, and the `.task` below (which
+                    // kicks off the load) is attached to nothing, so it
+                    // never runs and the sheet stays blank.
+                    loadingView
                 }
             }
             .navigationTitle("Join Trip")

@@ -197,7 +197,7 @@ struct TripInviteTests {
         """.data(using: .utf8)!
 
         let invite = try Self.supabaseDecoder.decode(TripInvite.self, from: json)
-        #expect(invite.inviteURL.absoluteString == "https://links.ouest.travel/join/TestCode")
+        #expect(invite.inviteURL.absoluteString == "https://links.ouest.travel/t/TestCode")
     }
 
     @Test("shareText contains invite URL")
@@ -216,7 +216,7 @@ struct TripInviteTests {
         """.data(using: .utf8)!
 
         let invite = try Self.supabaseDecoder.decode(TripInvite.self, from: json)
-        #expect(invite.shareText.contains("https://links.ouest.travel/join/Share123"))
+        #expect(invite.shareText.contains("https://links.ouest.travel/t/Share123"))
         #expect(invite.shareText.contains("Ouest"))
     }
 
@@ -304,6 +304,27 @@ struct TripInviteTests {
         let url = URL(string: "ouest://join/AbCd1234")!
         let destination = DeepLinkRouter.parse(url: url)
         #expect(destination == .joinTrip(code: "AbCd1234"))
+    }
+
+    @Test("The URL the app shares (inviteURL) routes back to the join flow, case intact")
+    func sharedInviteURLRoutesToJoin() throws {
+        // inviteURL is what lands in group chats. If the router ever stops
+        // recognising it, or anything changes the code's case, every shared
+        // link dead-ends — so this test ties the two together.
+        let json = """
+        {
+            "id": "11111111-1111-1111-1111-111111111111",
+            "trip_id": "22222222-2222-2222-2222-222222222222",
+            "created_by": "33333333-3333-3333-3333-333333333333",
+            "code": "GsBuCmQh",
+            "role": "editor",
+            "max_uses": 0,
+            "use_count": 0,
+            "is_active": true
+        }
+        """.data(using: .utf8)!
+        let invite = try Self.supabaseDecoder.decode(TripInvite.self, from: json)
+        #expect(DeepLinkRouter.parse(url: invite.inviteURL) == .joinTrip(code: "GsBuCmQh"))
     }
 
     @Test("Parses ouest://join?code={code} query format")

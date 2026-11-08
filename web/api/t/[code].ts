@@ -9,61 +9,67 @@
 //
 // AASA covers /t/* so a direct tap on iOS opens the app via Universal Links
 // without ever hitting this page (this page is the fallback / preview surface).
+//
+// Runs on the edge runtime, same as /api/og/*. The Node runtime build of this
+// route failed at invocation on Vercel (FUNCTION_INVOCATION_FAILED) while the
+// edge OG routes importing the same lib/ files worked, so both page routes
+// use the edge runtime too.
 
-import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fetchTripByInviteCode, formatDateRange } from "../../lib/trip.js";
-import { renderPage, esc } from "../../lib/html.js";
+import { renderPage, esc, siteOrigin, lastPathSegment } from "../../lib/html.js";
 
-const SITE = "https://ouest.travel";
+export const config = { runtime: "edge" };
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const code = String(req.query.code ?? "").trim();
+const APP_STORE = "https://apps.apple.com/app/id6759875932";
+
+export default async function handler(req: Request) {
+  const url = new URL(req.url);
+  const code = (url.searchParams.get("code") ?? lastPathSegment(url.pathname, "t")).trim();
   if (!code) {
-    res.status(400).send("Missing trip code");
-    return;
+    return new Response("Missing trip code", { status: 400 });
   }
 
+  const site = siteOrigin(req);
   const trip = await fetchTripByInviteCode(code);
-  const url = `${SITE}/t/${encodeURIComponent(code)}`;
+  const pageUrl = `${site}/t/${encodeURIComponent(code)}`;
 
   // Trip not found / expired / revoked — render a generic "invite expired" card
   if (!trip) {
     const html = renderPage(
       {
-        url,
+        url: pageUrl,
         title: "Invite no longer valid — Ouest",
         description: "This trip invite has expired or been revoked.",
-        imageUrl: `${SITE}/logo.png`,
-        appStoreUrl: "https://apps.apple.com/app/ouest",
+        imageUrl: `${site}/logo.png`,
+        appStoreUrl: APP_STORE,
       },
       `
       <img src="/logo.png" alt="Ouest" class="logo" />
       <div class="label">Invite expired</div>
       <h1>This link is no longer active</h1>
       <p class="subtitle">Ask the trip owner to send you a fresh invite.</p>
-      <a href="https://apps.apple.com/app/ouest" class="btn-secondary">Get Ouest on the App Store</a>
+      <a href="${APP_STORE}" class="btn-secondary">Get Ouest on the App Store</a>
       `
     );
-    res
-      .setHeader("Content-Type", "text/html; charset=utf-8")
-      .setHeader("Cache-Control", "public, max-age=60, s-maxage=60")
-      .status(404)
-      .send(html);
-    return;
+    return new Response(html, {
+      status: 404,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "public, max-age=60, s-maxage=60",
+      },
+    });
   }
 
   // Compose the preview metadata
   const cityShort = trip.destination.split(",")[0]?.trim() || trip.destination;
   const dateRange = formatDateRange(trip.startDate, trip.endDate);
-  const ogTitle = dateRange
-    ? `${cityShort} · ${dateRange}`
-    : cityShort;
+  const ogTitle = dateRange ? `${cityShort} · ${dateRange}` : cityShort;
   const memberNoun = trip.memberCount === 1 ? "traveler" : "travelers";
   const ogDescription = trip.createdByName
     ? `${trip.createdByName} + ${Math.max(0, trip.memberCount - 1)} ${memberNoun} on Ouest`
     : `${trip.memberCount} ${memberNoun} on Ouest`;
 
-  const ogImage = `${SITE}/api/og/trip?code=${encodeURIComponent(code)}`;
+  const ogImage = `${site}/api/og/trip?code=${encodeURIComponent(code)}`;
   const deepLink = `ouest://join/${encodeURIComponent(code)}`;
 
   const hero = trip.coverImageUrl
@@ -72,11 +78,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const html = renderPage(
     {
-      url,
+      url: pageUrl,
       title: `${ogTitle} — Ouest`,
       description: ogDescription,
       imageUrl: ogImage,
-      appStoreUrl: "https://apps.apple.com/app/ouest",
+      appStoreUrl: APP_STORE,
       deepLink,
     },
     `
@@ -85,15 +91,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     <h1>${esc(trip.title)}</h1>
     <div class="meta">${esc(ogTitle)} · ${esc(`${trip.memberCount} ${memberNoun}`)}</div>
     <a href="${esc(deepLink)}" class="btn-primary">Open in Ouest</a>
-    <a href="https://apps.apple.com/app/ouest" class="btn-secondary">Download on the App Store</a>
+    <a href="${APP_STORE}" class="btn-secondary">Download on the App Store</a>
     `
   );
 
-  res
-    .setHeader("Content-Type", "text/html; charset=utf-8")
-    // Cache for 5 min at the edge — short enough that title/member-count edits
-    // surface quickly, long enough to absorb iMessage unfurler bursts.
-    .setHeader("Cache-Control", "public, max-age=60, s-maxage=300")
-    .status(200)
-    .send(html);
+  return new Response(html, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      // Cache for 5 min at the edge — short enough that title/member-count
+      // edits surface quickly, long enough to absorb iMessage unfurler bursts.
+      "Cache-Control": "public, max-age=60, s-maxage=300",
+    },
+  });
 }
