@@ -13,7 +13,7 @@
 // Uses the platform-provided SUPABASE_URL / SUPABASE_ANON_KEY /
 // SUPABASE_SERVICE_ROLE_KEY secrets. Apple revocation also needs:
 //   APPLE_SIWA_KEY_ID       Key ID of a .p8 key with Sign in with Apple enabled
-//   APPLE_SIWA_PRIVATE_KEY  that .p8 file, base64-encoded (same format as APNS_PRIVATE_KEY)
+//   APPLE_SIWA_PRIVATE_KEY  that .p8 file, base64-encoded or pasted as-is
 //   APPLE_TEAM_ID           optional, falls back to APNS_TEAM_ID
 //   APPLE_CLIENT_ID         optional, falls back to APNS_BUNDLE_ID (the app's bundle id)
 
@@ -37,6 +37,14 @@ function base64url(bytes: Uint8Array): string {
     .replace(/=+$/, "");
 }
 
+/** The secret may hold the .p8 file base64-encoded (like APNS_PRIVATE_KEY)
+ *  or pasted as-is, with real or escaped newlines and stray quotes. */
+function decodePrivateKey(value: string): string {
+  const trimmed = value.trim().replace(/^["']|["']$/g, "");
+  if (trimmed.includes("BEGIN PRIVATE KEY")) return trimmed.replace(/\\n/g, "\n");
+  return atob(trimmed.replace(/\s/g, ""));
+}
+
 /** ES256 client secret Apple expects on /auth/token and /auth/revoke. */
 async function createAppleClientSecret(
   teamId: string,
@@ -44,7 +52,7 @@ async function createAppleClientSecret(
   keyId: string,
   privateKeyBase64: string
 ): Promise<string> {
-  const pemBody = atob(privateKeyBase64)
+  const pemBody = decodePrivateKey(privateKeyBase64)
     .replace("-----BEGIN PRIVATE KEY-----", "")
     .replace("-----END PRIVATE KEY-----", "")
     .replace(/\s/g, "");
