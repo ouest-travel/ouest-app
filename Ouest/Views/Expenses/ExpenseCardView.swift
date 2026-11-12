@@ -20,38 +20,53 @@ struct ExpenseCardView: View {
                     .font(OuestTheme.Typography.cardTitle)
                     .lineLimit(1)
 
-                HStack(spacing: OuestTheme.Spacing.xs) {
-                    Text("Paid by \(expense.paidByName)")
-                        .font(OuestTheme.Typography.caption)
-                        .foregroundStyle(OuestTheme.Colors.textSecondary)
-
+                // Concatenate so the line treats "Paid by Dev · 2 days ago"
+                // as one layout unit — separate Text views in an HStack will
+                // line-break between fragments when the row is tight.
+                Group {
                     if let date = expense.formattedDate {
-                        Text("·")
-                            .font(OuestTheme.Typography.caption)
-                            .foregroundStyle(OuestTheme.Colors.textSecondary)
-                        Text(date)
-                            .font(OuestTheme.Typography.caption)
+                        Text("Paid by \(expense.paidByName)  ·  \(date)")
+                    } else {
+                        Text("Paid by \(expense.paidByName)")
+                    }
+                }
+                .font(OuestTheme.Typography.caption)
+                .foregroundStyle(OuestTheme.Colors.textSecondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+
+                HStack(spacing: OuestTheme.Spacing.xs) {
+                    Text(expense.splitDescription)
+                        .font(OuestTheme.Typography.micro)
+                        .foregroundStyle(expense.category.color)
+
+                    if expense.receiptUrl != nil {
+                        Image(systemName: "paperclip")
+                            .font(.caption2)
                             .foregroundStyle(OuestTheme.Colors.textSecondary)
                     }
                 }
-
-                Text(expense.splitDescription)
-                    .font(OuestTheme.Typography.micro)
-                    .foregroundStyle(expense.category.color)
             }
 
             Spacer()
 
-            // Amount
-            Text(expense.formattedAmount)
-                .font(OuestTheme.Typography.cardTitle)
-                .fontWeight(.semibold)
-                .foregroundStyle(OuestTheme.Colors.textPrimary)
+            // Amount (with original-currency subtitle for foreign expenses)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(expense.formattedAmount)
+                    .font(OuestTheme.Typography.cardTitle)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(OuestTheme.Colors.textPrimary)
+                if let original = expense.formattedOriginalAmount {
+                    Text(original)
+                        .font(OuestTheme.Typography.micro)
+                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+                }
+            }
         }
         .padding(OuestTheme.Spacing.md)
         .background(OuestTheme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
-        .shadow(OuestTheme.Shadow.md)
+        .ouestElevation(.md)
     }
 }
 

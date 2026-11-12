@@ -6,6 +6,7 @@ struct EditTripView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var coverPreview: Image?
+    @State private var showCountryPicker = false
 
     var body: some View {
         NavigationStack {
@@ -13,12 +14,13 @@ struct EditTripView: View {
                 VStack(spacing: OuestTheme.Spacing.xxl) {
                     coverImagePicker
                     tripDetailsSection
+                    destinationCountriesSection
                     dateSection
                     budgetSection
                     statusSection
                     optionsSection
 
-                    if let error = viewModel.errorMessage {
+                    if let error = viewModel.failureDetail {
                         Text(error)
                             .font(OuestTheme.Typography.caption)
                             .foregroundStyle(OuestTheme.Colors.error)
@@ -45,6 +47,9 @@ struct EditTripView: View {
                     .disabled(viewModel.isSaving || !isFormValid)
                 }
             }
+            .sheet(isPresented: $showCountryPicker) {
+                CountryPickerView(selectedCodes: $viewModel.countryCodes)
+            }
             .onAppear {
                 if let trip = viewModel.trip {
                     viewModel.populateFromTrip(trip)
@@ -65,6 +70,31 @@ struct EditTripView: View {
     // MARK: - Cover Image
 
     private var coverImagePicker: some View {
+        VStack(spacing: OuestTheme.Spacing.sm) {
+            photoPicker
+
+            // Only offered while there's something to reset: a photo the
+            // user picked or uploaded. Stock covers are already the default.
+            if coverPreview != nil && !viewModel.resetCoverToStock {
+                Button {
+                    HapticFeedback.light()
+                    viewModel.resetCoverToStock = true
+                    viewModel.coverImageData = nil
+                    selectedPhoto = nil
+                    withAnimation(OuestTheme.Anim.smooth) {
+                        coverPreview = nil
+                    }
+                } label: {
+                    Label("Use a photo of the destination instead", systemImage: "photo.on.rectangle.angled")
+                        .font(.subheadline)
+                        .foregroundStyle(OuestTheme.Colors.brand)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var photoPicker: some View {
         PhotosPicker(selection: $selectedPhoto, matching: .images) {
             ZStack {
                 if let coverPreview {
@@ -82,7 +112,7 @@ struct EditTripView: View {
                     Image(systemName: "arrow.triangle.2.circlepath")
                         .font(.title2)
                         .symbolEffect(.bounce, value: coverPreview != nil)
-                    Text("Change Photo")
+                    Text(viewModel.resetCoverToStock ? "Destination photo on save" : "Change Photo")
                         .font(OuestTheme.Typography.caption)
                         .fontWeight(.medium)
                 }
@@ -91,6 +121,9 @@ struct EditTripView: View {
                 .background(.ultraThinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
             }
+            // Bound width — see TripDetailView for the .scaledToFill +
+            // panoramic-image layout-shift bug this prevents.
+            .frame(maxWidth: .infinity)
             .frame(height: 160)
             .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
         }
@@ -100,6 +133,7 @@ struct EditTripView: View {
             Task {
                 if let data = try? await selectedPhoto?.loadTransferable(type: Data.self) {
                     viewModel.coverImageData = data
+                    viewModel.resetCoverToStock = false
                     if let uiImage = UIImage(data: data) {
                         withAnimation(OuestTheme.Anim.smooth) {
                             coverPreview = Image(uiImage: uiImage)
@@ -116,6 +150,50 @@ struct EditTripView: View {
             if let (data, _) = try? await URLSession.shared.data(from: url),
                let uiImage = UIImage(data: data) {
                 coverPreview = Image(uiImage: uiImage)
+            }
+        }
+    }
+
+    // MARK: - Destination Countries
+
+    private var destinationCountriesSection: some View {
+        VStack(alignment: .leading, spacing: OuestTheme.Spacing.md) {
+            sectionHeader("Destination Countries", icon: "globe")
+
+            if !viewModel.countryCodes.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: OuestTheme.Spacing.sm) {
+                        ForEach(viewModel.countryCodes, id: \.self) { code in
+                            HStack(spacing: OuestTheme.Spacing.xs) {
+                                Text(EntryRequirementService.flag(for: code))
+                                Text(EntryRequirementService.countryName(for: code))
+                                    .font(OuestTheme.Typography.caption)
+                                    .fontWeight(.medium)
+                            }
+                            .padding(.horizontal, OuestTheme.Spacing.md)
+                            .padding(.vertical, OuestTheme.Spacing.sm)
+                            .background(OuestTheme.Colors.brandLight)
+                            .clipShape(Capsule())
+                        }
+                    }
+                }
+            }
+
+            Button {
+                HapticFeedback.light()
+                showCountryPicker = true
+            } label: {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text(viewModel.countryCodes.isEmpty ? "Add Countries" : "Edit Countries")
+                        .fontWeight(.medium)
+                }
+                .font(.subheadline)
+                .foregroundStyle(OuestTheme.Colors.brand)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, OuestTheme.Spacing.md)
+                .background(OuestTheme.Colors.surfaceSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
             }
         }
     }
@@ -150,28 +228,10 @@ struct EditTripView: View {
             }
 
             if viewModel.hasDates {
-                HStack(spacing: OuestTheme.Spacing.md) {
-                    VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
-                        Text("Start")
-                            .font(OuestTheme.Typography.caption)
-                            .foregroundStyle(OuestTheme.Colors.textSecondary)
-                        DatePicker("", selection: $viewModel.startDate, displayedComponents: .date)
-                            .labelsHidden()
-                    }
-                    Image(systemName: "arrow.right")
-                        .foregroundStyle(OuestTheme.Colors.textSecondary)
-                        .font(.caption)
-                    VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
-                        Text("End")
-                            .font(OuestTheme.Typography.caption)
-                            .foregroundStyle(OuestTheme.Colors.textSecondary)
-                        DatePicker("", selection: $viewModel.endDate, in: viewModel.startDate..., displayedComponents: .date)
-                            .labelsHidden()
-                    }
-                }
-                .padding(OuestTheme.Spacing.md)
-                .background(OuestTheme.Colors.surfaceSecondary)
-                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+                TripDateRangePicker(
+                    startDate: $viewModel.startDate,
+                    endDate: $viewModel.endDate
+                )
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }

@@ -12,7 +12,7 @@ struct ForgotPasswordView: View {
                 if emailSent {
                     VStack(spacing: 16) {
                         Image(systemName: "envelope.badge.fill")
-                            .font(.system(size: 48))
+                            .font(.system(size: OuestTheme.Icon.hero))
                             .foregroundStyle(.green)
 
                         Text("Check Your Email")
@@ -45,6 +45,8 @@ struct ForgotPasswordView: View {
                         placeholder: "Email",
                         keyboardType: .emailAddress
                     )
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
 
                     if let error = authViewModel.errorMessage {
                         Text(error)

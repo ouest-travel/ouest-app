@@ -11,11 +11,17 @@ final class CommunityFeedViewModel {
     var isLoading = false
     var isLoadingMore = false
     var hasMore = true
-    var errorMessage: String?
+
+    var failure: OuestError?
+
+    var failureDetail: String?
 
     // MARK: - Search
 
     var searchQuery = ""
+    var searchedUsers: [Profile] = []
+    var isSearchingUsers = false
+    private var searchTask: Task<Void, Never>?
 
     var filteredTrips: [FeedTrip] {
         let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -28,6 +34,9 @@ final class CommunityFeedViewModel {
         }
     }
 
+    /// Brief error shown as a toast for interaction failures (like/save)
+    var interactionError: String?
+
     // MARK: - Navigation
 
     var selectedCommentTripId: UUID?
@@ -39,23 +48,34 @@ final class CommunityFeedViewModel {
     private let pageSize = 20
     private var currentOffset = 0
     private var currentUserId: UUID?
+    /// Authors the current user has blocked — dropped from the feed and
+    /// people search client-side.
+    private var blockedIds: Set<UUID> = []
 
     // MARK: - Load Feed
 
     func loadFeed() async {
         isLoading = feedTrips.isEmpty
-        errorMessage = nil
+
+        failure = nil
+
+        failureDetail = nil
         currentOffset = 0
         hasMore = true
 
         do {
-            currentUserId = try await SupabaseManager.client.auth.session.user.id
+            let userId = try await SupabaseManager.client.auth.session.user.id
+            currentUserId = userId
+            blockedIds = (try? await ModerationService.fetchBlockedIds(for: userId)) ?? []
             let trips = try await TripService.fetchPublicTrips(limit: pageSize, offset: 0)
             feedTrips = try await buildFeedTrips(from: trips)
             hasMore = trips.count == pageSize
             currentOffset = trips.count
         } catch {
-            errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
 
         isLoading = false
@@ -72,7 +92,10 @@ final class CommunityFeedViewModel {
             hasMore = trips.count == pageSize
             currentOffset += trips.count
         } catch {
-            errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
 
         isLoadingMore = false
@@ -89,7 +112,12 @@ final class CommunityFeedViewModel {
 
     func toggleLike(_ feedTrip: FeedTrip) {
         guard let userId = currentUserId,
-              let index = feedTrips.firstIndex(where: { $0.id == feedTrip.id }) else { return }
+              let index = feedTrips.firstIndex(where: { $0.id == feedTrip.id }) else {
+            #if DEBUG
+            print("[CommunityFeed] toggleLike guard failed — userId: \(currentUserId?.uuidString ?? "nil"), trip found: \(feedTrips.contains { $0.id == feedTrip.id })")
+            #endif
+            return
+        }
 
         let wasLiked = feedTrips[index].isLiked
         feedTrips[index].isLiked = !wasLiked
@@ -109,6 +137,10 @@ final class CommunityFeedViewModel {
                     feedTrips[idx].isLiked = wasLiked
                     feedTrips[idx].likeCount += wasLiked ? 1 : -1
                 }
+                showInteractionError("Couldn't update like")
+                #if DEBUG
+                print("[CommunityFeed] toggleLike failed: \(error)")
+                #endif
             }
         }
     }
@@ -117,7 +149,12 @@ final class CommunityFeedViewModel {
 
     func toggleSave(_ feedTrip: FeedTrip) {
         guard let userId = currentUserId,
-              let index = feedTrips.firstIndex(where: { $0.id == feedTrip.id }) else { return }
+              let index = feedTrips.firstIndex(where: { $0.id == feedTrip.id }) else {
+            #if DEBUG
+            print("[CommunityFeed] toggleSave guard failed — userId: \(currentUserId?.uuidString ?? "nil")")
+            #endif
+            return
+        }
 
         let wasSaved = feedTrips[index].isSaved
         feedTrips[index].isSaved = !wasSaved
@@ -135,6 +172,10 @@ final class CommunityFeedViewModel {
                 if let idx = feedTrips.firstIndex(where: { $0.id == feedTrip.id }) {
                     feedTrips[idx].isSaved = wasSaved
                 }
+                showInteractionError("Couldn't save trip")
+                #if DEBUG
+                print("[CommunityFeed] toggleSave failed: \(error)")
+                #endif
             }
         }
     }
@@ -149,7 +190,6 @@ final class CommunityFeedViewModel {
             _ = try await CommunityService.cloneTrip(sourceTripId: feedTrip.id, newOwnerId: userId)
             HapticFeedback.success()
         } catch {
-            errorMessage = "Failed to clone trip: \(error.localizedDescription)"
             HapticFeedback.error()
         }
 
@@ -163,9 +203,54 @@ final class CommunityFeedViewModel {
         showComments = true
     }
 
+    // MARK: - User Search
+
+    func searchUsers() {
+        searchTask?.cancel()
+
+        let raw = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else {
+            searchedUsers = []
+            isSearchingUsers = false
+            return
+        }
+
+        // Strip leading "@" so "@mya" searches for "mya"
+        let query = raw.hasPrefix("@") ? String(raw.dropFirst()) : raw
+        guard !query.isEmpty else {
+            searchedUsers = []
+            isSearchingUsers = false
+            return
+        }
+
+        isSearchingUsers = true
+
+        searchTask = Task {
+            // Debounce 300ms
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+
+            do {
+                let results = try await TripService.searchProfiles(query: query)
+                guard !Task.isCancelled else { return }
+                // Filter out the current user and anyone they've blocked
+                searchedUsers = results.filter { $0.id != currentUserId && !blockedIds.contains($0.id) }
+            } catch {
+                guard !Task.isCancelled else { return }
+                searchedUsers = []
+                #if DEBUG
+                print("[CommunityFeed] searchUsers failed: \(error)")
+                #endif
+            }
+
+            isSearchingUsers = false
+        }
+    }
+
     // MARK: - Private: Build Feed
 
-    private func buildFeedTrips(from trips: [Trip]) async throws -> [FeedTrip] {
+    private func buildFeedTrips(from fetched: [Trip]) async throws -> [FeedTrip] {
+        let trips = fetched.filter { !blockedIds.contains($0.createdBy) }
         guard !trips.isEmpty, let userId = currentUserId else { return [] }
 
         let tripIds = trips.map(\.id)
@@ -220,6 +305,24 @@ final class CommunityFeedViewModel {
         _ type: T.Type,
         _ block: @Sendable () async throws -> T
     ) async -> T? {
-        try? await block()
+        do {
+            return try await block()
+        } catch {
+            #if DEBUG
+            print("[CommunityFeed] safeFetch(\(T.self)) failed: \(error)")
+            #endif
+            return nil
+        }
+    }
+
+    private func showInteractionError(_ message: String) {
+        HapticFeedback.error()
+        interactionError = message
+        Task {
+            try? await Task.sleep(for: .seconds(2.5))
+            if interactionError == message {
+                interactionError = nil
+            }
+        }
     }
 }

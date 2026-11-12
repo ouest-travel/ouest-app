@@ -2,11 +2,19 @@ import SwiftUI
 
 struct TripDetailView: View {
     let tripId: UUID
+
+    /// Source id + namespace for the iOS 18 zoom transition from the card.
+    /// Both optional so callers that don't opt into the transition (or
+    /// previews) keep working — `.zoomDestination` is a no-op on nil.
+    var zoomSourceId: UUID? = nil
+    var zoomNamespace: Namespace.ID? = nil
+
     @Environment(AuthViewModel.self) private var authViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = TripDetailViewModel()
     @State private var showEditTrip = false
     @State private var showMembers = false
+    @State private var showShareSheet = false
     @State private var showDeleteConfirmation = false
     @State private var contentAppeared = false
 
@@ -16,13 +24,20 @@ struct TripDetailView: View {
                 loadingSkeleton
             } else if let trip = viewModel.trip {
                 tripContent(trip)
-            } else if let error = viewModel.errorMessage {
-                ErrorView(message: error) {
-                    Task { await viewModel.loadTrip(id: tripId) }
-                }
+            } else if let failure = viewModel.failure {
+                OuestErrorState(
+                    error: failure,
+                    context: "this trip",
+                    detail: viewModel.failureDetail,
+                    onRecover: { Task { await viewModel.loadTrip(id: tripId) } }
+                )
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(for: ProfileDestination.self) { dest in
+            UserProfileView(userId: dest.userId)
+        }
+        .zoomDestination(id: zoomSourceId, in: zoomNamespace)
         .task {
             await viewModel.loadTrip(id: tripId)
             withAnimation(OuestTheme.Anim.smooth) {
@@ -88,7 +103,7 @@ struct TripDetailView: View {
                 quickInfoBar(trip)
                     .fadeSlideIn(isVisible: contentAppeared, delay: 0.05)
 
-                // Action Buttons
+                // Action Buttons (always visible; child views handle read-only)
                 actionButtons(trip)
                     .fadeSlideIn(isVisible: contentAppeared, delay: 0.1)
 
@@ -97,6 +112,11 @@ struct TripDetailView: View {
                     descriptionSection(desc)
                         .fadeSlideIn(isVisible: contentAppeared, delay: 0.15)
                 }
+
+                // Weather (10-day forecast — hides itself when the trip has
+                // no dates, is more than 10 days out, or has already ended)
+                WeatherSection(viewModel: viewModel)
+                    .fadeSlideIn(isVisible: contentAppeared, delay: 0.18)
 
                 // Members Preview
                 membersPreview
@@ -111,6 +131,12 @@ struct TripDetailView: View {
             if viewModel.canEdit {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
+                        Button {
+                            showShareSheet = true
+                        } label: {
+                            Label("Share Trip", systemImage: "square.and.arrow.up")
+                        }
+
                         Button {
                             showEditTrip = true
                         } label: {
@@ -137,6 +163,11 @@ struct TripDetailView: View {
                 }
             }
         }
+        .sheet(isPresented: $showShareSheet) {
+            if let trip = viewModel.trip {
+                ShareTripSheet(trip: trip)
+            }
+        }
         .sheet(isPresented: $showEditTrip) {
             EditTripView(viewModel: viewModel)
         }
@@ -159,6 +190,17 @@ struct TripDetailView: View {
     // MARK: - Cover Header
 
     private func coverHeader(_ trip: Trip) -> some View {
+        // .scaledToFill() preserves aspect ratio, so a panoramic cover image
+        // at 260pt tall has a natural width far wider than the screen.
+        // Without an explicit maxWidth: .infinity on the OUTER frame, the
+        // ZStack expands to that natural width and pushes every section
+        // below it off the leading edge. .clipped() clips painting but NOT
+        // layout, so the bug stays invisible until the cover image has a
+        // wide aspect.
+        //
+        // We deliberately DON'T add a Color.clear bounding sibling here —
+        // a tested earlier version did and that pushed the title VStack
+        // beyond the clipped frame, half-cutting the destination subtitle.
         ZStack(alignment: .bottomLeading) {
             if let urlString = trip.coverImageUrl, let url = URL(string: urlString) {
                 AsyncImage(url: url) { phase in
@@ -183,28 +225,63 @@ struct TripDetailView: View {
 
             // Gradient overlay
             LinearGradient(
-                colors: [.clear, .clear, .black.opacity(0.6)],
+                colors: [.clear, OuestTheme.Colors.deepNavy.opacity(0.75)],
                 startPoint: .top,
                 endPoint: .bottom
             )
 
-            VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
-                Text(trip.title)
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white)
+            HStack(alignment: .bottom, spacing: OuestTheme.Spacing.md) {
+                VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
+                    Text(trip.title)
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.white)
 
-                HStack(spacing: OuestTheme.Spacing.xs) {
-                    Image(systemName: "mappin.circle.fill")
-                    Text(trip.destination)
+                    HStack(spacing: OuestTheme.Spacing.xs) {
+                        Image(systemName: "mappin.circle.fill")
+                        Text(trip.destination)
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.9))
                 }
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.9))
+
+                // Sharing the HStack (rather than a second ZStack corner)
+                // lets a long title wrap instead of running under the credit.
+                if trip.hasStockCover {
+                    Spacer(minLength: 0)
+                    coverAttribution(trip)
+                }
             }
             .padding(OuestTheme.Spacing.xl)
         }
+        // Order matters: .frame(height:) FIRST so the ZStack lays out within
+        // 260pt and the title VStack's .bottomLeading anchor lands at the
+        // bottom of THAT 260pt frame. If the maxWidth frame came first, the
+        // ZStack would lay out at the panoramic image's natural height
+        // (taller than 260), the title would anchor at that taller bottom,
+        // and .clipped() would cut the destination subtitle in half.
         .frame(height: 260)
+        .frame(maxWidth: .infinity)
         .clipped()
+    }
+
+    /// Unsplash API terms: credit the photographer and Unsplash, both linked.
+    /// Markdown links keep it one tappable `Text`; the tint keeps them white.
+    private func coverAttribution(_ trip: Trip) -> some View {
+        let name = trip.coverAttribution ?? "Unsplash"
+        let link = trip.coverAttributionUrl ?? "https://unsplash.com?utm_source=ouest&utm_medium=referral"
+        let markdown = "Photo by [\(name)](\(link)) on [Unsplash](https://unsplash.com?utm_source=ouest&utm_medium=referral)"
+        let text = (try? AttributedString(markdown: markdown)).map(Text.init) ?? Text("Photo via Unsplash")
+
+        return text
+            .font(OuestTheme.Typography.micro)
+            .tint(.white)
+            .foregroundStyle(.white.opacity(0.85))
+            .lineLimit(2)
+            .multilineTextAlignment(.trailing)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: 140, alignment: .trailing)
+            .accessibilityLabel("Photo by \(name) on Unsplash")
     }
 
     private func gradientPlaceholder(_ trip: Trip) -> some View {
@@ -214,7 +291,7 @@ struct TripDetailView: View {
         return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
             .overlay {
                 Image(systemName: "airplane")
-                    .font(.system(size: 40))
+                    .font(.system(size: OuestTheme.Icon.hero))
                     .foregroundStyle(.white.opacity(0.2))
             }
     }
@@ -222,33 +299,38 @@ struct TripDetailView: View {
     // MARK: - Quick Info Bar
 
     private func quickInfoBar(_ trip: Trip) -> some View {
-        HStack(spacing: 0) {
-            if let dates = trip.dateRangeText {
-                infoChip(icon: "calendar", value: dates)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: OuestTheme.Spacing.sm) {
+                if let dates = trip.dateRangeText {
+                    infoChip(icon: "calendar", value: dates)
+                }
+                if let days = trip.durationDays {
+                    infoChip(icon: "clock", value: "\(days) day\(days == 1 ? "" : "s")")
+                }
+                if let formatted = trip.formattedBudget {
+                    infoChip(icon: "dollarsign.circle", value: formatted)
+                }
+                infoChip(icon: "person.2", value: "\(viewModel.members.count)")
+                infoChip(icon: trip.status.icon, value: trip.status.label)
             }
-            if let days = trip.durationDays {
-                infoChip(icon: "clock", value: "\(days) day\(days == 1 ? "" : "s")")
-            }
-            if let formatted = trip.formattedBudget {
-                infoChip(icon: "dollarsign.circle", value: formatted)
-            }
-            infoChip(icon: "person.2", value: "\(viewModel.members.count)")
-            infoChip(icon: trip.status.icon, value: trip.status.label)
+            .padding(.horizontal, OuestTheme.Spacing.lg)
         }
         .padding(.vertical, OuestTheme.Spacing.md)
-        .background(OuestTheme.Colors.surfaceSecondary)
     }
 
     private func infoChip(icon: String, value: String) -> some View {
         HStack(spacing: OuestTheme.Spacing.xs) {
             Image(systemName: icon)
                 .font(.caption2)
-                .foregroundStyle(OuestTheme.Colors.textSecondary)
             Text(value)
                 .font(OuestTheme.Typography.caption)
                 .fontWeight(.medium)
         }
-        .frame(maxWidth: .infinity)
+        .foregroundStyle(.white)
+        .padding(.horizontal, OuestTheme.Spacing.md)
+        .padding(.vertical, OuestTheme.Spacing.xs)
+        .background(OuestTheme.Colors.brand.opacity(0.85))
+        .clipShape(Capsule())
     }
 
     // MARK: - Action Buttons
@@ -256,26 +338,59 @@ struct TripDetailView: View {
     private func actionButtons(_ trip: Trip) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: OuestTheme.Spacing.md) {
-                // Itinerary — live NavigationLink
+                // Itinerary
                 NavigationLink {
-                    ItineraryView(trip: trip)
+                    ItineraryView(trip: trip, canEdit: viewModel.canEdit)
                 } label: {
                     actionButtonLabel("Itinerary", icon: "list.bullet.clipboard", color: .blue, index: 0)
                 }
                 .buttonStyle(ScaledButtonStyle(scale: 0.92))
 
-                // Expenses — live NavigationLink
+                // Expenses
                 NavigationLink {
-                    ExpensesView(trip: trip)
+                    ExpensesView(trip: trip, canEdit: viewModel.canEdit)
                 } label: {
                     actionButtonLabel("Expenses", icon: "creditcard", color: .green, index: 1)
                 }
                 .buttonStyle(ScaledButtonStyle(scale: 0.92))
 
-                // Future phases (non-functional placeholders)
-                actionButtonLabel("Journal", icon: "book", color: .purple, index: 2)
-                actionButtonLabel("Polls", icon: "chart.bar", color: .orange, index: 3)
-                actionButtonLabel("Chat", icon: "bubble.left.and.bubble.right", color: .teal, index: 4)
+                // Entry Requirements (already read-only)
+                NavigationLink {
+                    EntryRequirementsView(trip: trip)
+                        .environment(authViewModel)
+                } label: {
+                    actionButtonLabel("Entry Reqs", icon: "doc.text.magnifyingglass", color: .red, index: 2)
+                }
+                .buttonStyle(ScaledButtonStyle(scale: 0.92))
+
+                // Journal
+                NavigationLink {
+                    JournalView(trip: trip, canEdit: viewModel.canEdit)
+                } label: {
+                    actionButtonLabel("Journal", icon: "book", color: .purple, index: 3)
+                }
+                .buttonStyle(ScaledButtonStyle(scale: 0.92))
+
+                // Polls — stays on isMember: `canEdit` also gates voting in
+                // PollCardView, and RLS lets every member vote. Only poll
+                // creation is owner/editor; see PollsView.
+                NavigationLink {
+                    PollsView(trip: trip, canEdit: viewModel.isMember)
+                } label: {
+                    actionButtonLabel("Polls", icon: "chart.bar", color: .orange, index: 4)
+                }
+                .buttonStyle(ScaledButtonStyle(scale: 0.92))
+
+                // Gallery
+                NavigationLink {
+                    TripGalleryView(trip: trip, canEdit: viewModel.isMember)
+                        .environment(authViewModel)
+                } label: {
+                    actionButtonLabel("Gallery", icon: "photo.on.rectangle.angled", color: .pink, index: 5)
+                }
+                .buttonStyle(ScaledButtonStyle(scale: 0.92))
+
+                actionButtonLabel("Chat", icon: "bubble.left.and.bubble.right", color: .teal, index: 6)
             }
             .padding(.horizontal, OuestTheme.Spacing.xl)
             .padding(.vertical, OuestTheme.Spacing.lg)
@@ -290,7 +405,7 @@ struct TripDetailView: View {
                 .background(color.opacity(0.12))
                 .foregroundStyle(color)
                 .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
-                .shadow(OuestTheme.Shadow.sm)
+                .ouestElevation(.sm)
 
             Text(label)
                 .font(OuestTheme.Typography.micro)
@@ -335,32 +450,38 @@ struct TripDetailView: View {
                         .font(OuestTheme.Typography.sectionTitle)
                 }
                 Spacer()
-                Button {
-                    HapticFeedback.light()
-                    showMembers = true
-                } label: {
-                    Text("See All")
-                        .font(.subheadline)
-                        .foregroundStyle(OuestTheme.Colors.brand)
+                if viewModel.isMember {
+                    Button {
+                        HapticFeedback.light()
+                        showMembers = true
+                    } label: {
+                        Text("See All")
+                            .font(.subheadline)
+                            .foregroundStyle(OuestTheme.Colors.brand)
+                    }
                 }
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: OuestTheme.Spacing.md) {
                     ForEach(Array(viewModel.members.enumerated()), id: \.element.id) { index, member in
-                        VStack(spacing: OuestTheme.Spacing.xs) {
-                            AvatarView(url: member.profile?.avatarUrl, size: 48)
-                                .shadow(OuestTheme.Shadow.sm)
-                            Text(member.profile?.fullName?.components(separatedBy: " ").first ?? "?")
-                                .font(OuestTheme.Typography.micro)
-                                .lineLimit(1)
-                            if member.role == .owner {
-                                Image(systemName: "crown.fill")
-                                    .font(.system(size: 8))
-                                    .foregroundStyle(.orange)
+                        NavigationLink(value: ProfileDestination(userId: member.userId)) {
+                            VStack(spacing: OuestTheme.Spacing.xs) {
+                                AvatarView(url: member.profile?.avatarUrl, size: 48)
+                                    .ouestElevation(.sm)
+                                Text(member.profile?.fullName?.components(separatedBy: " ").first ?? "?")
+                                    .font(OuestTheme.Typography.micro)
+                                    .foregroundStyle(OuestTheme.Colors.textPrimary)
+                                    .lineLimit(1)
+                                if member.role == .owner {
+                                    Image(systemName: "crown.fill")
+                                        .font(.caption2) // was 8pt — below SF Symbol legibility
+                                        .foregroundStyle(.orange)
+                                }
                             }
+                            .frame(width: 56)
                         }
-                        .frame(width: 56)
+                        .buttonStyle(.plain)
                         .bouncyAppear(isVisible: contentAppeared, delay: 0.25 + Double(index) * 0.06)
                     }
                 }
@@ -380,7 +501,7 @@ struct TripDetailView: View {
                 Image(systemName: "sparkles")
                     .foregroundStyle(OuestTheme.Colors.brand)
                     .symbolEffect(.pulse)
-                Text("Journal, polls, and more coming soon")
+                Text("Chat and more coming soon")
                     .font(OuestTheme.Typography.caption)
                     .foregroundStyle(OuestTheme.Colors.textSecondary)
             }

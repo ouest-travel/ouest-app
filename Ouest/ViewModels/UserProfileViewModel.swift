@@ -13,8 +13,12 @@ final class UserProfileViewModel {
     var followerCount = 0
     var followingCount = 0
     var isFollowing = false
+    var isBlocked = false
     var isLoading = false
-    var errorMessage: String?
+
+    var failure: OuestError?
+
+    var failureDetail: String?
 
     // MARK: - Private
 
@@ -29,34 +33,46 @@ final class UserProfileViewModel {
 
     func loadProfile() async {
         isLoading = true
-        errorMessage = nil
+
+        failure = nil
+
+        failureDetail = nil
 
         do {
             currentUserId = try await SupabaseManager.client.auth.session.user.id
 
-            // Fetch everything in parallel
-            async let fetchedProfile = TripService.fetchProfile(userId: userId)
-            async let fetchedTrips = TripService.fetchUserPublicTrips(userId: userId)
-            async let fetchedFollowers = CommunityService.fetchFollowerCount(userId: userId)
-            async let fetchedFollowing = CommunityService.fetchFollowingCount(userId: userId)
-            async let followStatus = CommunityService.fetchFollowStatus(
-                userIds: [userId], currentUserId: currentUserId!
-            )
+            // Critical: profile + trips must succeed for the page to render
+            profile = try await TripService.fetchProfile(userId: userId)
+            publicTrips = try await TripService.fetchUserPublicTrips(userId: userId)
 
-            profile = try await fetchedProfile
-            publicTrips = try await fetchedTrips
-            followerCount = try await fetchedFollowers
-            followingCount = try await fetchedFollowing
-            isFollowing = try await followStatus.contains(userId)
+            // Non-critical social data: default to 0/false on failure
+            followerCount = (try? await CommunityService.fetchFollowerCount(userId: userId)) ?? 0
+            followingCount = (try? await CommunityService.fetchFollowingCount(userId: userId)) ?? 0
 
-            // Fetch member previews for the trips
+            if let uid = currentUserId {
+                let followedSet = (try? await CommunityService.fetchFollowStatus(
+                    userIds: [userId], currentUserId: uid
+                )) ?? []
+                isFollowing = followedSet.contains(userId)
+
+                let blocked = (try? await ModerationService.fetchBlockedIds(for: uid)) ?? []
+                isBlocked = blocked.contains(userId)
+            }
+
+            // Non-critical: member previews for trip cards
             if !publicTrips.isEmpty {
                 let tripIds = publicTrips.map(\.id)
-                let members = try await TripService.fetchMemberPreviews(tripIds: tripIds)
+                let members = (try? await TripService.fetchMemberPreviews(tripIds: tripIds)) ?? []
                 tripMembers = Dictionary(grouping: members, by: \.tripId)
             }
         } catch {
-            errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
+            #if DEBUG
+            print("[UserProfile] loadProfile failed: \(error)")
+            #endif
         }
 
         isLoading = false
@@ -84,6 +100,40 @@ final class UserProfileViewModel {
                 // Revert on failure
                 isFollowing = wasFollowing
                 followerCount += wasFollowing ? 1 : -1
+                #if DEBUG
+                print("[UserProfile] toggleFollow failed: \(error)")
+                #endif
+            }
+        }
+    }
+
+    /// Block or unblock this user. Blocking also drops our follow of them
+    /// so they stop appearing in the feed immediately.
+    func toggleBlock() {
+        guard let currentUserId else { return }
+        guard userId != currentUserId else { return }
+
+        let wasBlocked = isBlocked
+        isBlocked = !wasBlocked
+        HapticFeedback.light()
+
+        Task {
+            do {
+                if wasBlocked {
+                    try await ModerationService.unblock(userId: userId, by: currentUserId)
+                } else {
+                    try await ModerationService.block(userId: userId, by: currentUserId)
+                    if isFollowing {
+                        try? await CommunityService.unfollowUser(followingId: userId, followerId: currentUserId)
+                        isFollowing = false
+                        followerCount = max(0, followerCount - 1)
+                    }
+                }
+            } catch {
+                isBlocked = wasBlocked
+                #if DEBUG
+                print("[UserProfile] toggleBlock failed: \(error)")
+                #endif
             }
         }
     }

@@ -3,7 +3,18 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(AuthViewModel.self) private var authViewModel
     @State private var showDeleteConfirmation = false
+    @State private var showDeleteError = false
     @State private var showSignOutConfirmation = false
+
+    // Notification preferences
+    @State private var preferences: NotificationPreference?
+    @State private var preferencesLoaded = false
+
+    // Privacy
+    @State private var isPrivateProfile = false
+
+    // Appearance
+    @AppStorage(ProfileHeaderStyle.storageKey) private var headerStyle: ProfileHeaderStyle = .mesh
 
     var body: some View {
         List {
@@ -31,6 +42,62 @@ struct SettingsView: View {
                 }
             } header: {
                 Text("Account")
+            }
+
+            // MARK: - Notifications Section
+
+            if preferencesLoaded, let prefs = Binding($preferences) {
+                Section {
+                    notificationToggle("Trip Invites", icon: "person.badge.plus", isOn: prefs.tripInvites)
+                    notificationToggle("Expenses", icon: "dollarsign.circle", isOn: prefs.newExpenses)
+                    notificationToggle("Comments", icon: "bubble.left", isOn: prefs.newComments)
+                    notificationToggle("Likes", icon: "heart", isOn: prefs.tripLikes)
+                    notificationToggle("Followers", icon: "person.fill.checkmark", isOn: prefs.newFollowers)
+                    notificationToggle("Polls", icon: "chart.bar", isOn: prefs.newPolls)
+                    notificationToggle("Journal Entries", icon: "book", isOn: prefs.journalEntries)
+                } header: {
+                    Text("Notifications")
+                } footer: {
+                    Text("Choose which notifications you'd like to receive.")
+                }
+            }
+
+            // MARK: - Privacy Section
+
+            Section {
+                Toggle(isOn: Binding(
+                    get: { isPrivateProfile },
+                    set: { newValue in
+                        isPrivateProfile = newValue
+                        Task { await togglePrivacy(newValue) }
+                    }
+                )) {
+                    Label("Private Profile", systemImage: "lock.fill")
+                }
+                .tint(OuestTheme.Colors.brand)
+            } header: {
+                Text("Privacy")
+            } footer: {
+                Text("When enabled, only followers can see your trips, interests, and bio.")
+            }
+
+            // MARK: - Appearance Section
+
+            Section {
+                Picker(selection: $headerStyle) {
+                    ForEach(ProfileHeaderStyle.allCases) { style in
+                        Text(style.title).tag(style)
+                    }
+                } label: {
+                    Label("Profile Header", systemImage: "paintpalette")
+                }
+                .onChange(of: headerStyle) { _, _ in
+                    HapticFeedback.selection()
+                }
+            } header: {
+                Text("Appearance")
+            } footer: {
+                Text("The backdrop behind your profile photo. It holds still when Reduce Motion or Low Power Mode is on.")
             }
 
             // MARK: - Actions Section
@@ -73,6 +140,9 @@ struct SettingsView: View {
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            await loadPreferences()
+        }
         .confirmationDialog("Sign Out", isPresented: $showSignOutConfirmation) {
             Button("Sign Out", role: .destructive) {
                 Task { await authViewModel.signOut() }
@@ -83,10 +153,83 @@ struct SettingsView: View {
         .alert("Delete Account", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
-                // Placeholder — account deletion requires server-side implementation
+                Task {
+                    if await authViewModel.deleteAccount() == false {
+                        showDeleteError = true
+                    }
+                }
             }
         } message: {
-            Text("This action is permanent and cannot be undone. All your trips, itineraries, and data will be deleted.")
+            Text("This action is permanent and cannot be undone. All your trips, itineraries, and data will be deleted. If you signed in with Apple, you'll confirm with Apple next.")
+        }
+        .alert("Couldn't delete account", isPresented: $showDeleteError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(authViewModel.errorMessage ?? "Please try again.")
+        }
+        .disabled(authViewModel.isDeletingAccount)
+        .overlay {
+            if authViewModel.isDeletingAccount {
+                ProgressView("Deleting account…")
+                    .padding(OuestTheme.Spacing.xl)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+            }
+        }
+    }
+
+    // MARK: - Notification Toggle
+
+    private func notificationToggle(_ label: String, icon: String, isOn: Binding<Bool>) -> some View {
+        Toggle(isOn: Binding(
+            get: { isOn.wrappedValue },
+            set: { newValue in
+                isOn.wrappedValue = newValue
+                Task { await savePreferences() }
+            }
+        )) {
+            Label(label, systemImage: icon)
+        }
+        .tint(OuestTheme.Colors.brand)
+    }
+
+    // MARK: - Preferences Helpers
+
+    private func loadPreferences() async {
+        guard let userId = authViewModel.currentUser?.id else { return }
+
+        // Load privacy state from profile
+        isPrivateProfile = authViewModel.currentUser?.isPrivate ?? false
+
+        do {
+            if let existing = try await NotificationService.fetchPreferences(userId: userId) {
+                preferences = existing
+            } else {
+                preferences = .defaults(userId: userId)
+            }
+            preferencesLoaded = true
+        } catch {
+            // Default to all enabled if fetch fails
+            preferences = .defaults(userId: userId)
+            preferencesLoaded = true
+        }
+    }
+
+    private func togglePrivacy(_ isPrivate: Bool) async {
+        do {
+            try await authViewModel.updateProfile(UpdateProfilePayload(isPrivate: isPrivate))
+        } catch {
+            // Revert on failure
+            isPrivateProfile = !isPrivate
+            print("[Settings] Failed to update privacy: \(error.localizedDescription)")
+        }
+    }
+
+    private func savePreferences() async {
+        guard let prefs = preferences else { return }
+        do {
+            try await NotificationService.updatePreferences(prefs)
+        } catch {
+            print("[Settings] Failed to save notification preferences: \(error.localizedDescription)")
         }
     }
 

@@ -157,6 +157,31 @@ struct Follow: Codable, Identifiable, Sendable {
     }
 }
 
+/// Follow row with nested profile (used for fetching follower/following lists)
+struct FollowWithProfile: Codable, Sendable {
+    let id: UUID
+    let followerId: UUID
+    let followingId: UUID
+    let createdAt: Date?
+    var profile: Profile?
+
+    enum CodingKeys: String, CodingKey {
+        case id, profile
+        case followerId = "follower_id"
+        case followingId = "following_id"
+        case createdAt = "created_at"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        followerId = try container.decode(UUID.self, forKey: .followerId)
+        followingId = try container.decode(UUID.self, forKey: .followingId)
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt)
+        profile = try? container.decode(Profile.self, forKey: .profile)
+    }
+}
+
 struct CreateFollowPayload: Codable, Sendable {
     let followerId: UUID
     let followingId: UUID
@@ -216,5 +241,37 @@ struct CountRow: Codable, Sendable {
     enum CodingKeys: String, CodingKey {
         case tripId = "trip_id"
         case count
+    }
+}
+
+// MARK: - Moderation
+
+/// Something a user can report. `displayName` is the noun shown in the
+/// dialog title ("Report comment", "Report profile").
+struct ReportTarget: Identifiable, Equatable, Sendable {
+    enum Kind: String, Sendable {
+        case trip, comment, profile
+    }
+
+    let kind: Kind
+    let id: UUID
+    let displayName: String
+}
+
+enum ReportReason: String, CaseIterable, Identifiable, Sendable {
+    case spam
+    case harassment
+    case inappropriate
+    case other
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .spam: "Spam or misleading"
+        case .harassment: "Harassment or hate"
+        case .inappropriate: "Inappropriate content"
+        case .other: "Something else"
+        }
     }
 }
