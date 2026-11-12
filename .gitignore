@@ -19,9 +19,10 @@ DerivedData/
 xcuserdata/
 
 # Swift Package Manager
+# (Packages/ holds our own local packages such as the Reality Composer Pro
+# content, so it is tracked; Xcode checks dependencies out under DerivedData.)
 .build/
 .swiftpm/
-Packages/
 Package.pins
 Package.resolved
 

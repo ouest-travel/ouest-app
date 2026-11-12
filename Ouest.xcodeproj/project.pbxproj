@@ -166,6 +166,13 @@
 		FDEEFCFDB456743F6D72E65E /* ItineraryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83AEE1EA69765B49AFBCD93 /* ItineraryViewModel.swift */; };
 		FE5DCAFD7A9347802DC6B656 /* OuestButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB906B1EA5BAB038D8EE16FB /* OuestButton.swift */; };
 		FF25F1916F8409400626C8BC /* WeatherSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0F31C114CBC0F2AED1FEF27 /* WeatherSection.swift */; };
+		A1B2C3D400000000000000C2 /* PassportScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000C3 /* PassportScene.swift */; };
+		A1B2C3D400000000000000C4 /* PassportBookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000C5 /* PassportBookView.swift */; };
+		A1B2C3D400000000000000C6 /* PassportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000C7 /* PassportView.swift */; };
+		A1B2C3D400000000000000C8 /* RealityStudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000C9 /* RealityStudio.swift */; };
+		A1B2C3D400000000000000D0 /* Passport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000D1 /* Passport.swift */; };
+		A1B2C3D400000000000000D2 /* PassportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000D3 /* PassportTests.swift */; };
+		A1B2C3D400000000000000D4 /* Passport.usdz in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000D5 /* Passport.usdz */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -351,6 +358,13 @@
 		FA8C3DDECF1C8A020FA707E1 /* OuestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OuestTests.swift; sourceTree = "<group>"; };
 		FBF17FD9786CBD73B14770CB /* Community.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Community.swift; sourceTree = "<group>"; };
 		FF14D33F3FD54F379EABFD29 /* DayHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayHeaderView.swift; sourceTree = "<group>"; };
+		A1B2C3D400000000000000C3 /* PassportScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportScene.swift; sourceTree = "<group>"; };
+		A1B2C3D400000000000000C5 /* PassportBookView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportBookView.swift; sourceTree = "<group>"; };
+		A1B2C3D400000000000000C7 /* PassportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportView.swift; sourceTree = "<group>"; };
+		A1B2C3D400000000000000C9 /* RealityStudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealityStudio.swift; sourceTree = "<group>"; };
+		A1B2C3D400000000000000D1 /* Passport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Passport.swift; sourceTree = "<group>"; };
+		A1B2C3D400000000000000D3 /* PassportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportTests.swift; sourceTree = "<group>"; };
+		A1B2C3D400000000000000D5 /* Passport.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = Passport.usdz; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -460,6 +474,7 @@
 		51CD234B0E096B475D4F81B7 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				A1B2C3D400000000000000C9 /* RealityStudio.swift */,
 				7DD881F42F0C2A0924F7314E /* AvatarView.swift */,
 				C02CEB2F76E574D12107FB1F /* FullScreenAvatarView.swift */,
 				A1B2C3D400000000000000A3 /* MeshGradientHeader.metal */,
@@ -517,6 +532,7 @@
 			children = (
 				4C6C8FC843CA8ED281F53B2E /* CommunityModelTests.swift */,
 				A1B2C3D400000000000000B5 /* StickerTierTests.swift */,
+				A1B2C3D400000000000000D3 /* PassportTests.swift */,
 				1D57406D4CDD5CE2F41A5721 /* EntryRequirementTests.swift */,
 				6AAB52CD63F3D8601C1A4258 /* ExpenseModelTests.swift */,
 				B48D21745DE4A9C41659A5A9 /* ItineraryModelTests.swift */,
@@ -607,6 +623,7 @@
 				7C1803D6A4FD9CB722AAB8E5 /* TripInvite.swift */,
 				DF7A3072C0E47FD159428B53 /* TripMember.swift */,
 				EFF596C3ECDADA185388FD98 /* TripPhoto.swift */,
+				A1B2C3D400000000000000D1 /* Passport.swift */,
 				B81D655D88136C60C4D68B18 /* Sticker.swift */,
 				C95853FDF51950B6AB284E08 /* AIItinerary.swift */,
 				59D295E19C2E3134BFAB8154 /* DailyForecast.swift */,
@@ -725,6 +742,7 @@
 				5EBBA2444F96223309DD479A /* Notifications */,
 				4F407D9774809E2AC9D9AF72 /* Onboarding */,
 				985684FF095476BBA6A1F377 /* Profile */,
+				A1B2C3D400000000000000E0 /* Passport */,
 				D276BC8390E1A118D6ACE0D9 /* Sharing */,
 				A67289FD976D73CFC27F5C9F /* Social */,
 				8A50DFB941194169ED06D0BC /* Trip */,
@@ -784,6 +802,7 @@
 			children = (
 				12970E485458B2C116D83E12 /* Assets.xcassets */,
 				B3C4D5E6F7A8B9C0D1E2F3A4 /* Fonts */,
+				A1B2C3D400000000000000E1 /* Models */,
 				EFCE4DDF25B2E47F541CB8EE /* Info.plist */,
 				2C26DEC969059CBDBB1D81DD /* PrivacyInfo.xcprivacy */,
 			);
@@ -814,6 +833,24 @@
 				441D81C05C14347E28C0914C /* OuestUITests.swift */,
 			);
 			path = OuestUITests;
+			sourceTree = "<group>";
+		};
+		A1B2C3D400000000000000E0 /* Passport */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D400000000000000C3 /* PassportScene.swift */,
+				A1B2C3D400000000000000C5 /* PassportBookView.swift */,
+				A1B2C3D400000000000000C7 /* PassportView.swift */,
+			);
+			path = Passport;
+			sourceTree = "<group>";
+		};
+		A1B2C3D400000000000000E1 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D400000000000000D5 /* Passport.usdz */,
+			);
+			path = Models;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -926,6 +963,7 @@
 			files = (
 				DD770E3B6CD09CC9A331E8A7 /* Assets.xcassets in Resources */,
 				F1E2D3C4B5A6F7E8D9C0B1A2 /* Fraunces.ttf in Resources */,
+				A1B2C3D400000000000000D4 /* Passport.usdz in Resources */,
 				EB2A98C3C318AAA1A0AC2DAF /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -944,6 +982,11 @@
 				9E81ED6AAC63CA893D1E95AE /* StickersCollectionView.swift in Sources */,
 				26B473C2E142F2888B0612EF /* StickerDetailView.swift in Sources */,
 				B8D4F2E3A5C6079812345BCD /* RealityMedalView.swift in Sources */,
+				A1B2C3D400000000000000C2 /* PassportScene.swift in Sources */,
+				A1B2C3D400000000000000C4 /* PassportBookView.swift in Sources */,
+				A1B2C3D400000000000000C6 /* PassportView.swift in Sources */,
+				A1B2C3D400000000000000C8 /* RealityStudio.swift in Sources */,
+				A1B2C3D400000000000000D0 /* Passport.swift in Sources */,
 				E75B332A692842AA30F08FAF /* StickerMedalView.swift in Sources */,
 				807B76729FA3C2E4A3DBC9FB /* Activity.swift in Sources */,
 				4AC696AB40FFB62CBA788593 /* ActivityCardView.swift in Sources */,
@@ -1085,6 +1128,7 @@
 				AF2620CD9C307D05DBF5A0C3 /* CommunityFeedViewModelTests.swift in Sources */,
 				DC0494A66DFE179F5387EB7A /* CommunityModelTests.swift in Sources */,
 				A1B2C3D400000000000000B4 /* StickerTierTests.swift in Sources */,
+				A1B2C3D400000000000000D2 /* PassportTests.swift in Sources */,
 				8FFFDB3862B9BF8EDA476511 /* EntryRequirementTests.swift in Sources */,
 				7F567BBCAEF6CE97A92E65CD /* ExpenseModelTests.swift in Sources */,
 				0BD978A155EAFA780D900CA6 /* ExpensesViewModelTests.swift in Sources */,

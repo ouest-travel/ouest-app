@@ -3,6 +3,9 @@ import SwiftUI
 /// Navigation destination for saved trips full list
 private struct SavedTripsDestination: Hashable {}
 
+/// Navigation destination for the holder's passport
+private struct PassportDestination: Hashable {}
+
 struct ProfileView: View {
     @Environment(AuthViewModel.self) private var authViewModel
     @State private var showEditProfile = false
@@ -52,6 +55,10 @@ struct ProfileView: View {
             }
             .navigationDestination(for: SavedTripsDestination.self) { _ in
                 SavedTripsView()
+                    .environment(authViewModel)
+            }
+            .navigationDestination(for: PassportDestination.self) { _ in
+                PassportView()
                     .environment(authViewModel)
             }
             .navigationDestination(for: FollowListDestination.self) { dest in
@@ -126,6 +133,10 @@ struct ProfileView: View {
                 }
                 .frame(width: 200)
                 .fadeSlideIn(isVisible: contentAppeared, delay: 0.2)
+
+                // Passport
+                passportRow
+                    .fadeSlideIn(isVisible: contentAppeared, delay: 0.22)
 
                 // Saved trips
                 savedTripsSection
@@ -322,6 +333,37 @@ struct ProfileView: View {
     }
 
     // MARK: - Saved Trips Section
+
+    // MARK: - Passport
+
+    private var passportRow: some View {
+        NavigationLink(value: PassportDestination()) {
+            OuestCard {
+                HStack(spacing: OuestTheme.Spacing.md) {
+                    Image(systemName: "book.closed.fill")
+                        .font(OuestTheme.Icon.control)
+                        .foregroundStyle(OuestTheme.Colors.brandInk)
+                    VStack(alignment: .leading, spacing: OuestTheme.Spacing.xxs) {
+                        Text("Passport")
+                            .font(OuestTheme.Typography.cardTitle)
+                            .foregroundStyle(OuestTheme.Colors.textPrimary)
+                        Text("A stamp for every trip you finish")
+                            .font(OuestTheme.Typography.caption)
+                            .foregroundStyle(OuestTheme.Colors.textSecondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, OuestTheme.Spacing.lg)
+        .accessibilityElement(children: .combine)
+    }
+
+    // MARK: - Saved Trips
 
     private var savedTripsSection: some View {
         VStack(alignment: .leading, spacing: OuestTheme.Spacing.md) {
