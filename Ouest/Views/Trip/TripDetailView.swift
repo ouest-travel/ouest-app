@@ -346,13 +346,16 @@ struct TripDetailView: View {
                 }
                 .buttonStyle(ScaledButtonStyle(scale: 0.92))
 
-                // Expenses
-                NavigationLink {
-                    ExpensesView(trip: trip, canEdit: viewModel.canEdit)
-                } label: {
-                    actionButtonLabel("Expenses", icon: "creditcard", color: .green, index: 1)
+                // Expenses — the group's own, unless the owner chose to
+                // show them on a public trip (RLS enforces the same rule).
+                if viewModel.isMember || trip.sharesExpenses {
+                    NavigationLink {
+                        ExpensesView(trip: trip, canEdit: viewModel.canEdit)
+                    } label: {
+                        actionButtonLabel("Expenses", icon: "creditcard", color: .green, index: 1)
+                    }
+                    .buttonStyle(ScaledButtonStyle(scale: 0.92))
                 }
-                .buttonStyle(ScaledButtonStyle(scale: 0.92))
 
                 // Entry Requirements (already read-only)
                 NavigationLink {

@@ -38,6 +38,11 @@ struct MainTabView: View {
         }
         .animation(OuestTheme.Anim.smooth, value: aiRun.isRunning)
         .animation(OuestTheme.Anim.smooth, value: aiRun.errorMessage)
+        .onChange(of: selectedTab) { _, tab in
+            // Counted here rather than in ExploreView, whose own appear also
+            // fires on every pop back from a trip.
+            if tab == 1 { UsageService.track(.exploreOpened) }
+        }
         .sheet(isPresented: $showCreateTrip) {
             CreateTripView()
                 .environment(authViewModel)

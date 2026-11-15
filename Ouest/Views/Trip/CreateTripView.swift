@@ -317,6 +317,30 @@ struct CreateTripView: View {
             .padding(OuestTheme.Spacing.md)
             .background(OuestTheme.Colors.surfaceSecondary)
             .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+
+            // Expenses are the group's money, so sharing them is a separate choice.
+            if viewModel.isPublic {
+                Toggle(isOn: $viewModel.expensesPublic) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "creditcard")
+                            .foregroundStyle(viewModel.expensesPublic ? OuestTheme.Colors.success : OuestTheme.Colors.textSecondary)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: OuestTheme.Spacing.xxs) {
+                            Text("Show expenses")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Text(viewModel.expensesPublic ? "Anyone viewing can see them" : "Only trip members can see them")
+                                .font(OuestTheme.Typography.caption)
+                                .foregroundStyle(OuestTheme.Colors.textSecondary)
+                        }
+                    }
+                }
+                .tint(OuestTheme.Colors.brand)
+                .padding(OuestTheme.Spacing.md)
+                .background(OuestTheme.Colors.surfaceSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+                .transition(.opacity)
+            }
         }
         .animation(OuestTheme.Anim.quick, value: viewModel.isPublic)
     }

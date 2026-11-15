@@ -25,6 +25,8 @@ final class TripDetailViewModel {
     var endDate = Date().addingTimeInterval(7 * 24 * 60 * 60) // 1 week from now
     var hasDates = true
     var isPublic = false
+    /// Show expenses to people outside the trip. Only applies while public.
+    var expensesPublic = false
     var coverImageData: Data?
     /// Edit Trip "Reset to destination photo": drop the current cover so a
     /// stock photo of the destination takes its place on save.
@@ -210,7 +212,8 @@ final class TripDetailViewModel {
                 isPublic: isPublic,
                 budget: hasBudget ? Double(budgetText) : nil,
                 currency: hasBudget ? currency : nil,
-                countryCodes: countryCodes.isEmpty ? nil : countryCodes
+                countryCodes: countryCodes.isEmpty ? nil : countryCodes,
+                expensesPublic: isPublic && expensesPublic ? true : nil
             )
 
             let newTrip = try await TripService.createTrip(payload)
@@ -301,6 +304,7 @@ final class TripDetailViewModel {
                 startDate: hasDates ? startDate : nil,
                 endDate: hasDates ? endDate : nil,
                 isPublic: isPublic,
+                expensesPublic: trip?.expensesPublicChange(to: expensesPublic),
                 budget: hasBudget ? Double(budgetText) : nil,
                 currency: hasBudget ? currency : nil,
                 countryCodes: countryCodes,
@@ -352,6 +356,7 @@ final class TripDetailViewModel {
         endDate = trip.endDate ?? Date().addingTimeInterval(7 * 24 * 60 * 60)
         hasDates = trip.startDate != nil
         isPublic = trip.isPublic
+        expensesPublic = trip.sharesExpenses
         hasBudget = trip.budget != nil && trip.budget! > 0
         budgetText = trip.budget.map { String(format: "%.0f", $0) } ?? ""
         currency = trip.currency ?? "USD"

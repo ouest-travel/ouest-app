@@ -114,7 +114,10 @@ struct ExploreView: View {
                     FeedTripCardView(
                         feedTrip: feedTrip,
                         onProfileTap: { path.append(ProfileDestination(userId: feedTrip.creatorProfile.id)) },
-                        onTripTap: { path.append(feedTrip.trip.id) },
+                        onTripTap: {
+                            UsageService.track(.exploreTripOpened, tripId: feedTrip.trip.id)
+                            path.append(feedTrip.trip.id)
+                        },
                         onLike: { viewModel.toggleLike(feedTrip) },
                         onSave: { viewModel.toggleSave(feedTrip) },
                         onComment: { viewModel.openComments(for: feedTrip.id) },

@@ -149,6 +149,42 @@ struct TripModelTests {
         #expect(json["cover_attribution_url"] is NSNull)
     }
 
+    // MARK: - Expenses visibility
+
+    // The app ships before or after migration 00037 reaches a database. A
+    // trip row without the column must still load, and must read as "not
+    // shared": the safe answer for the group's money.
+    @Test("A trip from a database without expenses_public still decodes, with expenses private")
+    func expensesPrivateWhenColumnMissing() throws {
+        let json = #"{"id":"11111111-1111-1111-1111-111111111111","created_by":"22222222-2222-2222-2222-222222222222","title":"Paris","destination":"Paris, France","status":"planning","is_public":true}"#
+        let trip = try SupabaseManager.postgrestDecoder.decode(Trip.self, from: Data(json.utf8))
+        #expect(trip.sharesExpenses == false)
+
+        let optedIn = try SupabaseManager.postgrestDecoder.decode(
+            Trip.self, from: Data(json.replacingOccurrences(of: #""is_public":true"#, with: #""is_public":true,"expenses_public":true"#).utf8)
+        )
+        #expect(optedIn.sharesExpenses)
+    }
+
+    // Saving a trip names the column only when the choice actually changed.
+    // Otherwise every edit and every share would fail outright on a
+    // database that has not had the column added yet.
+    @Test("expenses_public is sent only when the choice changes")
+    func expensesPublicSentOnlyOnChange() throws {
+        let trip = try SupabaseManager.postgrestDecoder.decode(Trip.self, from: Data(
+            #"{"id":"11111111-1111-1111-1111-111111111111","created_by":"22222222-2222-2222-2222-222222222222","title":"Paris","destination":"Paris, France","status":"planning","is_public":true}"#.utf8
+        ))
+        #expect(trip.expensesPublicChange(to: false) == nil, "already private: say nothing")
+        #expect(trip.expensesPublicChange(to: true) == true)
+
+        func keys(_ payload: UpdateTripPayload) throws -> [String: Bool] {
+            try JSONDecoder().decode([String: Bool].self, from: JSONEncoder().encode(payload))
+        }
+        #expect(try keys(UpdateTripPayload(isPublic: true, expensesPublic: trip.expensesPublicChange(to: false))) == ["is_public": true])
+        #expect(try keys(UpdateTripPayload(isPublic: true, expensesPublic: trip.expensesPublicChange(to: true)))
+                == ["is_public": true, "expenses_public": true])
+    }
+
     @Test("Trip.hasStockCover is true only when both a cover and a credit exist")
     func hasStockCover() {
         var trip = makeTrip(start: nil, end: nil)

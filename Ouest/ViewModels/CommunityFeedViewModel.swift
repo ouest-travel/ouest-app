@@ -188,6 +188,7 @@ final class CommunityFeedViewModel {
 
         do {
             _ = try await CommunityService.cloneTrip(sourceTripId: feedTrip.id, newOwnerId: userId)
+            UsageService.track(.tripCloned, tripId: feedTrip.id)
             HapticFeedback.success()
         } catch {
             HapticFeedback.error()

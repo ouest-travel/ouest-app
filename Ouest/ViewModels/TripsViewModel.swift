@@ -72,6 +72,30 @@ final class TripsViewModel {
         }
     }
 
+    /// Make a trip public so it shows in Explore, with or without its
+    /// expenses. Returns whether it worked, so the caller can confirm it or
+    /// let the person try again.
+    func shareWithCommunity(_ trip: Trip, includeExpenses: Bool) async -> Bool {
+        do {
+            let updated = try await TripService.updateTrip(
+                id: trip.id,
+                UpdateTripPayload(
+                    isPublic: true,
+                    expensesPublic: trip.expensesPublicChange(to: includeExpenses)
+                )
+            )
+            if let index = trips.firstIndex(where: { $0.id == trip.id }) {
+                trips[index] = updated
+            }
+            return true
+        } catch {
+            #if DEBUG
+            print("[Trips] shareWithCommunity failed: \(error)")
+            #endif
+            return false
+        }
+    }
+
     func updateTripStatus(_ trip: Trip, to status: TripStatus) async {
         do {
             let updated = try await TripService.updateTrip(

@@ -172,6 +172,11 @@
 		A1B2C3D400000000000000C8 /* RealityStudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000C9 /* RealityStudio.swift */; };
 		A1B2C3D400000000000000D0 /* Passport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000D1 /* Passport.swift */; };
 		A1B2C3D400000000000000D2 /* PassportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000D3 /* PassportTests.swift */; };
+		A1B2C3D400000000000000F8 /* UsageServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000F9 /* UsageServiceTests.swift */; };
+		A1B2C3D400000000000000F6 /* SharePromptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000F7 /* SharePromptTests.swift */; };
+		A1B2C3D400000000000000F4 /* SharePromptCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000F5 /* SharePromptCard.swift */; };
+		A1B2C3D400000000000000F2 /* SharePrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000F3 /* SharePrompt.swift */; };
+		A1B2C3D400000000000000F0 /* UsageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000F1 /* UsageService.swift */; };
 		A1B2C3D400000000000000D4 /* Passport.usdz in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000D5 /* Passport.usdz */; };
 /* End PBXBuildFile section */
 
@@ -364,6 +369,11 @@
 		A1B2C3D400000000000000C9 /* RealityStudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealityStudio.swift; sourceTree = "<group>"; };
 		A1B2C3D400000000000000D1 /* Passport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Passport.swift; sourceTree = "<group>"; };
 		A1B2C3D400000000000000D3 /* PassportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportTests.swift; sourceTree = "<group>"; };
+		A1B2C3D400000000000000F9 /* UsageServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageServiceTests.swift; sourceTree = "<group>"; };
+		A1B2C3D400000000000000F7 /* SharePromptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharePromptTests.swift; sourceTree = "<group>"; };
+		A1B2C3D400000000000000F5 /* SharePromptCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharePromptCard.swift; sourceTree = "<group>"; };
+		A1B2C3D400000000000000F3 /* SharePrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharePrompt.swift; sourceTree = "<group>"; };
+		A1B2C3D400000000000000F1 /* UsageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageService.swift; sourceTree = "<group>"; };
 		A1B2C3D400000000000000D5 /* Passport.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = Passport.usdz; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -515,6 +525,7 @@
 				9861221158BA4B5FB909E9C8 /* AIRunCoordinator.swift */,
 				4188330EB8E5CC1AD8F355C4 /* GeocodingService.swift */,
 				32E376344B617ADDFBC4F7AA /* WeatherService.swift */,
+				A1B2C3D400000000000000F1 /* UsageService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -533,6 +544,7 @@
 				4C6C8FC843CA8ED281F53B2E /* CommunityModelTests.swift */,
 				A1B2C3D400000000000000B5 /* StickerTierTests.swift */,
 				A1B2C3D400000000000000D3 /* PassportTests.swift */,
+				A1B2C3D400000000000000F7 /* SharePromptTests.swift */,
 				1D57406D4CDD5CE2F41A5721 /* EntryRequirementTests.swift */,
 				6AAB52CD63F3D8601C1A4258 /* ExpenseModelTests.swift */,
 				B48D21745DE4A9C41659A5A9 /* ItineraryModelTests.swift */,
@@ -624,6 +636,7 @@
 				DF7A3072C0E47FD159428B53 /* TripMember.swift */,
 				EFF596C3ECDADA185388FD98 /* TripPhoto.swift */,
 				A1B2C3D400000000000000D1 /* Passport.swift */,
+				A1B2C3D400000000000000F3 /* SharePrompt.swift */,
 				B81D655D88136C60C4D68B18 /* Sticker.swift */,
 				C95853FDF51950B6AB284E08 /* AIItinerary.swift */,
 				59D295E19C2E3134BFAB8154 /* DailyForecast.swift */,
@@ -785,6 +798,7 @@
 			children = (
 				2AB76DC74BD804B52FBAF4E6 /* HomeView.swift */,
 				9B62311A51390EED6568912E /* TripCardView.swift */,
+				A1B2C3D400000000000000F5 /* SharePromptCard.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -793,6 +807,7 @@
 			isa = PBXGroup;
 			children = (
 				C7632576DB97B7B51BD4DABE /* AuthServiceTests.swift */,
+				A1B2C3D400000000000000F9 /* UsageServiceTests.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -987,6 +1002,7 @@
 				A1B2C3D400000000000000C6 /* PassportView.swift in Sources */,
 				A1B2C3D400000000000000C8 /* RealityStudio.swift in Sources */,
 				A1B2C3D400000000000000D0 /* Passport.swift in Sources */,
+				A1B2C3D400000000000000F2 /* SharePrompt.swift in Sources */,
 				E75B332A692842AA30F08FAF /* StickerMedalView.swift in Sources */,
 				807B76729FA3C2E4A3DBC9FB /* Activity.swift in Sources */,
 				4AC696AB40FFB62CBA788593 /* ActivityCardView.swift in Sources */,
@@ -1089,6 +1105,7 @@
 				71164D59ACD51861FE707B2D /* Theme.swift in Sources */,
 				5B09F111871A3E1BBF69A741 /* Trip.swift in Sources */,
 				5F1983C4699B6BC6DC524C11 /* TripCardView.swift in Sources */,
+				A1B2C3D400000000000000F4 /* SharePromptCard.swift in Sources */,
 				39A0E3A385DFC486E3B0F432 /* TripDateRangePicker.swift in Sources */,
 				999111DE82C099D1F92EBA92 /* TripDetailView.swift in Sources */,
 				C206049227B3AF257EF4872E /* TripDetailViewModel.swift in Sources */,
@@ -1115,6 +1132,7 @@
 				8E8BEE40E3167B11D3ACE768 /* DailyForecast.swift in Sources */,
 				DE8B4E0039391A375532F9BF /* GeocodingService.swift in Sources */,
 				0B1F8EC72D412E965A3F1068 /* WeatherService.swift in Sources */,
+				A1B2C3D400000000000000F0 /* UsageService.swift in Sources */,
 				FF25F1916F8409400626C8BC /* WeatherSection.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1124,11 +1142,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				87904E8AF3932235359F72E4 /* AuthServiceTests.swift in Sources */,
+				A1B2C3D400000000000000F8 /* UsageServiceTests.swift in Sources */,
 				5CD04F36C6FE4220B706FCD7 /* AuthViewModelTests.swift in Sources */,
 				AF2620CD9C307D05DBF5A0C3 /* CommunityFeedViewModelTests.swift in Sources */,
 				DC0494A66DFE179F5387EB7A /* CommunityModelTests.swift in Sources */,
 				A1B2C3D400000000000000B4 /* StickerTierTests.swift in Sources */,
 				A1B2C3D400000000000000D2 /* PassportTests.swift in Sources */,
+				A1B2C3D400000000000000F6 /* SharePromptTests.swift in Sources */,
 				8FFFDB3862B9BF8EDA476511 /* EntryRequirementTests.swift in Sources */,
 				7F567BBCAEF6CE97A92E65CD /* ExpenseModelTests.swift in Sources */,
 				0BD978A155EAFA780D900CA6 /* ExpensesViewModelTests.swift in Sources */,

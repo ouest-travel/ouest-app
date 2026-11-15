@@ -37,6 +37,10 @@ struct Trip: Codable, Identifiable, Sendable {
     var endDate: Date?
     var status: TripStatus
     var isPublic: Bool
+    /// Whether people outside the trip may see its expenses while it is
+    /// public. Optional so trips still decode against a database that does
+    /// not have the column yet (migration 00037); read `sharesExpenses`.
+    var expensesPublic: Bool?
     var budget: Double?
     var currency: String?
     var votingEnabled: Bool?
@@ -56,12 +60,23 @@ struct Trip: Codable, Identifiable, Sendable {
         case startDate = "start_date"
         case endDate = "end_date"
         case isPublic = "is_public"
+        case expensesPublic = "expenses_public"
         case votingEnabled = "voting_enabled"
         case countryCodes = "country_codes"
         case coverAttribution = "cover_attribution"
         case coverAttributionUrl = "cover_attribution_url"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+
+    /// Expenses stay with the group unless the owner opted in.
+    var sharesExpenses: Bool { expensesPublic ?? false }
+
+    /// The value to send to make `expenses_public` equal `wanted`, or nil
+    /// when it already does. Sending nothing for "no change" keeps every
+    /// other trip save working against a database without the column.
+    func expensesPublicChange(to wanted: Bool) -> Bool? {
+        wanted == sharesExpenses ? nil : wanted
     }
 
     /// True when the hero shows a stock photo that needs a visible credit.
@@ -127,6 +142,8 @@ struct CreateTripPayload: Codable, Sendable {
     let countryCodes: [String]?
     var coverAttribution: String? = nil
     var coverAttributionUrl: String? = nil
+    /// Only set when the owner opted in; the column defaults to false.
+    var expensesPublic: Bool? = nil
 
     enum CodingKeys: String, CodingKey {
         case title, destination, description, status, budget, currency
@@ -135,6 +152,7 @@ struct CreateTripPayload: Codable, Sendable {
         case startDate = "start_date"
         case endDate = "end_date"
         case isPublic = "is_public"
+        case expensesPublic = "expenses_public"
         case countryCodes = "country_codes"
         case coverAttribution = "cover_attribution"
         case coverAttributionUrl = "cover_attribution_url"
@@ -168,6 +186,7 @@ struct UpdateTripPayload: Codable, Sendable {
     var endDate: Date?
     var status: TripStatus?
     var isPublic: Bool?
+    var expensesPublic: Bool?
     var budget: Double?
     var currency: String?
     var countryCodes: [String]?
@@ -186,6 +205,7 @@ struct UpdateTripPayload: Codable, Sendable {
         case startDate = "start_date"
         case endDate = "end_date"
         case isPublic = "is_public"
+        case expensesPublic = "expenses_public"
         case countryCodes = "country_codes"
         case coverAttribution = "cover_attribution"
         case coverAttributionUrl = "cover_attribution_url"
@@ -201,6 +221,7 @@ struct UpdateTripPayload: Codable, Sendable {
         try container.encodeIfPresent(endDate, forKey: .endDate)
         try container.encodeIfPresent(status, forKey: .status)
         try container.encodeIfPresent(isPublic, forKey: .isPublic)
+        try container.encodeIfPresent(expensesPublic, forKey: .expensesPublic)
         try container.encodeIfPresent(budget, forKey: .budget)
         try container.encodeIfPresent(currency, forKey: .currency)
         try container.encodeIfPresent(countryCodes, forKey: .countryCodes)

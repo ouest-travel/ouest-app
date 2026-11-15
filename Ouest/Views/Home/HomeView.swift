@@ -13,6 +13,11 @@ struct HomeView: View {
     @State private var tripToShare: Trip?
     @State private var showPastTrips = false
 
+    // Share prompt state
+    @State private var dismissedSharePrompts: Set<UUID> = []
+    @State private var isSharingTrip = false
+    @State private var toast: OuestToast?
+
     /// Shared namespace for the card → detail zoom transition (iOS 18+).
     /// Each `TripCardView` cover marks itself as a source keyed by trip.id,
     /// and the pushed `TripDetailView` uses the same id to grow into place.
@@ -58,7 +63,11 @@ struct HomeView: View {
                 // full entrance animation.
                 await viewModel.fetchTrips()
             }
+            .ouestToast($toast)
             .task {
+                if let userId = authViewModel.currentUser?.id {
+                    dismissedSharePrompts = SharePrompt.dismissed(for: userId)
+                }
                 await viewModel.fetchTrips()
                 withAnimation(OuestTheme.Anim.smooth) {
                     cardsAppeared = true
@@ -113,6 +122,37 @@ struct HomeView: View {
             get: { tripToDelete != nil },
             set: { if !$0 { tripToDelete = nil } }
         )
+    }
+
+    // MARK: - Share Prompt
+
+    /// The finished trip to offer for Explore, if there is one to ask about.
+    private var sharePromptTrip: Trip? {
+        guard let userId = authViewModel.currentUser?.id else { return nil }
+        return SharePrompt.candidate(in: viewModel.trips, userId: userId, dismissed: dismissedSharePrompts)
+    }
+
+    private func share(_ trip: Trip, includeExpenses: Bool) {
+        isSharingTrip = true
+        Task {
+            let shared = await viewModel.shareWithCommunity(trip, includeExpenses: includeExpenses)
+            isSharingTrip = false
+            if shared {
+                UsageService.track(.sharePromptAccepted, tripId: trip.id)
+                HapticFeedback.success()
+                toast = .success("Shared on Explore")
+            } else {
+                // The card stays where it is, so the button is the retry.
+                HapticFeedback.error()
+                toast = .failure("Couldn't share the trip. Try again.")
+            }
+        }
+    }
+
+    private func dismissSharePrompt(for trip: Trip) {
+        guard let userId = authViewModel.currentUser?.id else { return }
+        SharePrompt.dismiss(trip.id, for: userId)
+        dismissedSharePrompts.insert(trip.id)
     }
 
     // MARK: - Edit Sheet
@@ -207,6 +247,19 @@ struct HomeView: View {
                 // Greeting + title header
                 greetingHeader
 
+                // Offer to share a trip that has just ended
+                if let trip = sharePromptTrip {
+                    SharePromptCard(
+                        trip: trip,
+                        isSharing: isSharingTrip,
+                        onShare: { includeExpenses in share(trip, includeExpenses: includeExpenses) },
+                        onDismiss: { dismissSharePrompt(for: trip) }
+                    )
+                    .id(trip.id)
+                    .transition(.opacity)
+                    .onAppear { SharePrompt.trackShown(trip) }
+                }
+
                 // Featured upcoming trip
                 if let upcoming = viewModel.upcomingTrip {
                     Section {
@@ -244,6 +297,7 @@ struct HomeView: View {
             .padding(.horizontal, OuestTheme.Spacing.lg)
             .padding(.top, OuestTheme.Spacing.sm)
             .padding(.bottom, OuestTheme.Layout.tabBarInset)
+            .animation(OuestTheme.Anim.smooth, value: sharePromptTrip?.id)
         }
         .background(
             LinearGradient(

@@ -104,6 +104,7 @@ struct ContentView: View {
 
         switch destination {
         case .joinTrip(let code):
+            UsageService.track(.shareLinkOpened)
             joinInviteCode = code
             showJoinSheet = true
         case .tripDetail(let id):
