@@ -165,11 +165,11 @@ struct NotificationsView: View {
         } label: {
             HStack(alignment: .top, spacing: OuestTheme.Spacing.md) {
                 // Type icon
-                Image(systemName: notification.type.icon)
+                Image(systemName: notification.displayIcon)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(width: 36, height: 36)
-                    .background(notification.type.color)
+                    .background(notification.displayColor)
                     .clipShape(Circle())
 
                 // Text content

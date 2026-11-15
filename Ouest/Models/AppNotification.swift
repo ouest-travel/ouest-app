@@ -124,11 +124,32 @@ struct AppNotification: Codable, Identifiable, Sendable {
     var pollId: UUID? { uuid(for: "poll_id") }
     var entryId: UUID? { uuid(for: "entry_id") }
 
+    /// Trip edits are sent as `new_activity` with `kind: trip_updated` so
+    /// builds that only know the original types still decode them.
+    var isTripUpdate: Bool { data["kind"] == "trip_updated" }
+
+    var displayIcon: String { isTripUpdate ? "square.and.pencil" : type.icon }
+    var displayColor: Color { isTripUpdate ? .teal : type.color }
+
     private func uuid(for key: String) -> UUID? {
         guard let str = data[key] else { return nil }
         return UUID(uuidString: str)
     }
 }
+
+// MARK: - Lossy decoding
+
+/// Decodes one row, or nil if it can't be read (e.g. a notification type
+/// this build doesn't know), so one unknown row can't fail the whole list.
+struct LossyDecodable<Value: Decodable>: Decodable {
+    let value: Value?
+
+    init(from decoder: Decoder) throws {
+        value = try? Value(from: decoder)
+    }
+}
+
+extension LossyDecodable: Sendable where Value: Sendable {}
 
 // MARK: - AnyCodable Helper (for JSONB decoding)
 
@@ -177,6 +198,7 @@ struct NotificationPreference: Codable, Sendable {
     var newPolls: Bool
     var journalEntries: Bool
     var newActivities: Bool
+    var tripUpdates: Bool
 
     enum CodingKeys: String, CodingKey {
         case userId = "user_id"
@@ -188,6 +210,7 @@ struct NotificationPreference: Codable, Sendable {
         case newPolls = "new_polls"
         case journalEntries = "journal_entries"
         case newActivities = "new_activities"
+        case tripUpdates = "trip_updates"
     }
 
     init(from decoder: Decoder) throws {
@@ -201,6 +224,7 @@ struct NotificationPreference: Codable, Sendable {
         newPolls = try container.decodeIfPresent(Bool.self, forKey: .newPolls) ?? true
         journalEntries = try container.decodeIfPresent(Bool.self, forKey: .journalEntries) ?? true
         newActivities = try container.decodeIfPresent(Bool.self, forKey: .newActivities) ?? true
+        tripUpdates = try container.decodeIfPresent(Bool.self, forKey: .tripUpdates) ?? true
     }
 
     init(
@@ -212,7 +236,8 @@ struct NotificationPreference: Codable, Sendable {
         newFollowers: Bool = true,
         newPolls: Bool = true,
         journalEntries: Bool = true,
-        newActivities: Bool = true
+        newActivities: Bool = true,
+        tripUpdates: Bool = true
     ) {
         self.userId = userId
         self.tripInvites = tripInvites
@@ -223,6 +248,7 @@ struct NotificationPreference: Codable, Sendable {
         self.newPolls = newPolls
         self.journalEntries = journalEntries
         self.newActivities = newActivities
+        self.tripUpdates = tripUpdates
     }
 
     /// Returns a new preference with all defaults (everything enabled).

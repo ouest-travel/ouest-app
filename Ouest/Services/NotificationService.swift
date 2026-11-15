@@ -37,8 +37,10 @@ enum NotificationService {
     // MARK: - Notifications CRUD
 
     /// Fetch notifications for the current user, newest first.
+    /// Rows this build can't decode (an unknown type) are skipped rather than
+    /// failing the whole list.
     static func fetchNotifications(userId: UUID, limit: Int = 50, offset: Int = 0) async throws -> [AppNotification] {
-        try await SupabaseManager.client
+        let rows: [LossyDecodable<AppNotification>] = try await SupabaseManager.client
             .from("notifications")
             .select()
             .eq("user_id", value: userId)
@@ -46,6 +48,7 @@ enum NotificationService {
             .range(from: offset, to: offset + limit - 1)
             .execute()
             .value
+        return rows.compactMap(\.value)
     }
 
     /// Get the count of unread notifications.

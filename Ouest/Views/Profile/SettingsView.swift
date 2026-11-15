@@ -55,6 +55,7 @@ struct SettingsView: View {
                     notificationToggle("Followers", icon: "person.fill.checkmark", isOn: prefs.newFollowers)
                     notificationToggle("Polls", icon: "chart.bar", isOn: prefs.newPolls)
                     notificationToggle("Journal Entries", icon: "book", isOn: prefs.journalEntries)
+                    notificationToggle("Trip Updates", icon: "square.and.pencil", isOn: prefs.tripUpdates)
                 } header: {
                     Text("Notifications")
                 } footer: {

@@ -251,6 +251,74 @@ struct NotificationModelTests {
         #expect(dict["userId"] == nil)
     }
 
+    // MARK: - Trip updates
+
+    @Test("Trip edits arrive as new_activity with kind trip_updated")
+    func decodeTripUpdate() throws {
+        let json = """
+        {
+            "id": "11111111-1111-1111-1111-111111111111",
+            "user_id": "22222222-2222-2222-2222-222222222222",
+            "type": "new_activity",
+            "title": "Your trip just got an update",
+            "body": "Tim moved Lisbon to Aug 8 – Aug 14",
+            "data": {"trip_id": "33333333-3333-3333-3333-333333333333", "kind": "trip_updated", "changes": "dates"},
+            "is_read": false,
+            "created_at": "2026-11-15T10:00:00+00:00"
+        }
+        """.data(using: .utf8)!
+
+        let notification = try Self.supabaseDecoder.decode(AppNotification.self, from: json)
+
+        #expect(notification.type == .newActivity)
+        #expect(notification.isTripUpdate)
+        #expect(notification.tripId == UUID(uuidString: "33333333-3333-3333-3333-333333333333"))
+        #expect(notification.displayIcon == "square.and.pencil")
+    }
+
+    @Test("A plain new_activity is not a trip update")
+    func plainActivityIsNotTripUpdate() {
+        let notification = AppNotification(
+            userId: UUID(), type: .newActivity, title: "t", body: "b",
+            data: ["trip_id": UUID().uuidString]
+        )
+        #expect(!notification.isTripUpdate)
+        #expect(notification.displayIcon == NotificationType.newActivity.icon)
+    }
+
+    @Test("An unknown notification type is skipped, not fatal to the list")
+    func lossyListSkipsUnknownType() throws {
+        let json = """
+        [
+            {"id": "11111111-1111-1111-1111-111111111111", "user_id": "22222222-2222-2222-2222-222222222222",
+             "type": "new_comment", "title": "a", "body": "b", "data": {}, "is_read": false,
+             "created_at": "2026-11-15T10:00:00+00:00"},
+            {"id": "44444444-4444-4444-4444-444444444444", "user_id": "22222222-2222-2222-2222-222222222222",
+             "type": "some_future_type", "title": "c", "body": "d", "data": {}, "is_read": false,
+             "created_at": "2026-11-15T10:00:00+00:00"}
+        ]
+        """.data(using: .utf8)!
+
+        let rows = try Self.supabaseDecoder.decode([LossyDecodable<AppNotification>].self, from: json)
+        let notifications = rows.compactMap(\.value)
+
+        #expect(rows.count == 2)
+        #expect(notifications.count == 1)
+        #expect(notifications.first?.type == .newComment)
+    }
+
+    @Test("trip_updates preference defaults to on and round-trips")
+    func tripUpdatesPreference() throws {
+        let legacy = """
+        {"user_id": "11111111-1111-1111-1111-111111111111", "trip_invites": true}
+        """.data(using: .utf8)!
+        #expect(try JSONDecoder().decode(NotificationPreference.self, from: legacy).tripUpdates == true)
+
+        let prefs = NotificationPreference(userId: UUID(), tripUpdates: false)
+        let dict = try JSONSerialization.jsonObject(with: JSONEncoder().encode(prefs)) as! [String: Any]
+        #expect(dict["trip_updates"] as? Bool == false)
+    }
+
     // MARK: - DeviceTokenPayload
 
     @Test("DeviceTokenPayload encodes with snake_case keys")
