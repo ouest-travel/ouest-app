@@ -98,19 +98,23 @@ struct EditProfileView: View {
     }
 
     private var avatarSection: some View {
-        VStack(spacing: OuestTheme.Spacing.md) {
+        // PhotosPicker's label closure is @Sendable and nonisolated, so read
+        // main-actor state here and hand the closure plain values.
+        let preview = avatarPreview
+        let currentAvatarUrl = removeAvatar ? nil : authViewModel.currentUser?.avatarUrl
+        return VStack(spacing: OuestTheme.Spacing.md) {
             sectionHeader(icon: "camera.fill", title: "Profile Photo")
 
             PhotosPicker(selection: $selectedPhoto, matching: .images) {
                 ZStack(alignment: .bottomTrailing) {
-                    if let avatarPreview {
-                        avatarPreview
+                    if let preview {
+                        preview
                             .resizable()
                             .scaledToFill()
                             .frame(width: 100, height: 100)
                             .clipShape(Circle())
                     } else {
-                        AvatarView(url: removeAvatar ? nil : authViewModel.currentUser?.avatarUrl, size: 100)
+                        AvatarView(url: currentAvatarUrl, size: 100)
                     }
 
                     // Camera badge

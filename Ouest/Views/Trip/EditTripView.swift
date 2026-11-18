@@ -95,37 +95,12 @@ struct EditTripView: View {
     }
 
     private var photoPicker: some View {
-        PhotosPicker(selection: $selectedPhoto, matching: .images) {
-            ZStack {
-                if let coverPreview {
-                    coverPreview.resizable().scaledToFill()
-                        .transition(.opacity)
-                } else {
-                    LinearGradient(
-                        colors: [.teal.opacity(0.3), .blue.opacity(0.3)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                }
-
-                VStack(spacing: OuestTheme.Spacing.sm) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.title2)
-                        .symbolEffect(.bounce, value: coverPreview != nil)
-                    Text(viewModel.resetCoverToStock ? "Destination photo on save" : "Change Photo")
-                        .font(OuestTheme.Typography.caption)
-                        .fontWeight(.medium)
-                }
-                .foregroundStyle(.white)
-                .padding(OuestTheme.Spacing.md)
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
-            }
-            // Bound width — see TripDetailView for the .scaledToFill +
-            // panoramic-image layout-shift bug this prevents.
-            .frame(maxWidth: .infinity)
-            .frame(height: 160)
-            .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
+        // PhotosPicker's label closure is @Sendable and nonisolated, so read
+        // main-actor state here and hand the closure plain values.
+        let preview = coverPreview
+        let caption = viewModel.resetCoverToStock ? "Destination photo on save" : "Change Photo"
+        return PhotosPicker(selection: $selectedPhoto, matching: .images) {
+            CoverPickerLabel(preview: preview, caption: caption)
         }
         .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 2)
         .pressEffect(scale: 0.97)
@@ -384,6 +359,46 @@ struct EditTripView: View {
             Text(title)
                 .font(OuestTheme.Typography.sectionTitle)
         }
+    }
+}
+
+/// The cover artwork inside the photo picker. Its body runs on the main
+/// actor, which the picker's label closure does not.
+private struct CoverPickerLabel: View {
+    let preview: Image?
+    let caption: String
+
+    var body: some View {
+        ZStack {
+            if let preview {
+                preview.resizable().scaledToFill()
+                    .transition(.opacity)
+            } else {
+                LinearGradient(
+                    colors: [.teal.opacity(0.3), .blue.opacity(0.3)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+
+            VStack(spacing: OuestTheme.Spacing.sm) {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.title2)
+                    .symbolEffect(.bounce, value: preview != nil)
+                Text(caption)
+                    .font(OuestTheme.Typography.caption)
+                    .fontWeight(.medium)
+            }
+            .foregroundStyle(.white)
+            .padding(OuestTheme.Spacing.md)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+        }
+        // Bound width — see TripDetailView for the .scaledToFill +
+        // panoramic-image layout-shift bug this prevents.
+        .frame(maxWidth: .infinity)
+        .frame(height: 160)
+        .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
     }
 }
 
