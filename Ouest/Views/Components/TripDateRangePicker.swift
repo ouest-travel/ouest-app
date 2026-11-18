@@ -2,13 +2,41 @@ import SwiftUI
 
 /// A flowing date range picker: tap "Start" or "End" label to toggle which date
 /// the inline graphical calendar is editing. Automatically advances to end date
-/// after start is picked.
+/// after start is picked. Picking a start moves the end with it so the trip
+/// keeps its length and the end calendar opens on the same month; otherwise
+/// swiping to "August" from a stale end month lands a year late.
 struct TripDateRangePicker: View {
     @Binding var startDate: Date
     @Binding var endDate: Date
 
     enum Focus { case start, end }
     @State private var focus: Focus = .start
+
+    /// Trips longer than this get a caution under the calendar. It never blocks saving.
+    private static let longTripDays = 60
+
+    private var tripLengthDays: Int {
+        let calendar = Calendar.current
+        return calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: startDate),
+            to: calendar.startOfDay(for: endDate)
+        ).day ?? 0
+    }
+
+    /// Binding for the start calendar. Only the user's taps go through here,
+    /// so loading an existing trip into `startDate` leaves the end alone.
+    private var startSelection: Binding<Date> {
+        Binding(
+            get: { startDate },
+            set: { newStart in
+                let length = max(0, endDate.timeIntervalSince(startDate))
+                endDate = newStart.addingTimeInterval(length)
+                startDate = newStart
+                withAnimation(OuestTheme.Anim.quick) { focus = .end }
+            }
+        )
+    }
 
     var body: some View {
         VStack(spacing: OuestTheme.Spacing.md) {
@@ -40,19 +68,11 @@ struct TripDateRangePicker: View {
                 if focus == .start {
                     DatePicker(
                         "Start Date",
-                        selection: $startDate,
+                        selection: startSelection,
                         displayedComponents: .date
                     )
                     .datePickerStyle(.graphical)
                     .labelsHidden()
-                    .onChange(of: startDate) { _, newStart in
-                        // Ensure end >= start
-                        if endDate < newStart {
-                            endDate = newStart
-                        }
-                        // Auto-advance to end date after picking start
-                        withAnimation(OuestTheme.Anim.quick) { focus = .end }
-                    }
                 } else {
                     DatePicker(
                         "End Date",
@@ -65,7 +85,16 @@ struct TripDateRangePicker: View {
                 }
             }
             .tint(OuestTheme.Colors.brand)
+
+            if tripLengthDays > Self.longTripDays {
+                Label("This trip is \(tripLengthDays) days long", systemImage: "exclamationmark.triangle")
+                    .font(OuestTheme.Typography.caption)
+                    .foregroundStyle(OuestTheme.Colors.warningInk)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .transition(.opacity)
+            }
         }
+        .animation(OuestTheme.Anim.quick, value: tripLengthDays > Self.longTripDays)
         .padding(OuestTheme.Spacing.md)
         .background(OuestTheme.Colors.surfaceSecondary)
         .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
