@@ -5,18 +5,19 @@ import Testing
 @Suite("Packing List Models")
 struct PackingItemTests {
 
-    private static let supabaseDecoder: JSONDecoder = {
+    private static var supabaseDecoder: JSONDecoder {
         let decoder = JSONDecoder()
-        let isoWithFrac = ISO8601DateFormatter()
-        isoWithFrac.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let isoPlain = ISO8601DateFormatter()
         decoder.dateDecodingStrategy = .custom { decoder in
             let string = try decoder.singleValueContainer().decode(String.self)
+            // Built inside the closure: ISO8601DateFormatter isn't Sendable.
+            let isoWithFrac = ISO8601DateFormatter()
+            isoWithFrac.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            let isoPlain = ISO8601DateFormatter()
             if let date = isoWithFrac.date(from: string) ?? isoPlain.date(from: string) { return date }
             throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Bad date \(string)"))
         }
         return decoder
-    }()
+    }
 
     @Test("Decodes a packing item with its joined assignee")
     func decodesWithAssignee() throws {
