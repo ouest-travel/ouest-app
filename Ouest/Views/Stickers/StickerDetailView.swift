@@ -1,10 +1,12 @@
 import SwiftUI
 
 /// Detail sheet for a single sticker — shows flippable medal, description, and equip toggle.
+/// With no `userSticker` (not yet earned) it shows the greyed medal, the
+/// description and what unlocks it, with no equip button and no reveal.
 struct StickerDetailView: View {
 
     let stickerType: StickerType
-    let userSticker: UserSticker
+    let userSticker: UserSticker?
     let userName: String
     @Bindable var viewModel: StickersViewModel
 
@@ -14,16 +16,17 @@ struct StickerDetailView: View {
     @State private var playsReveal: Bool
     @Environment(\.dismiss) private var dismiss
 
-    init(stickerType: StickerType, userSticker: UserSticker, userName: String, viewModel: StickersViewModel) {
+    init(stickerType: StickerType, userSticker: UserSticker?, userName: String, viewModel: StickersViewModel) {
         self.stickerType = stickerType
         self.userSticker = userSticker
         self.userName = userName
         self.viewModel = viewModel
-        _playsReveal = State(initialValue: StickerReveal.isPending(userSticker))
+        _playsReveal = State(initialValue: userSticker.map(StickerReveal.isPending) ?? false)
     }
 
     private var isEquipped: Bool {
-        viewModel.allStickers.first(where: { $0.id == userSticker.id })?.equipped ?? false
+        guard let userSticker else { return false }
+        return viewModel.allStickers.first(where: { $0.id == userSticker.id })?.equipped ?? false
     }
 
     private var canEquip: Bool {
@@ -36,13 +39,20 @@ struct StickerDetailView: View {
             Spacer().frame(height: 8)
 
             // 3D flippable medal — tap to spin. Plays the unlock reveal the
-            // first time this sticker is opened on this device.
-            StickerMedalView(
-                stickerType: stickerType,
-                userName: userName,
-                earnedDate: userSticker.unlockedAt,
-                playsReveal: playsReveal
-            )
+            // first time this sticker is opened on this device. Locked
+            // stickers keep the grid's greyed medal at detail size.
+            Group {
+                if let userSticker {
+                    StickerMedalView(
+                        stickerType: stickerType,
+                        userName: userName,
+                        earnedDate: userSticker.unlockedAt,
+                        playsReveal: playsReveal
+                    )
+                } else {
+                    StickerBadgeView(stickerType: stickerType, isUnlocked: false, size: .large)
+                }
+            }
             .bouncyAppear(isVisible: appeared, delay: 0.1)
 
             // Name + description
@@ -60,60 +70,65 @@ struct StickerDetailView: View {
             }
             .fadeSlideIn(isVisible: appeared, delay: 0.2)
 
-            // Unlock date
+            // Unlock date, or what it takes to earn it
             HStack(spacing: OuestTheme.Spacing.sm) {
-                Image(systemName: "calendar")
+                Image(systemName: userSticker == nil ? "lock" : "calendar")
                     .font(.caption)
                     .foregroundStyle(OuestTheme.Colors.textSecondary)
 
-                Text("Unlocked \(userSticker.unlockedAt.formatted(date: .abbreviated, time: .omitted))")
-                    .font(OuestTheme.Typography.caption)
-                    .foregroundStyle(OuestTheme.Colors.textSecondary)
+                Text(
+                    userSticker.map { "Unlocked \($0.unlockedAt.formatted(date: .abbreviated, time: .omitted))" }
+                        ?? stickerType.unlockCriteria
+                )
+                .font(OuestTheme.Typography.caption)
+                .foregroundStyle(OuestTheme.Colors.textSecondary)
             }
             .fadeSlideIn(isVisible: appeared, delay: 0.25)
 
             Spacer()
 
             // Equip toggle button
-            Button {
-                viewModel.toggleEquip(userSticker)
-                if isEquipped {
-                    // Was just unequipped
-                } else {
-                    HapticFeedback.success()
+            if let userSticker {
+                Button {
+                    viewModel.toggleEquip(userSticker)
+                    if isEquipped {
+                        // Was just unequipped
+                    } else {
+                        HapticFeedback.success()
+                    }
+                } label: {
+                    HStack(spacing: OuestTheme.Spacing.sm) {
+                        Image(systemName: isEquipped ? "minus.circle" : "plus.circle")
+                        Text(isEquipped ? "Remove from Profile" : "Show on Profile")
+                    }
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(isEquipped ? OuestTheme.Colors.textSecondary : .white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        isEquipped
+                            ? AnyShapeStyle(Color("SurfaceSecondary"))
+                            : AnyShapeStyle(OuestTheme.Colors.decorGradient)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
                 }
-            } label: {
-                HStack(spacing: OuestTheme.Spacing.sm) {
-                    Image(systemName: isEquipped ? "minus.circle" : "plus.circle")
-                    Text(isEquipped ? "Remove from Profile" : "Show on Profile")
-                }
-                .font(.body.weight(.semibold))
-                .foregroundStyle(isEquipped ? OuestTheme.Colors.textSecondary : .white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(
-                    isEquipped
-                        ? AnyShapeStyle(Color("SurfaceSecondary"))
-                        : AnyShapeStyle(OuestTheme.Colors.decorGradient)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
-            }
-            .disabled(!canEquip && !isEquipped)
-            .opacity(!canEquip && !isEquipped ? 0.5 : 1)
-            .padding(.horizontal, OuestTheme.Spacing.lg)
-            .fadeSlideIn(isVisible: appeared, delay: 0.3)
+                .disabled(!canEquip && !isEquipped)
+                .opacity(!canEquip && !isEquipped ? 0.5 : 1)
+                .padding(.horizontal, OuestTheme.Spacing.lg)
+                .fadeSlideIn(isVisible: appeared, delay: 0.3)
 
-            if !canEquip && !isEquipped {
-                Text("Remove a sticker first (max 4)")
-                    .font(OuestTheme.Typography.micro)
-                    .foregroundStyle(OuestTheme.Colors.textSecondary)
+                if !canEquip && !isEquipped {
+                    Text("Remove a sticker first (max 4)")
+                        .font(OuestTheme.Typography.micro)
+                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+                }
             }
 
             Spacer().frame(height: OuestTheme.Spacing.lg)
         }
         .background(Color("Background"))
         .onAppear {
-            if playsReveal {
+            if playsReveal, let userSticker {
                 StickerReveal.markShown(userSticker)
             }
             withAnimation(OuestTheme.Anim.smooth) {

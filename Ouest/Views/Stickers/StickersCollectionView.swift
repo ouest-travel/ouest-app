@@ -38,16 +38,16 @@ struct StickersCollectionView: View {
                 }
             }
             .sheet(item: $selectedSticker) { type in
-                if let sticker = viewModel.userSticker(for: type) {
-                    StickerDetailView(
-                        stickerType: type,
-                        userSticker: sticker,
-                        userName: userName,
-                        viewModel: viewModel
-                    )
-                    .presentationDetents([.medium])
-                    .presentationDragIndicator(.visible)
-                }
+                // Locked stickers open too, so their description can be read
+                // before they are earned.
+                StickerDetailView(
+                    stickerType: type,
+                    userSticker: viewModel.userSticker(for: type),
+                    userName: userName,
+                    viewModel: viewModel
+                )
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
             }
             .task {
                 if viewModel.allStickers.isEmpty {
@@ -103,10 +103,8 @@ struct StickersCollectionView: View {
         let unlocked = viewModel.isUnlocked(type)
 
         return Button {
-            if unlocked {
-                HapticFeedback.light()
-                selectedSticker = type
-            }
+            HapticFeedback.light()
+            selectedSticker = type
         } label: {
             VStack(spacing: OuestTheme.Spacing.sm) {
                 StickerBadgeView(
