@@ -236,6 +236,9 @@ struct GooeyTabBar<Center: View>: View {
                 ZStack(alignment: .topTrailing) {
                     Image(systemName: isSelected ? item.filledIcon : item.icon)
                         .font(OuestTheme.Icon.inline.weight(.semibold))
+                        // Swap the symbol in place instead of crossfading two
+                        // layouts, which left a ghost of the old glyph.
+                        .contentTransition(.symbolEffect(.replace))
                     if item.badge > 0 {
                         Text("\(min(item.badge, 99))")
                             .font(.system(size: 9, weight: .bold))
