@@ -393,7 +393,17 @@ struct TripDetailView: View {
                 }
                 .buttonStyle(ScaledButtonStyle(scale: 0.92))
 
-                actionButtonLabel("Chat", icon: "bubble.left.and.bubble.right", color: .teal, index: 6)
+                // Packing — the group's own list, never shown on public trips.
+                if viewModel.isMember {
+                    NavigationLink {
+                        PackingListView(trip: trip, canEdit: viewModel.isMember)
+                    } label: {
+                        actionButtonLabel("Packing", icon: "checklist", color: .cyan, index: 6)
+                    }
+                    .buttonStyle(ScaledButtonStyle(scale: 0.92))
+                }
+
+                actionButtonLabel("Chat", icon: "bubble.left.and.bubble.right", color: .teal, index: 7)
             }
             .padding(.horizontal, OuestTheme.Spacing.xl)
             .padding(.vertical, OuestTheme.Spacing.lg)

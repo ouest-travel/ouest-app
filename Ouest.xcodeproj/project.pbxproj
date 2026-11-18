@@ -179,6 +179,12 @@
 		A1B2C3D400000000000000F2 /* SharePrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000F3 /* SharePrompt.swift */; };
 		A1B2C3D400000000000000F0 /* UsageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000F1 /* UsageService.swift */; };
 		A1B2C3D400000000000000D4 /* Passport.usdz in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000D5 /* Passport.usdz */; };
+		6B45ABAD972D48471A4C9B3B /* PackingItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6FA807B1C835A76E45C4DCB /* PackingItem.swift */; };
+		6A923A5381EC60161DEEF388 /* PackingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74C06250A5B0A5E65E073CC9 /* PackingService.swift */; };
+		FB2B1C10CF843E740CAC3F0C /* PackingListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87A97BEB1744F3F8609B57D7 /* PackingListViewModel.swift */; };
+		23711EBB414B281155204933 /* PackingListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16E3622E4886F62C30B4A3E8 /* PackingListView.swift */; };
+		38B631EF7821359D853D6999 /* AddPackingItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A102E95EA0FA3FA30E22464 /* AddPackingItemView.swift */; };
+		280A8F33085DC1FE0E60F223 /* PackingItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E72B608511B80FADB9D1B1F3 /* PackingItemTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -377,6 +383,12 @@
 		A1B2C3D400000000000000F3 /* SharePrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharePrompt.swift; sourceTree = "<group>"; };
 		A1B2C3D400000000000000F1 /* UsageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageService.swift; sourceTree = "<group>"; };
 		A1B2C3D400000000000000D5 /* Passport.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = Passport.usdz; sourceTree = "<group>"; };
+		C6FA807B1C835A76E45C4DCB /* PackingItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PackingItem.swift; sourceTree = "<group>"; };
+		74C06250A5B0A5E65E073CC9 /* PackingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PackingService.swift; sourceTree = "<group>"; };
+		87A97BEB1744F3F8609B57D7 /* PackingListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PackingListViewModel.swift; sourceTree = "<group>"; };
+		16E3622E4886F62C30B4A3E8 /* PackingListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PackingListView.swift; sourceTree = "<group>"; };
+		6A102E95EA0FA3FA30E22464 /* AddPackingItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddPackingItemView.swift; sourceTree = "<group>"; };
+		E72B608511B80FADB9D1B1F3 /* PackingItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PackingItemTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -458,6 +470,7 @@
 		3D66CE31D6491D8367010EFA /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				87A97BEB1744F3F8609B57D7 /* PackingListViewModel.swift */,
 				0B64776D1C9BD0D75EB45437 /* AuthViewModel.swift */,
 				551D0AC7D04253E3610A4568 /* CommunityFeedViewModel.swift */,
 				396C949CC555685A9D120F62 /* EntryRequirementsViewModel.swift */,
@@ -507,6 +520,7 @@
 		576F5D96A078CDB2A951AE3A /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				74C06250A5B0A5E65E073CC9 /* PackingService.swift */,
 				F22AD11A1B8686AEE718BA8D /* AppleSignInCoordinator.swift */,
 				C2503CCBB38708B06F75CEAC /* AuthService.swift */,
 				8804C0610A3880690B30AC7F /* CommunityService.swift */,
@@ -543,6 +557,7 @@
 		746B332B26E7FF00BF43EF3F /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				E72B608511B80FADB9D1B1F3 /* PackingItemTests.swift */,
 				4C6C8FC843CA8ED281F53B2E /* CommunityModelTests.swift */,
 				A1B2C3D400000000000000B5 /* StickerTierTests.swift */,
 				A1B2C3D400000000000000D3 /* PassportTests.swift */,
@@ -624,6 +639,7 @@
 		971554975031125A8E8923CB /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				C6FA807B1C835A76E45C4DCB /* PackingItem.swift */,
 				0EBB2799E6366193CDB16466 /* Activity.swift */,
 				926FD815CB40E73093835D7D /* AppNotification.swift */,
 				FBF17FD9786CBD73B14770CB /* Community.swift */,
@@ -744,6 +760,7 @@
 		CDC412D123B14CA2F38C8E43 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				53ECC828AECC70F0F6DA6DE6 /* Packing */,
 				A53D5FECBCDAEE15C9F268A3 /* App */,
 				09F896346D9C2E8F6F67F312 /* Auth */,
 				B1F50A56CED45D270DC5A23E /* Chat */,
@@ -871,6 +888,15 @@
 			path = Models;
 			sourceTree = "<group>";
 		};
+		53ECC828AECC70F0F6DA6DE6 /* Packing */ = {
+			isa = PBXGroup;
+			children = (
+				6A102E95EA0FA3FA30E22464 /* AddPackingItemView.swift */,
+				16E3622E4886F62C30B4A3E8 /* PackingListView.swift */,
+			);
+			path = Packing;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -993,6 +1019,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				38B631EF7821359D853D6999 /* AddPackingItemView.swift in Sources */,
+				23711EBB414B281155204933 /* PackingListView.swift in Sources */,
+				FB2B1C10CF843E740CAC3F0C /* PackingListViewModel.swift in Sources */,
+				6A923A5381EC60161DEEF388 /* PackingService.swift in Sources */,
+				6B45ABAD972D48471A4C9B3B /* PackingItem.swift in Sources */,
 				2ACA58C8255943018611874D /* Sticker.swift in Sources */,
 				0AF133BA47C8DBA12298BDC0 /* StickerService.swift in Sources */,
 				F868DB8EB67805D148A30B6C /* StickersViewModel.swift in Sources */,
@@ -1144,6 +1175,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				280A8F33085DC1FE0E60F223 /* PackingItemTests.swift in Sources */,
 				87904E8AF3932235359F72E4 /* AuthServiceTests.swift in Sources */,
 				A1B2C3D400000000000000F8 /* UsageServiceTests.swift in Sources */,
 				A1B2C3D400000000000000FA /* TripServiceTests.swift in Sources */,
