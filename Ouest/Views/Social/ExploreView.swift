@@ -22,7 +22,7 @@ struct ExploreView: View {
                         detail: viewModel.failureDetail,
                         onRecover: { Task { await viewModel.loadFeed() } }
                     )
-                } else if viewModel.filteredTrips.isEmpty && viewModel.searchedUsers.isEmpty && !viewModel.searchQuery.isEmpty && !viewModel.isSearchingUsers {
+                } else if viewModel.filteredTrips.isEmpty && viewModel.searchedUsers.isEmpty && !viewModel.searchQuery.isEmpty && !viewModel.isSearchingUsers && !viewModel.isSearchingTrips {
                     searchEmptyState
                 } else if viewModel.feedTrips.isEmpty {
                     OuestEmptyState(
@@ -42,6 +42,7 @@ struct ExploreView: View {
             )
             .onChange(of: viewModel.searchQuery) {
                 viewModel.searchUsers()
+                viewModel.searchTrips()
             }
             .refreshable {
                 await viewModel.refreshFeed()
@@ -138,7 +139,7 @@ struct ExploreView: View {
                     }
                 }
 
-                if viewModel.isLoadingMore {
+                if viewModel.isLoadingMore || viewModel.isSearchingTrips {
                     ProgressView()
                         .padding(OuestTheme.Spacing.lg)
                 }

@@ -146,27 +146,64 @@ enum TripService {
 
     /// Search profiles by handle for inviting to a trip
     static func searchProfiles(query: String) async throws -> [Profile] {
-        try await SupabaseManager.client
+        guard let filter = profileSearchFilter(query) else { return [] }
+        return try await SupabaseManager.client
             .from("profiles")
             .select()
-            .or("handle.ilike.%\(query)%,full_name.ilike.%\(query)%,email.ilike.%\(query)%")
+            .or(filter)
             .limit(10)
             .execute()
             .value
     }
 
     /// Fetch public/discover trips for the Explore feed (only completed trips)
-    static func fetchPublicTrips(limit: Int = 20, offset: Int = 0) async throws -> [Trip] {
+    static func fetchPublicTrips(matching search: String? = nil, limit: Int = 20, offset: Int = 0) async throws -> [Trip] {
         let now = ISO8601DateFormatter().string(from: Date())
-        return try await SupabaseManager.client
+        var request = SupabaseManager.client
             .from("trips")
             .select()
             .eq("is_public", value: true)
             .lte("end_date", value: now)
+        if let search {
+            guard let filter = publicTripSearchFilter(search) else { return [] }
+            request = request.or(filter)
+        }
+        return try await request
             .order("created_at", ascending: false)
             .range(from: offset, to: offset + limit - 1)
             .execute()
             .value
+    }
+
+    /// What a search is compared against, shared by the server query and
+    /// the on-screen filter so the two agree. Lowercased, single-spaced,
+    /// and without the characters that would act as wildcards or end the
+    /// quoted value in a PostgREST filter. `_` stays: handles use it, and
+    /// as a LIKE wildcard it can only match a little too much.
+    static func searchTerms(_ raw: String) -> String {
+        let cleaned = raw.lowercased().map { "%*\\\"".contains($0) ? " " : $0 }
+        return String(cleaned).split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    }
+
+    /// PostgREST `or` filter for people by handle, name or email. Quoted
+    /// for the same reason as trips: unquoted, "Lisbon, Portugal" typed
+    /// into Explore's search made this request fail.
+    static func profileSearchFilter(_ raw: String) -> String? {
+        let terms = searchTerms(raw)
+        guard !terms.isEmpty else { return nil }
+        let pattern = "\"%\(terms)%\""
+        return "handle.ilike.\(pattern),full_name.ilike.\(pattern),email.ilike.\(pattern)"
+    }
+
+    /// PostgREST `or` filter for trips whose title or destination contains
+    /// the search, or nil when there is too little to search for. The value
+    /// is quoted because PostgREST splits `or` conditions on commas, and
+    /// most destinations are written "City, Country".
+    static func publicTripSearchFilter(_ raw: String) -> String? {
+        let terms = searchTerms(raw)
+        guard terms.count >= 2 else { return nil }
+        let pattern = "\"%\(terms)%\""
+        return "title.ilike.\(pattern),destination.ilike.\(pattern)"
     }
 
     /// Fetch a single profile by handle (case-insensitive). Used for

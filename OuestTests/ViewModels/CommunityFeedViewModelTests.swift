@@ -170,6 +170,41 @@ struct CommunityFeedViewModelTests {
         #expect(vm.filteredTrips.isEmpty)
     }
 
+    // The loaded page is twenty trips. A search has to reach the rest of
+    // the catalogue, or "Tokyo" finds nothing unless Tokyo is in the twenty.
+    @Test("Matches from the whole catalogue are shown, each trip once")
+    @MainActor
+    func filteredTripsIncludesCatalogueMatches() {
+        let vm = CommunityFeedViewModel()
+        let loaded = makeFeedTrip(title: "Tokyo Adventure")
+        let notLoaded = makeFeedTrip(title: "Autumn", destination: "Tokyo, Japan")
+        vm.feedTrips = [loaded, makeFeedTrip(title: "Barcelona Trip")]
+        vm.searchedTrips = [loaded, notLoaded]
+        vm.searchQuery = "tokyo"
+        #expect(vm.filteredTrips.map(\.id) == [loaded.id, notLoaded.id])
+    }
+
+    // Catalogue results arrive after a delay. Until the next ones land, the
+    // previous search's results must not sit under a query they don't match.
+    @Test("Results from an earlier search do not linger")
+    @MainActor
+    func filteredTripsDropsStaleCatalogueMatches() {
+        let vm = CommunityFeedViewModel()
+        vm.searchedTrips = [makeFeedTrip(title: "Lisbon with friends", destination: "Lisbon, Portugal")]
+        vm.searchQuery = "tokyo"
+        #expect(vm.filteredTrips.isEmpty)
+    }
+
+    @Test("With the search cleared, only the feed is shown")
+    @MainActor
+    func filteredTripsIgnoresCatalogueMatchesWithoutSearch() {
+        let vm = CommunityFeedViewModel()
+        let feed = makeFeedTrip(title: "Barcelona Trip")
+        vm.feedTrips = [feed]
+        vm.searchedTrips = [makeFeedTrip(title: "Tokyo Adventure")]
+        #expect(vm.filteredTrips.map(\.id) == [feed.id])
+    }
+
     // MARK: - Like Toggle
 
     @Test("toggleLike flips isLiked and increments count")

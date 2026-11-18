@@ -173,6 +173,7 @@
 		A1B2C3D400000000000000D0 /* Passport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000D1 /* Passport.swift */; };
 		A1B2C3D400000000000000D2 /* PassportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000D3 /* PassportTests.swift */; };
 		A1B2C3D400000000000000F8 /* UsageServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000F9 /* UsageServiceTests.swift */; };
+		A1B2C3D400000000000000FA /* TripServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000FB /* TripServiceTests.swift */; };
 		A1B2C3D400000000000000F6 /* SharePromptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000F7 /* SharePromptTests.swift */; };
 		A1B2C3D400000000000000F4 /* SharePromptCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000F5 /* SharePromptCard.swift */; };
 		A1B2C3D400000000000000F2 /* SharePrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000000000000F3 /* SharePrompt.swift */; };
@@ -370,6 +371,7 @@
 		A1B2C3D400000000000000D1 /* Passport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Passport.swift; sourceTree = "<group>"; };
 		A1B2C3D400000000000000D3 /* PassportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportTests.swift; sourceTree = "<group>"; };
 		A1B2C3D400000000000000F9 /* UsageServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageServiceTests.swift; sourceTree = "<group>"; };
+		A1B2C3D400000000000000FB /* TripServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripServiceTests.swift; sourceTree = "<group>"; };
 		A1B2C3D400000000000000F7 /* SharePromptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharePromptTests.swift; sourceTree = "<group>"; };
 		A1B2C3D400000000000000F5 /* SharePromptCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharePromptCard.swift; sourceTree = "<group>"; };
 		A1B2C3D400000000000000F3 /* SharePrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharePrompt.swift; sourceTree = "<group>"; };
@@ -808,6 +810,7 @@
 			children = (
 				C7632576DB97B7B51BD4DABE /* AuthServiceTests.swift */,
 				A1B2C3D400000000000000F9 /* UsageServiceTests.swift */,
+				A1B2C3D400000000000000FB /* TripServiceTests.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1143,6 +1146,7 @@
 			files = (
 				87904E8AF3932235359F72E4 /* AuthServiceTests.swift in Sources */,
 				A1B2C3D400000000000000F8 /* UsageServiceTests.swift in Sources */,
+				A1B2C3D400000000000000FA /* TripServiceTests.swift in Sources */,
 				5CD04F36C6FE4220B706FCD7 /* AuthViewModelTests.swift in Sources */,
 				AF2620CD9C307D05DBF5A0C3 /* CommunityFeedViewModelTests.swift in Sources */,
 				DC0494A66DFE179F5387EB7A /* CommunityModelTests.swift in Sources */,
