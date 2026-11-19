@@ -61,8 +61,11 @@ struct OuestEmptyState: View {
             if primary != nil || secondary != nil {
                 VStack(spacing: OuestTheme.Spacing.md) {
                     if let primary {
+                        // ContentUnavailableView sizes its actions to their
+                        // ideal width. Without one the button shrinks to its
+                        // label and the text touches the edges.
                         OuestButton(title: primary.title, action: primary.perform)
-                            .frame(maxWidth: 280)
+                            .frame(idealWidth: 280, maxWidth: 280)
                     }
                     if let secondary {
                         Button(secondary.title, action: secondary.perform)
