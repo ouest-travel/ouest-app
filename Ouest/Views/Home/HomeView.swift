@@ -4,12 +4,24 @@ struct HomeView: View {
     @Environment(AuthViewModel.self) private var authViewModel
     @State private var viewModel = TripsViewModel()
     @State private var showCreateTrip = false
+    @State private var showJoinWithCode = false
     @State private var cardsAppeared = false
 
     // Context menu state
     @State private var tripToDelete: Trip?
     @State private var tripToEdit: Trip?
+    @State private var tripToShare: Trip?
     @State private var showPastTrips = false
+
+    // Share prompt state
+    @State private var dismissedSharePrompts: Set<UUID> = []
+    @State private var isSharingTrip = false
+    @State private var toast: OuestToast?
+
+    /// Shared namespace for the card → detail zoom transition (iOS 18+).
+    /// Each `TripCardView` cover marks itself as a source keyed by trip.id,
+    /// and the pushed `TripDetailView` uses the same id to grow into place.
+    @Namespace private var tripCovers
 
     var body: some View {
         NavigationStack {
@@ -25,9 +37,20 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        HapticFeedback.light()
-                        showCreateTrip = true
+                    Menu {
+                        Button {
+                            HapticFeedback.light()
+                            showCreateTrip = true
+                        } label: {
+                            Label("Create New Trip", systemImage: "plus.circle")
+                        }
+
+                        Button {
+                            HapticFeedback.light()
+                            showJoinWithCode = true
+                        } label: {
+                            Label("Join With Code", systemImage: "ticket")
+                        }
                     } label: {
                         Image(systemName: "plus")
                             .fontWeight(.semibold)
@@ -36,13 +59,15 @@ struct HomeView: View {
                 }
             }
             .refreshable {
-                cardsAppeared = false
+                // Cards stay in place; pull-to-refresh shouldn't replay the
+                // full entrance animation.
                 await viewModel.fetchTrips()
-                withAnimation(OuestTheme.Anim.smooth) {
-                    cardsAppeared = true
-                }
             }
+            .ouestToast($toast)
             .task {
+                if let userId = authViewModel.currentUser?.id {
+                    dismissedSharePrompts = SharePrompt.dismissed(for: userId)
+                }
                 await viewModel.fetchTrips()
                 withAnimation(OuestTheme.Anim.smooth) {
                     cardsAppeared = true
@@ -55,8 +80,19 @@ struct HomeView: View {
                         Task { await viewModel.fetchTrips() }
                     }
             }
+            .sheet(isPresented: $showJoinWithCode) {
+                JoinWithCodeSheet()
+                    .environment(authViewModel)
+                    .onDisappear {
+                        // Refresh trips in case user joined a new one
+                        Task { await viewModel.fetchTrips() }
+                    }
+            }
             .sheet(item: $tripToEdit) { trip in
                 editTripSheet(for: trip)
+            }
+            .sheet(item: $tripToShare) { trip in
+                ShareTripSheet(trip: trip)
             }
             .alert("Delete Trip", isPresented: deleteAlertBinding) {
                 Button("Cancel", role: .cancel) {
@@ -66,7 +102,7 @@ struct HomeView: View {
                     if let trip = tripToDelete {
                         Task {
                             HapticFeedback.success()
-                            await viewModel.deleteTrip(trip)
+                            _ = await viewModel.deleteTrip(trip)
                         }
                     }
                     tripToDelete = nil
@@ -88,6 +124,37 @@ struct HomeView: View {
         )
     }
 
+    // MARK: - Share Prompt
+
+    /// The finished trip to offer for Explore, if there is one to ask about.
+    private var sharePromptTrip: Trip? {
+        guard let userId = authViewModel.currentUser?.id else { return nil }
+        return SharePrompt.candidate(in: viewModel.trips, userId: userId, dismissed: dismissedSharePrompts)
+    }
+
+    private func share(_ trip: Trip, includeExpenses: Bool) {
+        isSharingTrip = true
+        Task {
+            let shared = await viewModel.shareWithCommunity(trip, includeExpenses: includeExpenses)
+            isSharingTrip = false
+            if shared {
+                UsageService.track(.sharePromptAccepted, tripId: trip.id)
+                HapticFeedback.success()
+                toast = .success("Shared on Explore")
+            } else {
+                // The card stays where it is, so the button is the retry.
+                HapticFeedback.error()
+                toast = .failure("Couldn't share the trip. Try again.")
+            }
+        }
+    }
+
+    private func dismissSharePrompt(for trip: Trip) {
+        guard let userId = authViewModel.currentUser?.id else { return }
+        SharePrompt.dismiss(trip.id, for: userId)
+        dismissedSharePrompts.insert(trip.id)
+    }
+
     // MARK: - Edit Sheet
 
     private func editTripSheet(for trip: Trip) -> some View {
@@ -104,27 +171,71 @@ struct HomeView: View {
 
     private var greetingHeader: some View {
         VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
-            Text(greetingText)
+            // Functional label
+            Text("My Trips")
                 .font(.subheadline)
                 .foregroundStyle(OuestTheme.Colors.textSecondary)
+                .warmReveal(isVisible: cardsAppeared, delay: 0)
 
-            if let name = authViewModel.currentUser?.fullName?.components(separatedBy: " ").first {
-                Text("My Trips, \(name)")
-                    .font(OuestTheme.Typography.screenTitle)
-            } else {
-                Text("My Trips")
-                    .font(OuestTheme.Typography.screenTitle)
+            // Hero greeting
+            Text(personalGreeting)
+                .font(OuestTheme.Typography.heroTitle)
+                .foregroundStyle(OuestTheme.Colors.textPrimary)
+                .warmReveal(isVisible: cardsAppeared, delay: 0.12)
+
+            // Name + time-of-day icon
+            if let firstName {
+                HStack(spacing: OuestTheme.Spacing.sm) {
+                    Text(firstName)
+                        .font(OuestTheme.Typography.screenTitle)
+                        .foregroundStyle(OuestTheme.Colors.inkGradient)
+
+                    Image(systemName: greetingIcon)
+                        .font(.system(size: 20))
+                        .foregroundStyle(greetingIconGradient)
+                        .bouncyAppear(isVisible: cardsAppeared, delay: 0.35)
+                }
+                .warmReveal(isVisible: cardsAppeared, delay: 0.22)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var greetingText: String {
+    // MARK: - Greeting Helpers
+
+    private var firstName: String? {
+        authViewModel.currentUser?.fullName?.components(separatedBy: " ").first
+    }
+
+    private var personalGreeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        let base: String
+        switch hour {
+        case 5..<12:  base = "Good morning"
+        case 12..<17: base = "Good afternoon"
+        default:      base = "Good evening"
+        }
+        return firstName != nil ? "\(base)," : base
+    }
+
+    private var greetingIcon: String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
-        case 5..<12: return "Good morning"
-        case 12..<17: return "Good afternoon"
-        default: return "Good evening"
+        case 5..<12:  return "sun.max.fill"
+        case 12..<17: return "sun.horizon.fill"
+        default:      return "moon.stars.fill"
+        }
+    }
+
+    private var greetingIconGradient: LinearGradient {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<12:
+            return LinearGradient(colors: [.orange, .yellow], startPoint: .top, endPoint: .bottom)
+        case 12..<17:
+            return LinearGradient(colors: [.orange, .pink], startPoint: .top, endPoint: .bottom)
+        default:
+            return LinearGradient(colors: [.indigo, .purple], startPoint: .top, endPoint: .bottom)
         }
     }
 
@@ -135,7 +246,19 @@ struct HomeView: View {
             LazyVStack(spacing: OuestTheme.Spacing.lg) {
                 // Greeting + title header
                 greetingHeader
-                    .fadeSlideIn(isVisible: cardsAppeared, delay: 0)
+
+                // Offer to share a trip that has just ended
+                if let trip = sharePromptTrip {
+                    SharePromptCard(
+                        trip: trip,
+                        isSharing: isSharingTrip,
+                        onShare: { includeExpenses in share(trip, includeExpenses: includeExpenses) },
+                        onDismiss: { dismissSharePrompt(for: trip) }
+                    )
+                    .id(trip.id)
+                    .transition(.opacity)
+                    .onAppear { SharePrompt.trackShown(trip) }
+                }
 
                 // Featured upcoming trip
                 if let upcoming = viewModel.upcomingTrip {
@@ -144,7 +267,8 @@ struct HomeView: View {
                             TripCardView(
                                 trip: upcoming,
                                 style: .featured,
-                                members: viewModel.membersForTrip(upcoming)
+                                members: viewModel.membersForTrip(upcoming),
+                                namespace: tripCovers
                             )
                         }
                         .buttonStyle(ScaledButtonStyle(scale: 0.98))
@@ -172,10 +296,19 @@ struct HomeView: View {
             }
             .padding(.horizontal, OuestTheme.Spacing.lg)
             .padding(.top, OuestTheme.Spacing.sm)
-            .padding(.bottom, OuestTheme.Spacing.xxxl)
+            .padding(.bottom, OuestTheme.Layout.tabBarInset)
+            .animation(OuestTheme.Anim.smooth, value: sharePromptTrip?.id)
         }
+        .background(
+            LinearGradient(
+                colors: [OuestTheme.Colors.surface, OuestTheme.Colors.surfaceSecondary],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+        )
         .navigationDestination(for: UUID.self) { tripId in
-            TripDetailView(tripId: tripId)
+            TripDetailView(tripId: tripId, zoomSourceId: tripId, zoomNamespace: tripCovers)
                 .environment(authViewModel)
         }
     }
@@ -187,7 +320,8 @@ struct HomeView: View {
                     TripCardView(
                         trip: trip,
                         style: .standard,
-                        members: viewModel.membersForTrip(trip)
+                        members: viewModel.membersForTrip(trip),
+                        namespace: tripCovers
                     )
                 }
                 .buttonStyle(ScaledButtonStyle(scale: 0.98))
@@ -255,12 +389,10 @@ struct HomeView: View {
 
     @ViewBuilder
     private func tripContextMenu(for trip: Trip) -> some View {
-        // Share
-        ShareLink(
-            item: shareText(for: trip),
-            subject: Text(trip.title),
-            message: Text("Check out my trip!")
-        ) {
+        // Share — opens full share sheet with invite link + QR code
+        Button {
+            tripToShare = trip
+        } label: {
             Label("Share Trip", systemImage: "square.and.arrow.up")
         }
 
@@ -302,15 +434,6 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Share Text
-
-    private func shareText(for trip: Trip) -> String {
-        var text = "Check out my trip: \(trip.title) — \(trip.destination)"
-        if let dates = trip.dateRangeText {
-            text += ", \(dates)"
-        }
-        return text
-    }
 
     private func sectionHeader(_ title: String, icon: String) -> some View {
         HStack(spacing: 6) {
@@ -331,36 +454,20 @@ struct HomeView: View {
             greetingHeader
                 .padding(.horizontal, OuestTheme.Spacing.lg)
                 .padding(.top, OuestTheme.Spacing.sm)
-                .fadeSlideIn(isVisible: cardsAppeared, delay: 0)
 
-            Spacer()
-
-            VStack(spacing: OuestTheme.Spacing.md) {
-                Image(systemName: "globe.americas.fill")
-                    .font(.system(size: 56))
-                    .foregroundStyle(OuestTheme.Colors.brandGradient)
-                    .bouncyAppear(isVisible: cardsAppeared, delay: 0)
-
-                Text("Where to next?")
-                    .font(OuestTheme.Typography.screenTitle)
-                    .fadeSlideIn(isVisible: cardsAppeared, delay: 0.15)
-
-                Text("Your trips will appear here.\nCreate one to start planning!")
-                    .font(.subheadline)
-                    .foregroundStyle(OuestTheme.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .fadeSlideIn(isVisible: cardsAppeared, delay: 0.25)
-            }
-
-            OuestButton(title: "Plan a Trip") {
-                showCreateTrip = true
-            }
-            .frame(width: 200)
-            .fadeSlideIn(isVisible: cardsAppeared, delay: 0.35)
-
-            Spacer()
+            OuestEmptyState(
+                symbol: "globe.americas.fill",
+                title: "Where to next?",
+                message: "Your trips land here once you plan one — or join a friend's with a code.",
+                primary: .init("Plan a trip") {
+                    showCreateTrip = true
+                },
+                secondary: .init("Got an invite code?") {
+                    HapticFeedback.light()
+                    showJoinWithCode = true
+                }
+            )
         }
-        .padding(OuestTheme.Spacing.xxxl)
     }
 
     // MARK: - Skeleton Loading
@@ -368,8 +475,13 @@ struct HomeView: View {
     private var skeletonLoadingView: some View {
         ScrollView {
             VStack(spacing: OuestTheme.Spacing.lg) {
-                // Greeting header
-                greetingHeader
+                // Greeting skeleton
+                VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
+                    SkeletonView(width: 70, height: 14)
+                    SkeletonView(width: 200, height: 30)
+                    SkeletonView(width: 90, height: 24)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 // Skeleton featured card
                 SkeletonView(height: 220)

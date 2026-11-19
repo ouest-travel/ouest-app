@@ -6,6 +6,7 @@ struct EditTripView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var coverPreview: Image?
+    @State private var showCountryPicker = false
 
     var body: some View {
         NavigationStack {
@@ -13,12 +14,13 @@ struct EditTripView: View {
                 VStack(spacing: OuestTheme.Spacing.xxl) {
                     coverImagePicker
                     tripDetailsSection
+                    destinationCountriesSection
                     dateSection
                     budgetSection
                     statusSection
                     optionsSection
 
-                    if let error = viewModel.errorMessage {
+                    if let error = viewModel.failureDetail {
                         Text(error)
                             .font(OuestTheme.Typography.caption)
                             .foregroundStyle(OuestTheme.Colors.error)
@@ -45,6 +47,9 @@ struct EditTripView: View {
                     .disabled(viewModel.isSaving || !isFormValid)
                 }
             }
+            .sheet(isPresented: $showCountryPicker) {
+                CountryPickerView(selectedCodes: $viewModel.countryCodes)
+            }
             .onAppear {
                 if let trip = viewModel.trip {
                     viewModel.populateFromTrip(trip)
@@ -65,34 +70,37 @@ struct EditTripView: View {
     // MARK: - Cover Image
 
     private var coverImagePicker: some View {
-        PhotosPicker(selection: $selectedPhoto, matching: .images) {
-            ZStack {
-                if let coverPreview {
-                    coverPreview.resizable().scaledToFill()
-                        .transition(.opacity)
-                } else {
-                    LinearGradient(
-                        colors: [.teal.opacity(0.3), .blue.opacity(0.3)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                }
+        VStack(spacing: OuestTheme.Spacing.sm) {
+            photoPicker
 
-                VStack(spacing: OuestTheme.Spacing.sm) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.title2)
-                        .symbolEffect(.bounce, value: coverPreview != nil)
-                    Text("Change Photo")
-                        .font(OuestTheme.Typography.caption)
-                        .fontWeight(.medium)
+            // Only offered while there's something to reset: a photo the
+            // user picked or uploaded. Stock covers are already the default.
+            if coverPreview != nil && !viewModel.resetCoverToStock {
+                Button {
+                    HapticFeedback.light()
+                    viewModel.resetCoverToStock = true
+                    viewModel.coverImageData = nil
+                    selectedPhoto = nil
+                    withAnimation(OuestTheme.Anim.smooth) {
+                        coverPreview = nil
+                    }
+                } label: {
+                    Label("Use a photo of the destination instead", systemImage: "photo.on.rectangle.angled")
+                        .font(.subheadline)
+                        .foregroundStyle(OuestTheme.Colors.brand)
                 }
-                .foregroundStyle(.white)
-                .padding(OuestTheme.Spacing.md)
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+                .buttonStyle(.plain)
             }
-            .frame(height: 160)
-            .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
+        }
+    }
+
+    private var photoPicker: some View {
+        // PhotosPicker's label closure is @Sendable and nonisolated, so read
+        // main-actor state here and hand the closure plain values.
+        let preview = coverPreview
+        let caption = viewModel.resetCoverToStock ? "Destination photo on save" : "Change Photo"
+        return PhotosPicker(selection: $selectedPhoto, matching: .images) {
+            CoverPickerLabel(preview: preview, caption: caption)
         }
         .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 2)
         .pressEffect(scale: 0.97)
@@ -100,6 +108,7 @@ struct EditTripView: View {
             Task {
                 if let data = try? await selectedPhoto?.loadTransferable(type: Data.self) {
                     viewModel.coverImageData = data
+                    viewModel.resetCoverToStock = false
                     if let uiImage = UIImage(data: data) {
                         withAnimation(OuestTheme.Anim.smooth) {
                             coverPreview = Image(uiImage: uiImage)
@@ -116,6 +125,50 @@ struct EditTripView: View {
             if let (data, _) = try? await URLSession.shared.data(from: url),
                let uiImage = UIImage(data: data) {
                 coverPreview = Image(uiImage: uiImage)
+            }
+        }
+    }
+
+    // MARK: - Destination Countries
+
+    private var destinationCountriesSection: some View {
+        VStack(alignment: .leading, spacing: OuestTheme.Spacing.md) {
+            sectionHeader("Destination Countries", icon: "globe")
+
+            if !viewModel.countryCodes.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: OuestTheme.Spacing.sm) {
+                        ForEach(viewModel.countryCodes, id: \.self) { code in
+                            HStack(spacing: OuestTheme.Spacing.xs) {
+                                Text(EntryRequirementService.flag(for: code))
+                                Text(EntryRequirementService.countryName(for: code))
+                                    .font(OuestTheme.Typography.caption)
+                                    .fontWeight(.medium)
+                            }
+                            .padding(.horizontal, OuestTheme.Spacing.md)
+                            .padding(.vertical, OuestTheme.Spacing.sm)
+                            .background(OuestTheme.Colors.brandLight)
+                            .clipShape(Capsule())
+                        }
+                    }
+                }
+            }
+
+            Button {
+                HapticFeedback.light()
+                showCountryPicker = true
+            } label: {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text(viewModel.countryCodes.isEmpty ? "Add Countries" : "Edit Countries")
+                        .fontWeight(.medium)
+                }
+                .font(.subheadline)
+                .foregroundStyle(OuestTheme.Colors.brand)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, OuestTheme.Spacing.md)
+                .background(OuestTheme.Colors.surfaceSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
             }
         }
     }
@@ -150,28 +203,10 @@ struct EditTripView: View {
             }
 
             if viewModel.hasDates {
-                HStack(spacing: OuestTheme.Spacing.md) {
-                    VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
-                        Text("Start")
-                            .font(OuestTheme.Typography.caption)
-                            .foregroundStyle(OuestTheme.Colors.textSecondary)
-                        DatePicker("", selection: $viewModel.startDate, displayedComponents: .date)
-                            .labelsHidden()
-                    }
-                    Image(systemName: "arrow.right")
-                        .foregroundStyle(OuestTheme.Colors.textSecondary)
-                        .font(.caption)
-                    VStack(alignment: .leading, spacing: OuestTheme.Spacing.xs) {
-                        Text("End")
-                            .font(OuestTheme.Typography.caption)
-                            .foregroundStyle(OuestTheme.Colors.textSecondary)
-                        DatePicker("", selection: $viewModel.endDate, in: viewModel.startDate..., displayedComponents: .date)
-                            .labelsHidden()
-                    }
-                }
-                .padding(OuestTheme.Spacing.md)
-                .background(OuestTheme.Colors.surfaceSecondary)
-                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+                TripDateRangePicker(
+                    startDate: $viewModel.startDate,
+                    endDate: $viewModel.endDate
+                )
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
@@ -286,6 +321,30 @@ struct EditTripView: View {
             .padding(OuestTheme.Spacing.md)
             .background(OuestTheme.Colors.surfaceSecondary)
             .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+
+            // Expenses are the group's money, so sharing them is a separate choice.
+            if viewModel.isPublic {
+                Toggle(isOn: $viewModel.expensesPublic) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "creditcard")
+                            .foregroundStyle(viewModel.expensesPublic ? OuestTheme.Colors.success : OuestTheme.Colors.textSecondary)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: OuestTheme.Spacing.xxs) {
+                            Text("Show expenses")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Text(viewModel.expensesPublic ? "Anyone viewing can see them" : "Only trip members can see them")
+                                .font(OuestTheme.Typography.caption)
+                                .foregroundStyle(OuestTheme.Colors.textSecondary)
+                        }
+                    }
+                }
+                .tint(OuestTheme.Colors.brand)
+                .padding(OuestTheme.Spacing.md)
+                .background(OuestTheme.Colors.surfaceSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+                .transition(.opacity)
+            }
         }
         .animation(OuestTheme.Anim.quick, value: viewModel.isPublic)
     }
@@ -300,6 +359,46 @@ struct EditTripView: View {
             Text(title)
                 .font(OuestTheme.Typography.sectionTitle)
         }
+    }
+}
+
+/// The cover artwork inside the photo picker. Its body runs on the main
+/// actor, which the picker's label closure does not.
+private struct CoverPickerLabel: View {
+    let preview: Image?
+    let caption: String
+
+    var body: some View {
+        ZStack {
+            if let preview {
+                preview.resizable().scaledToFill()
+                    .transition(.opacity)
+            } else {
+                LinearGradient(
+                    colors: [.teal.opacity(0.3), .blue.opacity(0.3)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+
+            VStack(spacing: OuestTheme.Spacing.sm) {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.title2)
+                    .symbolEffect(.bounce, value: preview != nil)
+                Text(caption)
+                    .font(OuestTheme.Typography.caption)
+                    .fontWeight(.medium)
+            }
+            .foregroundStyle(.white)
+            .padding(OuestTheme.Spacing.md)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+        }
+        // Bound width — see TripDetailView for the .scaledToFill +
+        // panoramic-image layout-shift bug this prevents.
+        .frame(maxWidth: .infinity)
+        .frame(height: 160)
+        .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.lg))
     }
 }
 

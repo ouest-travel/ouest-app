@@ -11,7 +11,8 @@ struct TripsViewModelTests {
         let vm = TripsViewModel()
         #expect(vm.trips.isEmpty)
         #expect(vm.isLoading == false)
-        #expect(vm.errorMessage == nil)
+        #expect(vm.failure == nil)
+        #expect(vm.failureDetail == nil)
     }
 
     @Test("Filtered trip arrays work correctly")
