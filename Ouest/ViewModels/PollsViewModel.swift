@@ -12,13 +12,22 @@ final class PollsViewModel {
 
     var failureDetail: String?
 
+    /// Trip members, for showing how many have voted and who has not.
+    var members: [TripMember] = []
+
+    /// Outcome of an action on a poll that is already on screen.
+    var toast: OuestToast?
+
     // MARK: - Form State
 
     var pollTitle = ""
     var pollDescription = ""
     var allowMultiple = false
     var optionTexts: [String] = ["", ""]
+    var deadline: PollDeadline
     var isSaving = false
+    /// Shown in the form when a poll could not be created.
+    var formError: String?
 
     // MARK: - Internal
 
@@ -27,6 +36,7 @@ final class PollsViewModel {
 
     init(trip: Trip) {
         self.trip = trip
+        self.deadline = PollDeadline.suggested(for: trip, now: Date())
     }
 
     // MARK: - Computed
@@ -52,11 +62,19 @@ final class PollsViewModel {
         do {
             currentUserId = try await SupabaseManager.client.auth.session.user.id
             polls = try await PollService.fetchPolls(tripId: trip.id)
+            // Turnout is an extra. If the member list fails the cards fall
+            // back to a plain vote count rather than the whole screen failing.
+            if members.isEmpty, let fetched = try? await TripService.fetchMembers(tripId: trip.id) {
+                members = fetched
+            }
         } catch {
 
             failure = OuestError(error)
 
             failureDetail = error.localizedDescription
+
+            // With polls already on screen the error screen would hide them.
+            if !polls.isEmpty { toast = .failure("Couldn't refresh the polls") }
         }
 
         isLoading = false
@@ -67,10 +85,7 @@ final class PollsViewModel {
     func createPoll() async -> Bool {
         guard let userId = currentUserId else { return false }
         isSaving = true
-
-        failure = nil
-
-        failureDetail = nil
+        formError = nil
 
         do {
             let payload = CreatePollPayload(
@@ -79,7 +94,8 @@ final class PollsViewModel {
                 description: pollDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     ? nil : pollDescription.trimmingCharacters(in: .whitespacesAndNewlines),
                 allowMultiple: allowMultiple,
-                createdBy: userId
+                createdBy: userId,
+                closesAt: deadline.closesAt(from: Date())
             )
 
             let poll = try await PollService.createPoll(payload)
@@ -101,10 +117,7 @@ final class PollsViewModel {
             isSaving = false
             return true
         } catch {
-
-            failure = OuestError(error)
-
-            failureDetail = error.localizedDescription
+            formError = "Couldn't create the poll. Check your connection and try again."
             isSaving = false
             return false
         }
@@ -116,6 +129,14 @@ final class PollsViewModel {
         guard let userId = currentUserId, poll.isOpen else { return }
 
         let alreadyVoted = option.hasVote(by: userId)
+
+        // Show the vote now and save it after, so the card answers the tap.
+        // The reload below replaces this guess with what the server stored.
+        let before = polls
+        if let index = polls.firstIndex(where: { $0.id == poll.id }) {
+            let profile = members.first { $0.userId == userId }?.profile
+            polls[index] = poll.togglingVote(by: userId, profile: profile, on: option.id)
+        }
 
         do {
             if alreadyVoted {
@@ -134,11 +155,24 @@ final class PollsViewModel {
             // Re-fetch to get updated vote data
             await loadPolls()
         } catch {
-
-            failure = OuestError(error)
-
-            failureDetail = error.localizedDescription
+            polls = before
+            toast = .failure("Couldn't save your vote")
+            // A single-choice vote removes the old choice before adding the
+            // new one, so a failure can leave the server between the two.
+            await loadPolls()
         }
+    }
+
+    // MARK: - Turnout
+
+    /// Members who have voted on this poll and members still to vote.
+    /// Both are empty when the member list is not loaded.
+    func turnout(for poll: Poll) -> (voted: [TripMember], waiting: [TripMember]) {
+        let voterIds = poll.voterIds
+        return (
+            members.filter { voterIds.contains($0.userId) },
+            members.filter { !voterIds.contains($0.userId) }
+        )
     }
 
     // MARK: - Close Poll
@@ -150,10 +184,7 @@ final class PollsViewModel {
                 polls[index] = updated
             }
         } catch {
-
-            failure = OuestError(error)
-
-            failureDetail = error.localizedDescription
+            toast = .failure("Couldn't close the poll")
         }
     }
 
@@ -164,10 +195,7 @@ final class PollsViewModel {
             try await PollService.deletePoll(id: poll.id)
             polls.removeAll { $0.id == poll.id }
         } catch {
-
-            failure = OuestError(error)
-
-            failureDetail = error.localizedDescription
+            toast = .failure("Couldn't delete the poll")
         }
     }
 
@@ -188,7 +216,9 @@ final class PollsViewModel {
         pollDescription = ""
         allowMultiple = false
         optionTexts = ["", ""]
+        deadline = PollDeadline.suggested(for: trip, now: Date())
         isSaving = false
+        formError = nil
     }
 
     // MARK: - Permission Helpers

@@ -312,6 +312,254 @@ struct PollModelTests {
         #expect(poll.profile == nil)
     }
 
+    // MARK: - Deadlines
+
+    // The database marks a poll closed on a schedule, a minute or more
+    // behind the clock. The group was told a time, so voting has to stop at
+    // that time, not whenever the status catches up.
+    @Test("Voting stops at the deadline even while the status still says open")
+    func deadlineClosesVoting() {
+        let deadline = Date(timeIntervalSince1970: 1_800_000_000)
+        let poll = Poll(tripId: UUID(), title: "Dinner tonight", status: .open, createdBy: UUID(), closesAt: deadline)
+
+        #expect(poll.isOpen(at: deadline.addingTimeInterval(-1)) == true)
+        #expect(poll.isOpen(at: deadline) == false)
+        #expect(poll.isOpen(at: deadline.addingTimeInterval(3_600)) == false)
+    }
+
+    // A deadline is optional. Polls made before deadlines existed have none
+    // and must not close by themselves.
+    @Test("A poll with no deadline stays open until someone closes it")
+    func noDeadlineStaysOpen() {
+        let poll = Poll(tripId: UUID(), title: "Which month?", status: .open, createdBy: UUID())
+        #expect(poll.isOpen(at: .distantFuture) == true)
+    }
+
+    // The lead can settle a poll before time runs out.
+    @Test("Closing a poll early wins over a deadline still ahead")
+    func closedEarlyStaysClosed() {
+        let poll = Poll(tripId: UUID(), title: "Test", status: .closed, createdBy: UUID(), closesAt: .distantFuture)
+        #expect(poll.isOpen(at: Date()) == false)
+    }
+
+    @Test("Decodes the deadline, and its absence as no deadline")
+    func decodeDeadline() throws {
+        func json(_ extra: String) -> Data {
+            """
+            {
+                "id": "11111111-1111-1111-1111-111111111111",
+                "trip_id": "22222222-2222-2222-2222-222222222222",
+                "title": "Dinner tonight",
+                "created_by": "33333333-3333-3333-3333-333333333333"\(extra)
+            }
+            """.data(using: .utf8)!
+        }
+
+        let timed = try Self.supabaseDecoder.decode(Poll.self, from: json(#", "closes_at": "2026-11-20T19:00:00+00:00""#))
+        #expect(timed.closesAt == ISO8601DateFormatter().date(from: "2026-11-20T19:00:00Z"))
+
+        let untimed = try Self.supabaseDecoder.decode(Poll.self, from: json(""))
+        #expect(untimed.closesAt == nil)
+    }
+
+    // Planning choices can wait for everyone to weigh in. On the trip the
+    // question is where to go today, and a three-day vote answers it too late.
+    @Test("The suggested deadline is three days while planning and three hours on the trip")
+    func suggestedDeadline() {
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let end = start.addingTimeInterval(4 * 86_400)
+        let trip = Trip(
+            id: UUID(), createdBy: UUID(), title: "Lisbon", destination: "Lisbon, Portugal",
+            startDate: start, endDate: end, status: .active, isPublic: false,
+            createdAt: nil, updatedAt: nil
+        )
+
+        #expect(PollDeadline.suggested(for: trip, now: start.addingTimeInterval(-86_400)) == .threeDays)
+        #expect(PollDeadline.suggested(for: trip, now: start) == .threeHours)
+        // The end date marks the start of the last day, and that day is still the trip.
+        #expect(PollDeadline.suggested(for: trip, now: end.addingTimeInterval(12 * 3_600)) == .threeHours)
+        #expect(PollDeadline.suggested(for: trip, now: end.addingTimeInterval(2 * 86_400)) == .threeDays)
+    }
+
+    @Test("A trip without dates gets the planning deadline")
+    func suggestedDeadlineWithoutDates() {
+        let trip = Trip(
+            id: UUID(), createdBy: UUID(), title: "Someday", destination: "Tokyo, Japan",
+            startDate: nil, endDate: nil, status: .planning, isPublic: false,
+            createdAt: nil, updatedAt: nil
+        )
+        #expect(PollDeadline.suggested(for: trip, now: Date()) == .threeDays)
+    }
+
+    @Test("Each deadline choice closes the poll that long after it is created")
+    func deadlineChoices() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        #expect(PollDeadline.none.closesAt(from: now) == nil)
+        #expect(PollDeadline.oneHour.closesAt(from: now) == now.addingTimeInterval(3_600))
+        #expect(PollDeadline.threeHours.closesAt(from: now) == now.addingTimeInterval(10_800))
+        #expect(PollDeadline.oneDay.closesAt(from: now) == now.addingTimeInterval(86_400))
+        #expect(PollDeadline.threeDays.closesAt(from: now) == now.addingTimeInterval(259_200))
+    }
+
+    // "No deadline" must reach the database as no value at all. A null sent
+    // by mistake is harmless, but a missing key is what keeps the choice
+    // from ever being read as a time.
+    @Test("A poll with no deadline sends no closes_at, and one with a deadline does")
+    func createPollPayloadDeadline() throws {
+        func keys(closesAt: Date?) throws -> [String: Any] {
+            let payload = CreatePollPayload(
+                tripId: UUID(), title: "Best beach?", description: nil,
+                allowMultiple: false, createdBy: UUID(), closesAt: closesAt
+            )
+            return try JSONSerialization.jsonObject(with: JSONEncoder().encode(payload)) as! [String: Any]
+        }
+
+        #expect(try keys(closesAt: nil)["closes_at"] == nil)
+        #expect(try keys(closesAt: Date())["closes_at"] != nil)
+        #expect(try keys(closesAt: Date())["closesAt"] == nil)
+    }
+
+    // MARK: - Outcome and turnout
+
+    private static func option(_ title: String, poll: UUID, order: Int, voters: [UUID]) -> PollOption {
+        let id = UUID()
+        return PollOption(
+            id: id, pollId: poll, title: title, sortOrder: order,
+            votes: voters.map { PollVote(pollId: poll, optionId: id, userId: $0) }
+        )
+    }
+
+    // The Decided card names one pick. It must be the option with the most
+    // votes, wherever it sits in the list.
+    @Test("The option with the most votes is the group's pick")
+    func outcomeWinner() throws {
+        let pollId = UUID()
+        let poll = Poll(id: pollId, tripId: UUID(), title: "Dinner", createdBy: UUID(), options: [
+            Self.option("Ramen", poll: pollId, order: 0, voters: [UUID()]),
+            Self.option("Sushi", poll: pollId, order: 1, voters: [UUID(), UUID(), UUID()]),
+        ])
+
+        guard case .winner(let pick) = poll.outcome else {
+            Issue.record("Expected a winner, got \(poll.outcome)")
+            return
+        }
+        #expect(pick.title == "Sushi")
+    }
+
+    // Calling the first of two level options the winner would announce a
+    // decision the group never made. A tie has to be shown as a tie.
+    @Test("Level options are a tie, not a win for whichever comes first")
+    func outcomeTie() {
+        let pollId = UUID()
+        let poll = Poll(id: pollId, tripId: UUID(), title: "Which day?", createdBy: UUID(), options: [
+            Self.option("Saturday", poll: pollId, order: 0, voters: [UUID(), UUID()]),
+            Self.option("Sunday", poll: pollId, order: 1, voters: [UUID(), UUID()]),
+            Self.option("Monday", poll: pollId, order: 2, voters: [UUID()]),
+        ])
+
+        guard case .tie(let level) = poll.outcome else {
+            Issue.record("Expected a tie, got \(poll.outcome)")
+            return
+        }
+        #expect(level.map(\.title) == ["Saturday", "Sunday"])
+    }
+
+    @Test("A poll nobody voted on has no pick")
+    func outcomeNoVotes() {
+        let pollId = UUID()
+        let poll = Poll(id: pollId, tripId: UUID(), title: "Test", createdBy: UUID(), options: [
+            Self.option("A", poll: pollId, order: 0, voters: []),
+            Self.option("B", poll: pollId, order: 1, voters: []),
+        ])
+
+        guard case .noVotes = poll.outcome else {
+            Issue.record("Expected no votes, got \(poll.outcome)")
+            return
+        }
+    }
+
+    // "5 of 7 voted" counts people. In a multiple-choice poll one person
+    // can cast several votes and must still count once.
+    @Test("Turnout counts each person once however many options they chose")
+    func voterIdsAreDistinct() {
+        let pollId = UUID()
+        let amara = UUID()
+        let kemi = UUID()
+        let poll = Poll(id: pollId, tripId: UUID(), title: "Activities", allowMultiple: true, createdBy: UUID(), options: [
+            Self.option("Boat", poll: pollId, order: 0, voters: [amara, kemi]),
+            Self.option("Hike", poll: pollId, order: 1, voters: [amara]),
+        ])
+
+        #expect(poll.totalVotes == 3)
+        #expect(poll.voterIds == [amara, kemi])
+    }
+
+    // A poll set to close in three days should say so when it is created.
+    // Rounding down would show "2d left" one second later.
+    @Test("The countdown rounds to the nearest unit and ends at the deadline")
+    func timeLeftText() {
+        let deadline = Date(timeIntervalSince1970: 1_800_000_000)
+        let poll = Poll(tripId: UUID(), title: "Test", createdBy: UUID(), closesAt: deadline)
+
+        #expect(poll.timeLeftText(at: deadline.addingTimeInterval(-3 * 86_400 + 5)) == "3d left")
+        #expect(poll.timeLeftText(at: deadline.addingTimeInterval(-3 * 3_600 + 5)) == "3h left")
+        #expect(poll.timeLeftText(at: deadline.addingTimeInterval(-45 * 60)) == "45m left")
+        #expect(poll.timeLeftText(at: deadline.addingTimeInterval(-30)) == "<1m left")
+        #expect(poll.timeLeftText(at: deadline) == nil)
+
+        let noDeadline = Poll(tripId: UUID(), title: "Test", createdBy: UUID())
+        #expect(noDeadline.timeLeftText(at: Date()) == nil)
+    }
+
+    // MARK: - Instant votes
+
+    // The card shows a vote the moment it is tapped, before the server has
+    // answered. What it shows has to match what the server will store.
+
+    @Test("In a single-choice poll a new choice replaces the old one")
+    func toggleMovesSingleChoiceVote() {
+        let pollId = UUID()
+        let me = UUID()
+        let ramen = Self.option("Ramen", poll: pollId, order: 0, voters: [me])
+        let sushi = Self.option("Sushi", poll: pollId, order: 1, voters: [UUID()])
+        let poll = Poll(id: pollId, tripId: UUID(), title: "Dinner", createdBy: UUID(), options: [ramen, sushi])
+
+        let after = poll.togglingVote(by: me, profile: nil, on: sushi.id)
+
+        #expect(after.sortedOptions[0].hasVote(by: me) == false)
+        #expect(after.sortedOptions[1].hasVote(by: me) == true)
+        #expect(after.sortedOptions[1].voteCount == 2)
+        #expect(after.totalVotes == 2)
+    }
+
+    @Test("In a multiple-choice poll a new choice keeps the earlier ones")
+    func toggleAddsMultipleChoiceVote() {
+        let pollId = UUID()
+        let me = UUID()
+        let boat = Self.option("Boat", poll: pollId, order: 0, voters: [me])
+        let hike = Self.option("Hike", poll: pollId, order: 1, voters: [])
+        let poll = Poll(id: pollId, tripId: UUID(), title: "Activities", allowMultiple: true, createdBy: UUID(), options: [boat, hike])
+
+        let after = poll.togglingVote(by: me, profile: nil, on: hike.id)
+
+        #expect(after.sortedOptions[0].hasVote(by: me) == true)
+        #expect(after.sortedOptions[1].hasVote(by: me) == true)
+    }
+
+    @Test("Tapping your own choice takes the vote back and leaves other votes alone")
+    func toggleRemovesOwnVote() {
+        let pollId = UUID()
+        let me = UUID()
+        let friend = UUID()
+        let ramen = Self.option("Ramen", poll: pollId, order: 0, voters: [me, friend])
+        let poll = Poll(id: pollId, tripId: UUID(), title: "Dinner", createdBy: UUID(), options: [ramen])
+
+        let after = poll.togglingVote(by: me, profile: nil, on: ramen.id)
+
+        #expect(after.sortedOptions[0].hasVote(by: me) == false)
+        #expect(after.sortedOptions[0].hasVote(by: friend) == true)
+    }
+
     // MARK: - Payload Encoding
 
     @Test("CreatePollPayload encodes with snake_case keys")

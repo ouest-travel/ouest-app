@@ -1,5 +1,4 @@
 import Foundation
-import SwiftUI
 
 // MARK: - Poll Status
 
@@ -20,13 +19,6 @@ enum PollStatus: String, Codable, CaseIterable, Sendable {
         case .closed: "checkmark.seal.fill"
         }
     }
-
-    var color: Color {
-        switch self {
-        case .open: .orange
-        case .closed: .gray
-        }
-    }
 }
 
 // MARK: - Poll
@@ -42,6 +34,9 @@ struct Poll: Codable, Identifiable, Sendable {
     let createdAt: Date?
     var updatedAt: Date?
     var closedAt: Date?
+    /// When voting stops on its own. Nil means the poll stays open until
+    /// someone closes it.
+    var closesAt: Date?
 
     /// Nested from Supabase join
     var options: [PollOption]?
@@ -55,6 +50,7 @@ struct Poll: Codable, Identifiable, Sendable {
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case closedAt = "closed_at"
+        case closesAt = "closes_at"
     }
 
     init(from decoder: Decoder) throws {
@@ -69,6 +65,7 @@ struct Poll: Codable, Identifiable, Sendable {
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt)
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt)
         closedAt = try container.decodeIfPresent(Date.self, forKey: .closedAt)
+        closesAt = try container.decodeIfPresent(Date.self, forKey: .closesAt)
         options = try? container.decodeIfPresent([PollOption].self, forKey: .options)
         profile = try? container.decodeIfPresent(Profile.self, forKey: .profile)
     }
@@ -84,6 +81,7 @@ struct Poll: Codable, Identifiable, Sendable {
         createdAt: Date? = nil,
         updatedAt: Date? = nil,
         closedAt: Date? = nil,
+        closesAt: Date? = nil,
         options: [PollOption]? = nil,
         profile: Profile? = nil
     ) {
@@ -97,13 +95,23 @@ struct Poll: Codable, Identifiable, Sendable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.closedAt = closedAt
+        self.closesAt = closesAt
         self.options = options
         self.profile = profile
     }
 
     // MARK: - Computed
 
-    var isOpen: Bool { status == .open }
+    var isOpen: Bool { isOpen(at: Date()) }
+
+    /// A poll past its deadline is closed even while the stored status still
+    /// says open. The database flips the status on a schedule, and voting
+    /// has to stop on time whether or not that has happened yet.
+    func isOpen(at now: Date) -> Bool {
+        guard status == .open else { return false }
+        guard let closesAt else { return true }
+        return closesAt > now
+    }
 
     var sortedOptions: [PollOption] {
         (options ?? []).sorted { $0.sortOrder < $1.sortOrder }
@@ -111,6 +119,112 @@ struct Poll: Codable, Identifiable, Sendable {
 
     var totalVotes: Int {
         options?.reduce(0) { $0 + $1.voteCount } ?? 0
+    }
+
+    /// Everyone who has voted, counted once however many options they chose.
+    var voterIds: Set<UUID> {
+        Set((options ?? []).flatMap { ($0.votes ?? []).map(\.userId) })
+    }
+
+    /// What the group decided. A tie is its own answer rather than a winner
+    /// picked by option order: someone in the group has to break it.
+    var outcome: PollOutcome {
+        let options = sortedOptions
+        guard let top = options.map(\.voteCount).max(), top > 0 else { return .noVotes }
+        let leaders = options.filter { $0.voteCount == top }
+        return leaders.count == 1 ? .winner(leaders[0]) : .tie(leaders)
+    }
+
+    /// Short countdown for the card, such as "2h left". Rounded to the nearest
+    /// unit so a three-day poll reads "3d left" the moment it is created, not
+    /// "2d". Nil when there is no deadline or it has passed.
+    func timeLeftText(at now: Date) -> String? {
+        guard let closesAt else { return nil }
+        let seconds = closesAt.timeIntervalSince(now)
+        guard seconds > 0 else { return nil }
+        let minutes = (seconds / 60).rounded()
+        let hours = (seconds / 3_600).rounded()
+        let days = (seconds / 86_400).rounded()
+        if seconds < 60 { return "<1m left" }
+        if minutes < 60 { return "\(Int(minutes))m left" }
+        if hours < 24 { return "\(Int(hours))h left" }
+        return "\(Int(days))d left"
+    }
+
+    /// The poll as it will look once this tap is saved, so the card can
+    /// answer at once instead of waiting on the network. Tapping an option
+    /// you already chose takes the vote back. In a single-choice poll a new
+    /// choice replaces the old one.
+    func togglingVote(by userId: UUID, profile: Profile?, on optionId: UUID) -> Poll {
+        var copy = self
+        let hadVote = options?.first { $0.id == optionId }?.hasVote(by: userId) ?? false
+        copy.options = options?.map { option in
+            var option = option
+            if option.id == optionId || !allowMultiple {
+                option.votes?.removeAll { $0.userId == userId }
+            }
+            if option.id == optionId && !hadVote {
+                let vote = PollVote(pollId: id, optionId: optionId, userId: userId, profile: profile)
+                option.votes = (option.votes ?? []) + [vote]
+            }
+            return option
+        }
+        return copy
+    }
+}
+
+// MARK: - Poll Outcome
+
+enum PollOutcome: Sendable {
+    case winner(PollOption)
+    case tie([PollOption])
+    case noVotes
+}
+
+// MARK: - Poll Deadline
+
+/// How long a new poll stays open. The short choices are there because many
+/// group decisions are about today: where to eat tonight cannot wait three days.
+enum PollDeadline: String, CaseIterable, Identifiable, Sendable {
+    case none
+    case oneHour
+    case threeHours
+    case oneDay
+    case threeDays
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .none: "No deadline"
+        case .oneHour: "In 1 hour"
+        case .threeHours: "In 3 hours"
+        case .oneDay: "In 24 hours"
+        case .threeDays: "In 3 days"
+        }
+    }
+
+    private var duration: TimeInterval? {
+        switch self {
+        case .none: nil
+        case .oneHour: 3_600
+        case .threeHours: 3 * 3_600
+        case .oneDay: 86_400
+        case .threeDays: 3 * 86_400
+        }
+    }
+
+    func closesAt(from now: Date) -> Date? {
+        duration.map { now.addingTimeInterval($0) }
+    }
+
+    /// Three days while the group is planning, three hours once the trip is
+    /// under way and the choices are about today.
+    static func suggested(for trip: Trip, now: Date) -> PollDeadline {
+        guard let start = trip.startDate, let end = trip.endDate else { return .threeDays }
+        // The end date is the start of the trip's last day, which still counts.
+        let underWay = now >= start && now < end.addingTimeInterval(86_400)
+        return underWay ? .threeHours : .threeDays
     }
 }
 
@@ -228,12 +342,16 @@ struct CreatePollPayload: Codable, Sendable {
     let description: String?
     let allowMultiple: Bool
     let createdBy: UUID
+    /// Left out of the request when nil, so a poll without a deadline is
+    /// stored with none.
+    var closesAt: Date? = nil
 
     enum CodingKeys: String, CodingKey {
         case title, description
         case tripId = "trip_id"
         case allowMultiple = "allow_multiple"
         case createdBy = "created_by"
+        case closesAt = "closes_at"
     }
 }
 

@@ -4,27 +4,35 @@ struct CreatePollView: View {
     @Bindable var viewModel: PollsViewModel
     let trip: Trip
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var fieldShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: OuestTheme.Radius.md, style: .continuous)
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: OuestTheme.Spacing.xxl) {
-                    // Question / Title
-                    titleSection
-
-                    // Description (optional)
-                    descriptionSection
-
-                    // Options
+                VStack(alignment: .leading, spacing: OuestTheme.Layout.sectionGap) {
+                    questionSection
                     optionsSection
-
-                    // Settings
                     settingsSection
+
+                    if let formError = viewModel.formError {
+                        Label(formError, systemImage: "exclamationmark.circle.fill")
+                            .font(OuestTheme.Typography.caption)
+                            .foregroundStyle(OuestTheme.Colors.errorInk)
+                    }
                 }
-                .padding(.horizontal, OuestTheme.Spacing.xl)
+                .padding(.horizontal, OuestTheme.Layout.pageGutter)
                 .padding(.vertical, OuestTheme.Spacing.lg)
             }
-            .navigationTitle("New Poll")
+            .scrollDismissesKeyboard(.interactively)
+            // A sheet is a surface, and the fields are `fill` so they read
+            // against it. On `background` the two are almost the same colour.
+            .background(OuestTheme.Colors.surface)
+            .navigationTitle("New poll")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -39,7 +47,7 @@ struct CreatePollView: View {
                         Task { await save() }
                     }
                     .fontWeight(.semibold)
-                    .foregroundStyle(OuestTheme.Colors.brand)
+                    .foregroundStyle(OuestTheme.Colors.brandInk)
                     .disabled(!viewModel.isFormValid || viewModel.isSaving)
                     .opacity(viewModel.isFormValid && !viewModel.isSaving ? 1 : 0.4)
                 }
@@ -47,148 +55,136 @@ struct CreatePollView: View {
         }
     }
 
-    // MARK: - Title Section
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title)
+            .font(OuestTheme.Typography.sectionTitle)
+            .foregroundStyle(OuestTheme.Colors.textPrimary)
+            .accessibilityAddTraits(.isHeader)
+    }
 
-    private var titleSection: some View {
+    // MARK: - Question
+
+    private var questionSection: some View {
         VStack(alignment: .leading, spacing: OuestTheme.Spacing.sm) {
-            HStack(spacing: OuestTheme.Spacing.xs) {
-                Image(systemName: "questionmark.circle")
-                    .font(.subheadline)
-                    .foregroundStyle(OuestTheme.Colors.brand)
-                Text("Question")
-                    .font(OuestTheme.Typography.sectionTitle)
-            }
+            sectionTitle("Question")
 
-            OuestTextField(text: $viewModel.pollTitle, placeholder: "What should we decide?")
+            OuestTextField(text: $viewModel.pollTitle, placeholder: "Where should we eat tonight?")
+
+            TextField("Add context (optional)", text: $viewModel.pollDescription, axis: .vertical)
+                .lineLimit(2...5)
+                .font(OuestTheme.Typography.body)
+                .padding(.horizontal, OuestTheme.Spacing.lg)
+                .padding(.vertical, OuestTheme.Spacing.md)
+                .background(OuestTheme.Colors.fill, in: fieldShape)
         }
     }
 
-    // MARK: - Description Section
-
-    private var descriptionSection: some View {
-        VStack(alignment: .leading, spacing: OuestTheme.Spacing.sm) {
-            HStack(spacing: OuestTheme.Spacing.xs) {
-                Image(systemName: "text.alignleft")
-                    .font(.subheadline)
-                    .foregroundStyle(OuestTheme.Colors.brand)
-                Text("Description")
-                    .font(OuestTheme.Typography.sectionTitle)
-
-                Text("(optional)")
-                    .font(OuestTheme.Typography.caption)
-                    .foregroundStyle(OuestTheme.Colors.textSecondary)
-            }
-
-            TextEditor(text: $viewModel.pollDescription)
-                .font(.subheadline)
-                .frame(minHeight: 60, maxHeight: 120)
-                .padding(OuestTheme.Spacing.sm)
-                .background(OuestTheme.Colors.surfaceSecondary)
-                .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
-                .overlay(alignment: .topLeading) {
-                    if viewModel.pollDescription.isEmpty {
-                        Text("Add more context...")
-                            .font(.subheadline)
-                            .foregroundStyle(OuestTheme.Colors.textSecondary.opacity(0.5))
-                            .padding(.horizontal, OuestTheme.Spacing.sm + 4)
-                            .padding(.vertical, OuestTheme.Spacing.sm + 8)
-                            .allowsHitTesting(false)
-                    }
-                }
-        }
-    }
-
-    // MARK: - Options Section
+    // MARK: - Options
 
     private var optionsSection: some View {
         VStack(alignment: .leading, spacing: OuestTheme.Spacing.sm) {
-            HStack(spacing: OuestTheme.Spacing.xs) {
-                Image(systemName: "list.bullet")
-                    .font(.subheadline)
-                    .foregroundStyle(OuestTheme.Colors.brand)
-                Text("Options")
-                    .font(OuestTheme.Typography.sectionTitle)
-            }
+            sectionTitle("Options")
 
             ForEach(viewModel.optionTexts.indices, id: \.self) { index in
                 HStack(spacing: OuestTheme.Spacing.sm) {
-                    // Option number
-                    Text("\(index + 1)")
-                        .font(OuestTheme.Typography.micro)
-                        .fontWeight(.bold)
-                        .foregroundStyle(OuestTheme.Colors.brand)
-                        .frame(width: 20, height: 20)
-                        .background(OuestTheme.Colors.brand.opacity(0.12))
-                        .clipShape(Circle())
-
                     OuestTextField(
                         text: $viewModel.optionTexts[index],
                         placeholder: "Option \(index + 1)"
                     )
 
-                    // Remove button (only if > 2 options)
+                    // Only once there are more than the two a poll needs.
                     if viewModel.optionTexts.count > 2 {
                         Button {
                             HapticFeedback.light()
-                            withAnimation(OuestTheme.Anim.quick) {
+                            withAnimation(reduceMotion ? nil : OuestTheme.Anim.quick) {
                                 viewModel.removeOption(at: index)
                             }
                         } label: {
                             Image(systemName: "minus.circle.fill")
-                                .font(.title3)
-                                .foregroundStyle(.red.opacity(0.7))
-                                .accessibilityLabel("Remove option \(index + 1)")
+                                .font(OuestTheme.Icon.control)
+                                .foregroundStyle(OuestTheme.Colors.errorInk)
+                                .frame(minWidth: 44, minHeight: 44)
+                                .contentShape(Rectangle())
                         }
+                        .accessibilityLabel("Remove option \(index + 1)")
                     }
                 }
             }
 
-            // Add option button
             if viewModel.optionTexts.count < 10 {
                 Button {
                     HapticFeedback.light()
-                    withAnimation(OuestTheme.Anim.quick) {
+                    withAnimation(reduceMotion ? nil : OuestTheme.Anim.quick) {
                         viewModel.addOption()
                     }
                 } label: {
-                    HStack(spacing: OuestTheme.Spacing.sm) {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(OuestTheme.Colors.brand)
-                        Text("Add Option")
-                            .font(.subheadline)
-                            .foregroundStyle(OuestTheme.Colors.brand)
-                    }
-                    .padding(.vertical, OuestTheme.Spacing.sm)
+                    Label("Add option", systemImage: "plus.circle.fill")
+                        .font(OuestTheme.Typography.body)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(OuestTheme.Colors.brandInk)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
                 }
             }
         }
     }
 
-    // MARK: - Settings Section
+    // MARK: - Settings
 
     private var settingsSection: some View {
         VStack(alignment: .leading, spacing: OuestTheme.Spacing.sm) {
-            HStack(spacing: OuestTheme.Spacing.xs) {
-                Image(systemName: "gearshape")
-                    .font(.subheadline)
-                    .foregroundStyle(OuestTheme.Colors.brand)
-                Text("Settings")
-                    .font(OuestTheme.Typography.sectionTitle)
-            }
+            sectionTitle("Settings")
 
             Toggle(isOn: $viewModel.allowMultiple) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Allow multiple votes")
-                        .font(.subheadline)
-                    Text("Members can vote for more than one option")
-                        .font(OuestTheme.Typography.micro)
-                        .foregroundStyle(OuestTheme.Colors.textSecondary)
-                }
+                settingLabel("Allow multiple votes", detail: "Members can vote for more than one option")
             }
-            .tint(OuestTheme.Colors.brand)
+            .tint(OuestTheme.Colors.brandFill)
             .padding(OuestTheme.Spacing.md)
-            .background(OuestTheme.Colors.surfaceSecondary)
-            .clipShape(RoundedRectangle(cornerRadius: OuestTheme.Radius.md))
+            .background(OuestTheme.Colors.fill, in: fieldShape)
+
+            // Side by side there is no room for the choice at the largest
+            // text sizes, so it drops under its label.
+            let stacked = dynamicTypeSize.isAccessibilitySize
+            let row = stacked
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: OuestTheme.Spacing.sm))
+                : AnyLayout(HStackLayout(spacing: OuestTheme.Spacing.sm))
+
+            row {
+                settingLabel(
+                    "Voting closes",
+                    detail: viewModel.deadline == .none
+                        ? "Stays open until someone closes it"
+                        : "Anyone who hasn't voted gets a reminder"
+                )
+
+                if !stacked {
+                    Spacer(minLength: OuestTheme.Spacing.sm)
+                }
+
+                Picker("Voting closes", selection: $viewModel.deadline) {
+                    ForEach(PollDeadline.allCases) { deadline in
+                        Text(deadline.label).tag(deadline)
+                    }
+                }
+                .pickerStyle(.menu)
+                .tint(OuestTheme.Colors.brandInk)
+                .onChange(of: viewModel.deadline) { HapticFeedback.selection() }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(OuestTheme.Spacing.md)
+            .background(OuestTheme.Colors.fill, in: fieldShape)
+        }
+    }
+
+    private func settingLabel(_ title: String, detail: String) -> some View {
+        VStack(alignment: .leading, spacing: OuestTheme.Spacing.xxs) {
+            Text(title)
+                .font(OuestTheme.Typography.body)
+                .foregroundStyle(OuestTheme.Colors.textPrimary)
+            Text(detail)
+                .font(OuestTheme.Typography.caption)
+                .foregroundStyle(OuestTheme.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
