@@ -9,6 +9,7 @@ struct PollCardView: View {
     var canEdit: Bool = true
     @State private var isVoting = false
     @State private var showsAllVotes = false
+    @State private var showsDayPicker = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .title3) private var wellSize: CGFloat = 44
@@ -78,6 +79,15 @@ struct PollCardView: View {
                     .font(OuestTheme.Typography.body)
                     .foregroundStyle(OuestTheme.Colors.textSecondary)
                     .lineLimit(3)
+            }
+
+            // The options of a yes or no poll only say Yes and No, so the
+            // place it is about is named here.
+            if let place = poll.subjectPlace?.locationName, !place.isEmpty {
+                Label(place, systemImage: "mappin.and.ellipse")
+                    .font(OuestTheme.Typography.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(OuestTheme.Colors.brandInk)
             }
 
             optionRows(interactive: true)
@@ -259,6 +269,8 @@ struct PollCardView: View {
             .accessibilityValue(showsAllVotes ? "Expanded" : "Collapsed")
             .accessibilityHint("Shows every vote")
 
+            pickSection
+
             if showsAllVotes {
                 optionRows(interactive: false)
 
@@ -273,6 +285,138 @@ struct PollCardView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .sheet(isPresented: $showsDayPicker) {
+            if let settledPick {
+                AddPickToDaySheet(poll: poll, pick: settledPick, viewModel: viewModel)
+            }
+        }
+    }
+
+    // MARK: - Group pick
+
+    /// The pick once there is one: the clear winner, or the option an
+    /// organiser chose to settle a tie.
+    private var settledPick: PollOption? {
+        switch poll.pickState {
+        case .ready(let pick), .added(let pick), .dismissed(let pick): pick
+        case .none, .needsTieBreak: nil
+        }
+    }
+
+    /// What is left to do with the decision. Owners and editors act on it;
+    /// everyone else sees where it stands.
+    @ViewBuilder
+    private var pickSection: some View {
+        switch poll.pickState {
+        case .none:
+            EmptyView()
+
+        case .needsTieBreak(let leaders):
+            if canEdit {
+                VStack(alignment: .leading, spacing: OuestTheme.Spacing.sm) {
+                    pickNote("It's a tie. Choose the group's pick.")
+                    ForEach(leaders) { option in
+                        Button {
+                            HapticFeedback.medium()
+                            Task { await viewModel.breakTie(poll, choosing: option) }
+                        } label: {
+                            tintedLabel(option.title, symbol: nil)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Choose \(option.title)")
+                    }
+                }
+                .disabled(isResolving)
+            } else {
+                pickNote("Waiting for an organiser to settle the tie.")
+            }
+
+        case .ready(let pick):
+            if canEdit, poll.canAddToItinerary(pick) {
+                // Side by side there is no room for both at the largest
+                // text sizes, so Dismiss drops under the main action.
+                let stacked = dynamicTypeSize.isAccessibilitySize
+                let row = stacked
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: OuestTheme.Spacing.xs))
+                    : AnyLayout(HStackLayout(spacing: OuestTheme.Spacing.md))
+
+                row {
+                    Button {
+                        HapticFeedback.light()
+                        showsDayPicker = true
+                    } label: {
+                        tintedLabel("Add to itinerary", symbol: "calendar.badge.plus")
+                    }
+                    .buttonStyle(.plain)
+
+                    Button("Dismiss") {
+                        HapticFeedback.light()
+                        Task { await viewModel.dismissPick(of: poll) }
+                    }
+                    .font(OuestTheme.Typography.body)
+                    .foregroundStyle(OuestTheme.Colors.textSecondary)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
+                }
+                .disabled(isResolving)
+            }
+
+        case .added:
+            pill("In the itinerary", symbol: "checkmark", style: .active)
+
+        case .dismissed(let pick):
+            if poll.canAddToItinerary(pick) {
+                HStack(spacing: OuestTheme.Spacing.sm) {
+                    pickNote("Not added to the itinerary.")
+                    Spacer(minLength: OuestTheme.Spacing.sm)
+                    if canEdit {
+                        Button("Add it") {
+                            HapticFeedback.light()
+                            showsDayPicker = true
+                        }
+                        .font(OuestTheme.Typography.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(OuestTheme.Colors.brandInk)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
+                        // The 44pt target would make this row taller than
+                        // its one line of text, so it overlaps the padding.
+                        .padding(.vertical, -OuestTheme.Spacing.md)
+                    }
+                }
+            }
+        }
+    }
+
+    private var isResolving: Bool { viewModel.resolvingPollId == poll.id }
+
+    private func pickNote(_ text: String) -> some View {
+        Text(text)
+            .font(OuestTheme.Typography.caption)
+            .foregroundStyle(OuestTheme.Colors.textSecondary)
+    }
+
+    /// A quiet filled button. Several decided cards can be on screen at
+    /// once, and a solid brand button on each would shout.
+    private func tintedLabel(_ text: String, symbol: String?) -> some View {
+        HStack(spacing: OuestTheme.Spacing.sm) {
+            if let symbol {
+                Image(systemName: symbol)
+            }
+            Text(text)
+                .multilineTextAlignment(.leading)
+        }
+        .font(OuestTheme.Typography.body)
+        .fontWeight(.semibold)
+        .foregroundStyle(OuestTheme.Colors.brandInk)
+        .padding(.horizontal, OuestTheme.Spacing.lg)
+        .padding(.vertical, OuestTheme.Spacing.sm)
+        .frame(maxWidth: .infinity, minHeight: 44)
+        .background(
+            OuestTheme.Colors.brandLight,
+            in: RoundedRectangle(cornerRadius: OuestTheme.Radius.md, style: .continuous)
+        )
+        .contentShape(Rectangle())
     }
 
     private var outcomeWell: some View {
@@ -321,23 +465,34 @@ struct PollCardView: View {
     private var outcomeSymbol: String {
         switch poll.outcome {
         case .winner: "trophy.fill"
-        case .tie: "equal.circle.fill"
+        case .tie: settledPick == nil ? "equal.circle.fill" : "trophy.fill"
         case .noVotes: "minus.circle"
         }
     }
 
     private var outcomeTitle: String {
         switch poll.outcome {
-        case .winner(let option): option.title
-        case .tie(let options): "Tie: " + options.map(\.title).formatted(.list(type: .and))
+        case .winner(let option): pickTitle(option)
+        case .tie(let options):
+            settledPick.map(pickTitle)
+                ?? "Tie: " + options.map(\.title).formatted(.list(type: .and))
         case .noVotes: "No votes"
         }
+    }
+
+    /// A yes or no answer on its own says little once the question has
+    /// scrolled away, so it carries the place it was about.
+    private func pickTitle(_ option: PollOption) -> String {
+        guard poll.kind == .yesNo, option.hasPlace,
+              let place = option.locationName, !place.isEmpty else { return option.title }
+        return "\(option.title) to \(place)"
     }
 
     private var outcomeDetail: String? {
         switch poll.outcome {
         case .winner(let option): "\(option.voteCount) of \(poll.totalVotes)"
-        case .tie(let options): options.first.map { "\($0.voteCount) each" }
+        case .tie(let options):
+            settledPick == nil ? options.first.map { "\($0.voteCount) each" } : "Tie settled"
         case .noVotes: nil
         }
     }
@@ -391,6 +546,176 @@ struct PollCardView: View {
 /// burst, a sheen crosses the row and the phone taps. Taking a vote back gets
 /// none of that. Under Reduce Motion the pop, sheen and flying particles drop
 /// away and the haptic, tick and bar still mark the vote.
+// MARK: - Add Pick To Day
+
+/// Choose the day the group's pick goes into. The day whose stops are
+/// nearest the place is offered first, so the pick lands where the group
+/// will already be.
+private struct AddPickToDaySheet: View {
+    let poll: Poll
+    let pick: PollOption
+    let viewModel: PollsViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedDayId: UUID?
+    @State private var failed = false
+
+    private var days: [ItineraryDay] {
+        viewModel.days.sorted { $0.dayNumber < $1.dayNumber }
+    }
+
+    private var closestDay: ItineraryDay? { pick.nearestDay(in: viewModel.days) }
+    private var selectedDay: ItineraryDay? { days.first { $0.id == selectedDayId } }
+    private var isAdding: Bool { viewModel.resolvingPollId == poll.id }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if viewModel.isLoadingDays {
+                    ProgressView()
+                        .accessibilityLabel("Loading days")
+                } else if days.isEmpty, viewModel.daysFailed {
+                    OuestEmptyState(
+                        symbol: "wifi.exclamationmark",
+                        title: "Couldn't load the days",
+                        message: "Check your connection and try again.",
+                        primary: .init("Try again") { Task { await viewModel.loadDays() } }
+                    )
+                } else if days.isEmpty {
+                    OuestEmptyState(
+                        symbol: "calendar",
+                        title: "Add a day first",
+                        message: "The itinerary has no days yet. Add one there, then come back to place this pick."
+                    )
+                } else {
+                    dayList
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(OuestTheme.Colors.surface)
+            .navigationTitle("Add to itinerary")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundStyle(OuestTheme.Colors.textSecondary)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Add") { add() }
+                        .fontWeight(.semibold)
+                        .foregroundStyle(OuestTheme.Colors.brandInk)
+                        .disabled(selectedDay == nil || isAdding)
+                        .opacity(selectedDay == nil || isAdding ? 0.4 : 1)
+                }
+            }
+            .task {
+                await viewModel.loadDays()
+                if selectedDayId == nil { selectedDayId = closestDay?.id }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private var dayList: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: OuestTheme.Spacing.sm) {
+                Text(poll.activityTitle(for: pick))
+                    .font(OuestTheme.Typography.sectionTitle)
+                    .foregroundStyle(OuestTheme.Colors.textPrimary)
+                    .accessibilityAddTraits(.isHeader)
+
+                Text(closestDay == nil
+                     ? "Choose the day it belongs to."
+                     : "Choose a day. One is marked as closest to what is already planned.")
+                    .font(OuestTheme.Typography.caption)
+                    .foregroundStyle(OuestTheme.Colors.textSecondary)
+                    .padding(.bottom, OuestTheme.Spacing.xs)
+
+                ForEach(days) { day in
+                    dayRow(day)
+                }
+
+                if failed {
+                    Label("Couldn't add it. Check your connection and try again.",
+                          systemImage: "exclamationmark.circle.fill")
+                        .font(OuestTheme.Typography.caption)
+                        .foregroundStyle(OuestTheme.Colors.errorInk)
+                }
+            }
+            .padding(.horizontal, OuestTheme.Layout.pageGutter)
+            .padding(.vertical, OuestTheme.Spacing.lg)
+        }
+    }
+
+    private func dayRow(_ day: ItineraryDay) -> some View {
+        let isSelected = day.id == selectedDayId
+        let stops = day.activities?.count ?? 0
+        let shape = RoundedRectangle(cornerRadius: OuestTheme.Radius.md, style: .continuous)
+
+        return Button {
+            HapticFeedback.selection()
+            selectedDayId = day.id
+        } label: {
+            HStack(spacing: OuestTheme.Spacing.sm) {
+                VStack(alignment: .leading, spacing: OuestTheme.Spacing.xxs) {
+                    Text(day.displayTitle)
+                        .font(OuestTheme.Typography.body)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(OuestTheme.Colors.textPrimary)
+
+                    Group {
+                        if stops == 0 {
+                            Text("Nothing planned yet")
+                        } else {
+                            Text("^[\(stops) stop](inflect: true)")
+                        }
+                    }
+                    .font(OuestTheme.Typography.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(OuestTheme.Colors.textSecondary)
+
+                    if day.id == closestDay?.id {
+                        Text("Closest")
+                            .font(OuestTheme.Typography.micro)
+                            .foregroundStyle(OuestTheme.Colors.brandInk)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .multilineTextAlignment(.leading)
+
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(OuestTheme.Icon.control)
+                    .foregroundStyle(isSelected ? OuestTheme.Colors.brandFill : OuestTheme.Colors.textTertiary)
+            }
+            .padding(OuestTheme.Spacing.md)
+            .frame(minHeight: 44)
+            .background(OuestTheme.Colors.fill, in: shape)
+            .overlay {
+                if isSelected {
+                    shape.strokeBorder(OuestTheme.Colors.brandFill, lineWidth: 1.5)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func add() {
+        guard let day = selectedDay else { return }
+        failed = false
+        Task {
+            if await viewModel.addPick(of: poll, to: day) {
+                HapticFeedback.success()
+                dismiss()
+            } else {
+                HapticFeedback.error()
+                failed = true
+            }
+        }
+    }
+}
+
 private struct PollOptionRow: View {
     let option: PollOption
     /// This option's part of all votes, 0 to 1.

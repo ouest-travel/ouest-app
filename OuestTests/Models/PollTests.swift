@@ -560,6 +560,272 @@ struct PollModelTests {
         #expect(after.sortedOptions[0].hasVote(by: friend) == true)
     }
 
+    // MARK: - Kinds and places
+
+    @Test("Decodes the poll kind, and a poll saved before kinds existed as a text poll")
+    func decodesKind() throws {
+        func poll(_ kindField: String) throws -> Poll {
+            let json = """
+            {"id":"\(UUID().uuidString)","trip_id":"\(UUID().uuidString)","title":"Dinner",
+             "created_by":"\(UUID().uuidString)"\(kindField)}
+            """
+            return try Self.supabaseDecoder.decode(Poll.self, from: Data(json.utf8))
+        }
+
+        #expect(try poll(#","kind":"place""#).kind == .place)
+        #expect(try poll(#","kind":"yes_no""#).kind == .yesNo)
+        #expect(try poll("").kind == .text)
+        // A kind added by a newer build must not empty the whole polls list.
+        #expect(try poll(#","kind":"ranked""#).kind == .text)
+    }
+
+    @Test("An option carries its place, and one without coordinates has none")
+    func decodesOptionPlace() throws {
+        let json = """
+        {"id":"\(UUID().uuidString)","poll_id":"\(UUID().uuidString)","title":"Time Out Market",
+         "location_name":"Av. 24 de Julho, Lisbon","latitude":38.7069,"longitude":-9.1459,"category":"food"}
+        """
+        let option = try Self.supabaseDecoder.decode(PollOption.self, from: Data(json.utf8))
+
+        #expect(option.hasPlace)
+        #expect(option.locationName == "Av. 24 de Julho, Lisbon")
+        #expect(option.category == .food)
+        #expect(!PollOption(pollId: UUID(), title: "Somewhere nice").hasPlace)
+    }
+
+    // MARK: - Group pick
+
+    /// A closed poll where each option has the given number of votes.
+    private static func decided(
+        votes: [Int],
+        pickedIndex: Int? = nil,
+        added: Bool = false,
+        dismissed: Bool = false
+    ) -> Poll {
+        let pollId = UUID()
+        let options = votes.enumerated().map { index, count in
+            PollOption(
+                pollId: pollId,
+                title: "Option \(index)",
+                sortOrder: index,
+                votes: (0..<count).map { _ in
+                    PollVote(pollId: pollId, optionId: UUID(), userId: UUID())
+                }
+            )
+        }
+        return Poll(
+            id: pollId,
+            tripId: UUID(),
+            title: "Dinner",
+            status: .closed,
+            createdBy: UUID(),
+            pickedOptionId: pickedIndex.map { options[$0].id },
+            addedActivityId: added ? UUID() : nil,
+            pickDismissedAt: dismissed ? Date() : nil,
+            options: options
+        )
+    }
+
+    @Test("A clear winner is ready to add without anyone choosing it")
+    func clearWinnerIsReady() {
+        guard case .ready(let pick) = Self.decided(votes: [1, 3, 0]).pickState else {
+            Issue.record("Expected the winner to be ready")
+            return
+        }
+        #expect(pick.title == "Option 1")
+    }
+
+    @Test("A tie waits for an organiser, and offers only the options that tied")
+    func tieNeedsBreaking() {
+        guard case .needsTieBreak(let leaders) = Self.decided(votes: [2, 2, 1]).pickState else {
+            Issue.record("Expected a tie to need breaking")
+            return
+        }
+        #expect(leaders.map(\.title) == ["Option 0", "Option 1"])
+    }
+
+    @Test("The organiser's choice settles a tie")
+    func tieBrokenByChoice() {
+        guard case .ready(let pick) = Self.decided(votes: [2, 2, 1], pickedIndex: 1).pickState else {
+            Issue.record("Expected the chosen option to be the pick")
+            return
+        }
+        #expect(pick.title == "Option 1")
+    }
+
+    @Test("A choice outside the tie does not override the group's votes")
+    func choiceOutsideTieIgnored() {
+        // Option 2 lost. Choosing it must not make it the pick.
+        guard case .needsTieBreak = Self.decided(votes: [2, 2, 1], pickedIndex: 2).pickState else {
+            Issue.record("A losing option must not become the pick")
+            return
+        }
+    }
+
+    @Test("A poll nobody voted on leaves nothing to add")
+    func noVotesNoPick() {
+        guard case .none = Self.decided(votes: [0, 0]).pickState else {
+            Issue.record("Expected no pick without votes")
+            return
+        }
+    }
+
+    @Test("A pick in the itinerary reads as added, even if it was dismissed before")
+    func addedWinsOverDismissed() {
+        guard case .added = Self.decided(votes: [3, 1], added: true, dismissed: true).pickState else {
+            Issue.record("Expected the pick to read as added")
+            return
+        }
+        guard case .dismissed = Self.decided(votes: [3, 1], dismissed: true).pickState else {
+            Issue.record("Expected the pick to read as dismissed")
+            return
+        }
+    }
+
+    // MARK: - Options by kind
+
+    private static let market = PollPlace(
+        name: "Time Out Market", address: "Av. 24 de Julho, Lisbon",
+        latitude: 38.7069, longitude: -9.1459, category: .food
+    )
+    private static let bistro = PollPlace(
+        name: "Bairro do Avillez", address: nil,
+        latitude: 38.7115, longitude: -9.1420, category: .food
+    )
+
+    @Test("A text poll saves the typed options, in order, without the blanks")
+    func textOptions() {
+        let options = CreatePollOptionPayload.options(
+            for: .text, pollId: UUID(), texts: ["  Pizza ", "", "Sushi"], places: [Self.market], yesNoPlace: nil
+        )
+        #expect(options.map(\.title) == ["Pizza", "Sushi"])
+        #expect(options.map(\.sortOrder) == [0, 1])
+        // Places left over from another kind must not leak into a text poll.
+        #expect(options.allSatisfy { $0.latitude == nil && !$0.writesPlaceFields })
+    }
+
+    @Test("A yes or no poll is always Yes then No, with its place on Yes")
+    func yesNoOptions() {
+        let options = CreatePollOptionPayload.options(
+            for: .yesNo, pollId: UUID(), texts: ["ignored", "also ignored"], places: [], yesNoPlace: Self.market
+        )
+        #expect(options.map(\.title) == ["Yes", "No"])
+        #expect(options[0].locationName == "Time Out Market")
+        #expect(options[0].latitude == 38.7069)
+        #expect(options[1].latitude == nil)
+        // One has a place and one has not, so both must write the same keys.
+        #expect(options.allSatisfy { $0.writesPlaceFields })
+    }
+
+    @Test("A yes or no poll about no place sends no place fields")
+    func yesNoWithoutPlace() {
+        let options = CreatePollOptionPayload.options(
+            for: .yesNo, pollId: UUID(), texts: [], places: [], yesNoPlace: nil
+        )
+        #expect(options.map(\.title) == ["Yes", "No"])
+        #expect(options.allSatisfy { !$0.writesPlaceFields })
+    }
+
+    @Test("A place poll has one option per place, named after it and carrying where it is")
+    func placeOptions() {
+        let options = CreatePollOptionPayload.options(
+            for: .place, pollId: UUID(), texts: ["ignored"], places: [Self.market, Self.bistro], yesNoPlace: nil
+        )
+        #expect(options.map(\.title) == ["Time Out Market", "Bairro do Avillez"])
+        #expect(options.map(\.locationName) == ["Time Out Market", "Bairro do Avillez"])
+        #expect(options[1].longitude == -9.1420)
+        #expect(options.allSatisfy { $0.category == .food && $0.writesPlaceFields })
+    }
+
+    @Test("The same place from two search results counts once, and a different branch does not")
+    func samePlace() {
+        let again = PollPlace(name: "time out market", address: nil,
+                              latitude: 38.70692, longitude: -9.14588, category: .activity)
+        let otherBranch = PollPlace(name: "Time Out Market", address: nil,
+                                    latitude: 40.7128, longitude: -74.0060, category: .food)
+        #expect(Self.market.isSamePlace(as: again))
+        #expect(!Self.market.isSamePlace(as: otherBranch))
+        #expect(!Self.market.isSamePlace(as: Self.bistro))
+    }
+
+    @Test("Only an answer with a place can go into the itinerary from a yes or no poll")
+    func yesNoAddability() {
+        let pollId = UUID()
+        let yes = PollOption(pollId: pollId, title: "Yes", sortOrder: 0,
+                             locationName: "Time Out Market", latitude: 38.7069, longitude: -9.1459)
+        let no = PollOption(pollId: pollId, title: "No", sortOrder: 1)
+        let yesNo = Poll(id: pollId, tripId: UUID(), title: "Dinner here?", createdBy: UUID(),
+                         kind: .yesNo, options: [no, yes])
+        let text = Poll(tripId: UUID(), title: "Dinner", createdBy: UUID(), options: [no])
+
+        #expect(yesNo.canAddToItinerary(yes))
+        // "No" as an itinerary activity would be nonsense.
+        #expect(!yesNo.canAddToItinerary(no))
+        // A typed option has no place either, but it names a plan.
+        #expect(text.canAddToItinerary(no))
+
+        #expect(yesNo.subjectPlace?.locationName == "Time Out Market")
+        #expect(text.subjectPlace == nil)
+    }
+
+    // MARK: - Adding the pick to a day
+
+    @Test("The pick is offered the day whose stops are nearest, not the first day")
+    func nearestDayIsSuggested() {
+        let tripId = UUID()
+        func day(_ number: Int, stops: [(Double, Double)?]) -> ItineraryDay {
+            let dayId = UUID()
+            return ItineraryDay(
+                id: dayId, tripId: tripId, dayNumber: number,
+                activities: stops.map { stop in
+                    Activity(dayId: dayId, title: "Stop", latitude: stop?.0, longitude: stop?.1)
+                }
+            )
+        }
+        // Le Marais, where the pick is.
+        let pick = PollOption(pollId: UUID(), title: "Breizh Café", latitude: 48.8606, longitude: 2.3619)
+
+        let versailles = day(1, stops: [(48.8049, 2.1204)])
+        let marais = day(2, stops: [(48.8049, 2.1204), (48.8600, 2.3600)])
+        let unmapped = day(3, stops: [nil])
+        let empty = day(4, stops: [])
+
+        // Day 2 has one stop far away and one round the corner: the near one counts.
+        #expect(pick.nearestDay(in: [versailles, marais, unmapped, empty])?.dayNumber == 2)
+        // With nothing on the map there is nothing to be near, so no day is pushed.
+        #expect(pick.nearestDay(in: [unmapped, empty]) == nil)
+        // A typed option has no place to measure from.
+        #expect(PollOption(pollId: UUID(), title: "Pizza").nearestDay(in: [versailles, marais]) == nil)
+    }
+
+    @Test("Two days equally near go to the earlier one")
+    func nearestDayTieGoesEarlier() {
+        let tripId = UUID()
+        func day(_ number: Int) -> ItineraryDay {
+            let dayId = UUID()
+            return ItineraryDay(id: dayId, tripId: tripId, dayNumber: number, activities: [
+                Activity(dayId: dayId, title: "Stop", latitude: 48.86, longitude: 2.36)
+            ])
+        }
+        let pick = PollOption(pollId: UUID(), title: "Breizh Café", latitude: 48.8606, longitude: 2.3619)
+        #expect(pick.nearestDay(in: [day(3), day(1), day(2)])?.dayNumber == 1)
+    }
+
+    @Test("A yes answer goes into the itinerary under its place's name, not the word Yes")
+    func activityTitleForPick() {
+        let pollId = UUID()
+        let yes = PollOption(pollId: pollId, title: "Yes", locationName: "Time Out Market",
+                             latitude: 38.7069, longitude: -9.1459)
+        let place = PollOption(pollId: pollId, title: "Breizh Café", locationName: "Breizh Café",
+                               latitude: 48.8606, longitude: 2.3619)
+        let yesNo = Poll(tripId: UUID(), title: "Dinner here?", createdBy: UUID(), kind: .yesNo)
+        let places = Poll(tripId: UUID(), title: "Dinner", createdBy: UUID(), kind: .place)
+
+        #expect(yesNo.activityTitle(for: yes) == "Time Out Market")
+        #expect(places.activityTitle(for: place) == "Breizh Café")
+        #expect(places.activityTitle(for: PollOption(pollId: pollId, title: "Pizza")) == "Pizza")
+    }
+
     // MARK: - Payload Encoding
 
     @Test("CreatePollPayload encodes with snake_case keys")
@@ -605,6 +871,55 @@ struct PollModelTests {
 
         #expect(dict["pollId"] == nil)
         #expect(dict["sortOrder"] == nil)
+    }
+
+    @Test("A text poll sends no kind and no place fields, so it saves on a database without them")
+    func textPollPayloadIsUnchanged() throws {
+        let poll = CreatePollPayload(tripId: UUID(), title: "Dinner", description: nil,
+                                     allowMultiple: false, createdBy: UUID())
+        let option = CreatePollOptionPayload(pollId: UUID(), title: "Pizza", sortOrder: 0)
+
+        let pollKeys = try Self.keys(of: poll)
+        let optionKeys = try Self.keys(of: option)
+
+        #expect(!pollKeys.contains("kind"))
+        #expect(optionKeys == ["poll_id", "title", "sort_order"])
+    }
+
+    @Test("In a poll with places every option sends the same keys, or the batch insert is rejected")
+    func placeOptionsShareKeys() throws {
+        let pollId = UUID()
+        let yes = CreatePollOptionPayload(
+            pollId: pollId, title: "Yes", sortOrder: 0,
+            locationName: "Time Out Market", latitude: 38.7069, longitude: -9.1459,
+            category: .food, writesPlaceFields: true
+        )
+        let no = CreatePollOptionPayload(pollId: pollId, title: "No", sortOrder: 1, writesPlaceFields: true)
+
+        let yesKeys = try Self.keys(of: yes)
+        let noKeys = try Self.keys(of: no)
+        #expect(yesKeys == noKeys)
+
+        let data = try JSONEncoder().encode(yes)
+        let dict = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        #expect(dict["location_name"] as? String == "Time Out Market")
+        #expect(dict["category"] as? String == "food")
+        #expect(dict["writesPlaceFields"] == nil)
+    }
+
+    @Test("A place poll sends its kind")
+    func placePollSendsKind() throws {
+        let payload = CreatePollPayload(tripId: UUID(), title: "Dinner", description: nil,
+                                        allowMultiple: false, createdBy: UUID(), kind: .yesNo)
+        let data = try JSONEncoder().encode(payload)
+        let dict = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        #expect(dict["kind"] as? String == "yes_no")
+    }
+
+    private static func keys(of value: some Encodable) throws -> Set<String> {
+        let data = try JSONEncoder().encode(value)
+        let dict = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        return Set(dict.keys)
     }
 
     @Test("CreatePollVotePayload encodes with snake_case keys")

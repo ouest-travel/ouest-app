@@ -4,8 +4,10 @@ import Foundation
 
 enum PollService {
 
-    /// Deeply nested select: poll → options → votes → voter profile, plus poll creator profile
-    private static let pollSelect = "*, profile:profiles!polls_created_by_fkey(*), options:poll_options(*, votes:poll_votes(*, profile:profiles!poll_votes_user_id_fkey(*)))"
+    /// Deeply nested select: poll → options → votes → voter profile, plus poll creator profile.
+    /// The options link is named so that a second link between the two
+    /// tables can never make the request ambiguous and fail the whole list.
+    private static let pollSelect = "*, profile:profiles!polls_created_by_fkey(*), options:poll_options!poll_options_poll_id_fkey(*, votes:poll_votes(*, profile:profiles!poll_votes_user_id_fkey(*)))"
 
     // MARK: - Polls CRUD
 
@@ -58,6 +60,33 @@ enum PollService {
             .from("polls")
             .delete()
             .eq("id", value: id)
+            .execute()
+    }
+
+    // MARK: - Group Pick
+
+    // These three go through database functions. An editor who did not
+    // create the poll cannot update it directly, and adding the pick writes
+    // the activity and the poll together or not at all.
+
+    /// Settle a tie by choosing one of the tied options.
+    static func breakTie(pollId: UUID, optionId: UUID) async throws {
+        try await SupabaseManager.client
+            .rpc("break_poll_tie", params: ["_poll_id": pollId.uuidString, "_option_id": optionId.uuidString])
+            .execute()
+    }
+
+    /// Put the group's pick into a day of the itinerary.
+    static func addPickToDay(pollId: UUID, dayId: UUID) async throws {
+        try await SupabaseManager.client
+            .rpc("add_poll_pick_to_day", params: ["_poll_id": pollId.uuidString, "_day_id": dayId.uuidString])
+            .execute()
+    }
+
+    /// Mark the pick as one the group is not adding.
+    static func dismissPick(pollId: UUID) async throws {
+        try await SupabaseManager.client
+            .rpc("dismiss_poll_pick", params: ["_poll_id": pollId.uuidString])
             .execute()
     }
 
