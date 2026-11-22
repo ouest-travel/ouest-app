@@ -7,7 +7,10 @@ final class TripsViewModel {
     var trips: [Trip] = []
     var tripMembers: [UUID: [TripMemberPreview]] = [:]
     var isLoading = false
-    var errorMessage: String?
+
+    var failure: OuestError?
+
+    var failureDetail: String?
 
     /// Filtered trips by status
     var planningTrips: [Trip] { trips.filter { $0.status == .planning } }
@@ -29,7 +32,10 @@ final class TripsViewModel {
 
     func fetchTrips() async {
         isLoading = trips.isEmpty // Only show loading on first load
-        errorMessage = nil
+
+        failure = nil
+
+        failureDetail = nil
 
         do {
             trips = try await TripService.fetchMyTrips()
@@ -42,7 +48,10 @@ final class TripsViewModel {
                 tripMembers = Dictionary(grouping: allMembers, by: \.tripId)
             }
         } catch {
-            errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
 
         isLoading = false
@@ -55,7 +64,34 @@ final class TripsViewModel {
             tripMembers.removeValue(forKey: trip.id)
             return true
         } catch {
-            errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
+            return false
+        }
+    }
+
+    /// Make a trip public so it shows in Explore, with or without its
+    /// expenses. Returns whether it worked, so the caller can confirm it or
+    /// let the person try again.
+    func shareWithCommunity(_ trip: Trip, includeExpenses: Bool) async -> Bool {
+        do {
+            let updated = try await TripService.updateTrip(
+                id: trip.id,
+                UpdateTripPayload(
+                    isPublic: true,
+                    expensesPublic: trip.expensesPublicChange(to: includeExpenses)
+                )
+            )
+            if let index = trips.firstIndex(where: { $0.id == trip.id }) {
+                trips[index] = updated
+            }
+            return true
+        } catch {
+            #if DEBUG
+            print("[Trips] shareWithCommunity failed: \(error)")
+            #endif
             return false
         }
     }
@@ -70,7 +106,10 @@ final class TripsViewModel {
                 trips[index] = updated
             }
         } catch {
-            errorMessage = error.localizedDescription
+
+            failure = OuestError(error)
+
+            failureDetail = error.localizedDescription
         }
     }
 }

@@ -5,7 +5,8 @@ enum SupabaseManager {
     /// Custom JSON decoder that handles both PostgreSQL `timestamptz` ("2026-02-26T18:25:00+00:00")
     /// and `date` ("2026-02-26") column types. The default supabase-swift decoder only handles
     /// timestamps, causing decode failures on date-only columns like `start_date` and `end_date`.
-    private static let postgrestDecoder: JSONDecoder = {
+    /// Shared decoder, also used by Realtime record decoding.
+    static let postgrestDecoder: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
@@ -25,11 +26,15 @@ enum SupabaseManager {
                 return date
             }
 
-            // Try date-only format (e.g. "2026-02-26") — PostgreSQL `date` columns
+            // Try date-only format (e.g. "2026-02-26") — PostgreSQL `date` columns.
+            // Decoded as *local* midnight: a `date` has no timezone, and every
+            // display path (DateFormatter, .formatted, Calendar.current) is
+            // local. UTC midnight here showed "Nov 4" for a Nov 5 trip to
+            // anyone west of Greenwich.
             let dateOnly = DateFormatter()
             dateOnly.dateFormat = "yyyy-MM-dd"
             dateOnly.locale = Locale(identifier: "en_US_POSIX")
-            dateOnly.timeZone = TimeZone(identifier: "UTC")
+            dateOnly.timeZone = .current
             if let date = dateOnly.date(from: string) {
                 return date
             }
@@ -46,7 +51,8 @@ enum SupabaseManager {
         supabaseURL: URL(string: Secrets.supabaseURL)!,
         supabaseKey: Secrets.supabaseAnonKey,
         options: .init(
-            db: .init(decoder: postgrestDecoder)
+            db: .init(decoder: postgrestDecoder),
+            auth: .init(emitLocalSessionAsInitialSession: true)
         )
     )
 }

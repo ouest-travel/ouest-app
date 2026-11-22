@@ -1,0 +1,32 @@
+{
+  "5C1E7A42-9B3D-4F8E-A1C6-2D7F0B9E8A31" : {
+    "cameraTransform" : [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0.9659258,
+      -0.25881904,
+      0,
+      0,
+      0.25881904,
+      0.9659258,
+      0,
+      0.02,
+      0.11,
+      0.32,
+      1
+    ],
+    "objectMetadataList" : [
+      [
+        "5C1E7A42-9B3D-4F8E-A1C6-2D7F0B9E8A31",
+        "Root"
+      ],
+      {
+        "isExpanded" : true,
+        "isLocked" : false
+      }
+    ]
+  }
+}

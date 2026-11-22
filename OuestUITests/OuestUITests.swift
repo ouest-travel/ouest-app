@@ -5,6 +5,7 @@ final class OuestUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    @MainActor
     func testAppLaunches() throws {
         let app = XCUIApplication()
         app.launch()

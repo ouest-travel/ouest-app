@@ -1,0 +1,58 @@
+# SwiftLint config — Ouest
+#
+# Deliberately minimal. Only the two rules the design brief §Regression
+# guard names: flag any numeric literal to `.padding(` or `cornerRadius:`
+# under Ouest/Views/, so new views can't reintroduce hardcoded 12 / 16 /
+# 20 that Phase 2 replaced with Spacing / Radius / Layout tokens.
+#
+# Existing built-in rules are left in their defaults; adopting the full
+# SwiftLint ruleset is out of scope for this pass. If SwiftLint isn't
+# installed locally, the file is harmless — Xcode ignores it unless a
+# Build Phase invokes swiftlint.
+
+included:
+  - Ouest
+
+excluded:
+  - .build
+  - .swiftpm
+  - build
+  - DerivedData
+
+# We don't need every default rule firing here — just our custom two.
+# Disabling most helps prevent this file from becoming a noise generator
+# until the team has a chance to adopt more rules deliberately.
+disabled_rules:
+  - line_length
+  - trailing_whitespace
+  - trailing_comma
+  - opening_brace
+  - identifier_name
+  - type_name
+  - todo
+  - orphaned_doc_comment
+  - large_tuple
+  - function_body_length
+  - type_body_length
+  - file_length
+  - cyclomatic_complexity
+  - function_parameter_count
+
+custom_rules:
+  ouest_no_literal_padding:
+    name: "Hard-coded padding in a view"
+    regex: '\.padding\(\s*(?:\.(?:horizontal|vertical|top|bottom|leading|trailing)\s*,\s*)?-?\d+(?:\.\d+)?\s*\)'
+    message: >
+      Use a Spacing / Layout token instead of a numeric literal:
+      .padding(OuestTheme.Spacing.md) / .padding(.horizontal, OuestTheme.Layout.pageGutter).
+    included: "Ouest/Views/.*\\.swift"
+    severity: warning
+
+  ouest_no_literal_corner_radius:
+    name: "Hard-coded corner radius in a view"
+    regex: 'cornerRadius:\s*-?\d+(?:\.\d+)?'
+    message: >
+      Use a Radius token instead of a numeric literal:
+      cornerRadius: OuestTheme.Radius.md / .lg / .xl.
+    included: "Ouest/Views/.*\\.swift"
+    severity: warning

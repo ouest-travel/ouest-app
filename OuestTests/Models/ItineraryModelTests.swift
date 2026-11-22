@@ -21,7 +21,9 @@ struct ItineraryModelTests {
         #expect(ActivityCategory.food.label == "Food")
         #expect(ActivityCategory.transport.label == "Transport")
         #expect(ActivityCategory.activity.label == "Activity")
-        #expect(ActivityCategory.accommodation.label == "Accommodation")
+        // "Stay", not "Accommodation" — the long word hyphenates in the
+        // 4-column category chip grid on Add Expense / Add Activity.
+        #expect(ActivityCategory.accommodation.label == "Stay")
         #expect(ActivityCategory.other.label == "Other")
     }
 

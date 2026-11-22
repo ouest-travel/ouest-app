@@ -19,9 +19,10 @@ DerivedData/
 xcuserdata/
 
 # Swift Package Manager
+# (Packages/ holds our own local packages such as the Reality Composer Pro
+# content, so it is tracked; Xcode checks dependencies out under DerivedData.)
 .build/
 .swiftpm/
-Packages/
 Package.pins
 Package.resolved
 
@@ -59,3 +60,16 @@ fastlane/test_output
 # Supabase
 supabase/.branches
 supabase/.temp
+
+# Apple Push Notification private key — NEVER commit
+APN key/
+
+# Local build output + marketing assets
+build/
+app-store-screenshots/
+
+# Agent/tooling scratch
+.agents/
+.claude/worktrees/
+# Per-machine Claude Code permissions; records shell commands verbatim, so it can hold secrets
+.claude/settings.local.json

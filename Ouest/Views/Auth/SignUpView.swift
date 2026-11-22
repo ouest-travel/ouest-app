@@ -40,12 +40,15 @@ struct SignUpView: View {
 
             VStack(spacing: 16) {
                 OuestTextField(text: $fullName, placeholder: "Full Name")
+                    .textInputAutocapitalization(.words)
 
                 OuestTextField(
                     text: $email,
                     placeholder: "Email",
                     keyboardType: .emailAddress
                 )
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
 
                 OuestTextField(
                     text: $password,
@@ -88,6 +91,12 @@ struct SignUpView: View {
             }
             .disabled(!passwordsMatch || email.isEmpty || fullName.isEmpty)
 
+            Text("By continuing, you agree to Ouest's [Terms of Use](https://links.ouest.travel/terms) and [Privacy Policy](https://links.ouest.travel/privacy).")
+                .font(OuestTheme.Typography.caption)
+                .foregroundStyle(OuestTheme.Colors.textSecondary)
+                .tint(OuestTheme.Colors.brandInk)
+                .multilineTextAlignment(.center)
+
             Spacer()
         }
         .padding(.horizontal, 24)
@@ -100,7 +109,7 @@ struct SignUpView: View {
             Spacer()
 
             Image(systemName: "envelope.badge.fill")
-                .font(.system(size: 64))
+                .font(.system(size: OuestTheme.Icon.hero))
                 .foregroundStyle(.green)
 
             VStack(spacing: 8) {
