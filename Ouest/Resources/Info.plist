@@ -30,7 +30,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>19</string>
+	<string>20</string>
 	<key>DEV_SIGNIN_EMAIL</key>
 	<string>$(DEV_SIGNIN_EMAIL)</string>
 	<key>DEV_SIGNIN_PASSWORD</key>
